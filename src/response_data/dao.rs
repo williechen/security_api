@@ -4,7 +4,7 @@ use super::model::ResponseData;
 
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: ResponseData,
+    data: &ResponseData,
 ) -> Result<(usize, Vec<ResponseData>), sqlx::Error> {
     let mut select_str = r#" 
         SELECT row_id
@@ -54,16 +54,37 @@ pub async fn read_all(
     let mut query = sqlx::query(&select_str);
 
     if data.data_content.is_some() {
-        query = query.bind(data.data_content);
+        query = query.bind(&data.data_content);
     }
     if data.data_code.is_some() {
-        query = query.bind(data.data_code);
+        query = query.bind(&data.data_code);
     }
     if data.read_date.is_some() {
-        query = query.bind(data.read_date);
+        query = query.bind(&data.read_date);
     }
 
     match query
+        .map(|row: PgRow| ResponseData {
+            row_id: row.get("row_id"),
+            data_content: row.get("data_content"),
+            data_code: row.get("data_code"),
+            read_date: row.get("read_date"),
+            created_date: row.get("created_date"),
+            updated_date: row.get("updated_date"),
+        })
+        .fetch_all(&mut **transaction)
+        .await
+    {
+        Ok(rows) => Ok((rows.len(), rows)),
+        Err(_) => Ok((0, vec![])),
+    }
+}
+
+pub async fn read_all_by_sql(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    sql: &str,
+) -> Result<(usize, Vec<ResponseData>), sqlx::Error> {
+    match sqlx::query(sql)
         .map(|row: PgRow| ResponseData {
             row_id: row.get("row_id"),
             data_content: row.get("data_content"),

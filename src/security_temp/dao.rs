@@ -135,6 +135,35 @@ pub async fn read_all(
     }
 }
 
+pub async fn read_all_by_sql(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    sql: &str,
+) -> Result<(usize, Vec<SecurityTemp>), sqlx::Error> {
+    match sqlx::query(sql)
+        .map(|row: PgRow| SecurityTemp {
+            row_id: row.get("row_id"),
+            version_code: row.get("version_code"),
+            international_code: row.get("international_code"),
+            security_code: row.get("security_code"),
+            security_name: row.get("security_name"),
+            market_type: row.get("market_type"),
+            security_type: row.get("security_type"),
+            industry_type: row.get("industry_type"),
+            issue_date: row.get("issue_date"),
+            cfi_code: row.get("cfi_code"),
+            remark: row.get("remark"),
+            is_enabled: row.get("is_enabled"),
+            created_date: row.get("created_date"),
+            updated_date: row.get("updated_date"),
+        })
+        .fetch_all(&mut **transaction)
+        .await
+    {
+        Ok(rows) => Ok((rows.len(), rows)),
+        Err(_) => Ok((0, vec![])),
+    }
+}
+
 pub async fn read(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     row_id: &str,

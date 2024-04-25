@@ -8,7 +8,6 @@ pub async fn read_all(
 ) -> Result<(usize, Vec<SecurityTask>), sqlx::Error> {
     let mut select_str = r#" 
         SELECT row_id
-             , security_url
              , market_type
              , security_code
              , issue_date
@@ -98,7 +97,32 @@ pub async fn read_all(
     match query
         .map(|row: PgRow| SecurityTask {
             row_id: row.get("row_id"),
-            security_url: row.get("security_url"),
+            market_type: row.get("market_type"),
+            security_code: row.get("security_code"),
+            issue_date: row.get("issue_date"),
+            twse_date: row.get("twse_date"),
+            tpex_date: row.get("tpex_date"),
+            security_seed: row.get("security_seed"),
+            is_enabled: row.get("is_enabled"),
+            sort_no: row.get("sort_no"),
+            created_date: row.get("created_date"),
+            updated_date: row.get("updated_date"),
+        })
+        .fetch_all(&mut **transaction)
+        .await
+    {
+        Ok(rows) => Ok((rows.len(), rows)),
+        Err(_) => Ok((0, vec![])),
+    }
+}
+
+pub async fn read_all_by_sql(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    sql: &str,
+) -> Result<(usize, Vec<SecurityTask>), sqlx::Error> {
+    match sqlx::query(sql)
+        .map(|row: PgRow| SecurityTask {
+            row_id: row.get("row_id"),
             market_type: row.get("market_type"),
             security_code: row.get("security_code"),
             issue_date: row.get("issue_date"),
@@ -125,7 +149,6 @@ pub async fn read(
     match sqlx::query(
         r#"
         SELECT row_id
-             , security_url
              , market_type
              , security_code
              , issue_date
@@ -142,7 +165,6 @@ pub async fn read(
     .bind(row_id)
     .map(|row: PgRow| SecurityTask {
         row_id: row.get("row_id"),
-        security_url: row.get("security_url"),
         market_type: row.get("market_type"),
         security_code: row.get("security_code"),
         issue_date: row.get("issue_date"),
@@ -168,8 +190,7 @@ pub async fn create(
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" INSERT INTO security_task(
-               security_url
-             , market_type
+               market_type
              , security_code
              , issue_date
              , twse_date
@@ -177,9 +198,8 @@ pub async fn create(
              , security_seed
              , is_enabled
              , sort_no
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)  "#,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)  "#,
     )
-    .bind(data.security_url)
     .bind(data.market_type)
     .bind(data.security_code)
     .bind(data.issue_date)
@@ -202,20 +222,18 @@ pub async fn update(
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" UPDATE security_task
-            SET security_url= $1
-              , market_type= $2
-              , security_code= $3
-              , issue_date= $4
-              , twse_date= $5
-              , tpex_date= $6
-              , security_seed= $7
-              , is_enabled= $8
-              , sort_no= $9
-              , updated_date = $10
-            WHERE row_id = $11
+            SET market_type= $1
+              , security_code= $2
+              , issue_date= $3
+              , twse_date= $4
+              , tpex_date= $5
+              , security_seed= $6
+              , is_enabled= $7
+              , sort_no= $8
+              , updated_date = $9
+            WHERE row_id = $10
           "#,
     )
-    .bind(data.security_url)
     .bind(data.market_type)
     .bind(data.security_code)
     .bind(data.issue_date)

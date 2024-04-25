@@ -3,7 +3,6 @@ use chrono::NaiveDateTime;
 #[derive(Debug, Clone)]
 pub struct SecurityTask {
     pub row_id: Option<String>,
-    pub security_url: Option<String>,
     pub market_type: Option<String>,
     pub security_code: Option<String>,
     pub issue_date: Option<String>,
@@ -20,7 +19,6 @@ impl SecurityTask {
     pub fn new() -> Self {
         SecurityTask {
             row_id: None,
-            security_url: None,
             market_type: None,
             security_code: None,
             issue_date: None,
@@ -40,7 +38,6 @@ impl std::fmt::Display for SecurityTask {
         write!(
             f,
             r#"{:?}, 
-            security_url: {:?}, 
             market_type: {:?}, 
             security_code: {:?}, 
             issue_date: {:?}, 
@@ -53,7 +50,6 @@ impl std::fmt::Display for SecurityTask {
             updated_date: {:?}
             "#,
             self.row_id,
-            self.security_url,
             self.market_type,
             self.security_code,
             self.issue_date,

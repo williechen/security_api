@@ -1,7 +1,6 @@
 -- Add up migration script here
 CREATE TABLE security_task (
     row_id varchar not null default uuid_generate_v4(),
-    security_url varchar not null default '',
     market_type varchar not null default '',
     security_code varchar not null default '',
     issue_date varchar not null default '',
@@ -25,7 +24,6 @@ CREATE INDEX security_task_sort_no_idx ON security_task USING btree (sort_no);
 COMMENT ON TABLE security_task IS 'This is my table.';
 
 COMMENT ON COLUMN security_task.row_id IS 'Employee ID number';
-COMMENT ON COLUMN security_task.security_url IS 'Employee ID number';
 COMMENT ON COLUMN security_task.market_type IS 'Employee ID number';
 COMMENT ON COLUMN security_task.security_code IS 'Employee ID number';
 COMMENT ON COLUMN security_task.issue_date IS 'Employee ID number';

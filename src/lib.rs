@@ -1,39 +1,61 @@
+use chrono::Local;
+use tracing::{event, Level};
+
+use crate::response_data::{model::ResponseData, web_service};
+
 mod response_data;
 mod security_task;
 mod security_temp;
 
-use response_data::{dao as resDao, model::ResponseData};
-use security_task::{dao as taskDao, model::SecurityTask};
-use security_temp::{dao as tempDao, model::SecurityTemp};
-use tracing::{event, Level};
-
 pub async fn get_security_all_code(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "my_api", Level::DEBUG, "call get_security_all_code");
+
     let mut transaction = pool.begin().await?;
 
-    let d = SecurityTemp {
+    let now = Local::now().naive_local();
+
+    let query_response_data = ResponseData {
         row_id: None,
-        version_code: None,
-        international_code: None,
-        security_code: None,
-        security_name: None,
-        market_type: None,
-        security_type: None,
-        industry_type: None,
-        issue_date: None,
-        cfi_code: None,
-        remark: None,
-        is_enabled: None,
-        created_date: None,
-        updated_date: None,
+        data_content: None,
+        data_code: Some("seecurity".to_string()),
+        read_date: Some(now.format("%Y%m%d").to_string()),
+        created_date: Some(now),
+        updated_date: Some(now),
     };
 
-    match tempDao::read_all(&mut transaction, d).await {
-        Ok(rows) => {
-            println!("{:?}", rows);
-        }
-        Err(e) => {
-            event!(target: "my_api", Level::DEBUG, "{}" , e);
-        }
+    let data = response_data::dao::read_all(&mut transaction, &query_response_data).await?;
+    if data.0 <= 0 {
+        let content = web_service::get_web_security_data().await?;
+
+        let response_data = ResponseData {
+            row_id: None,
+            data_content: Some(content),
+            data_code: Some("seecurity".to_string()),
+            read_date: Some(now.format("%Y%m%d").to_string()),
+            created_date: Some(now),
+            updated_date: Some(now),
+        };
+
+        match response_data::dao::create(&mut transaction, response_data).await {
+            Ok(_) => transaction.commit().await?,
+            Err(_) => transaction.rollback().await?,
+        };
     }
+
+    Ok(())
+}
+
+pub async fn get_security_to_temp(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "my_api", Level::DEBUG, "call get_security_to_temp");
+    Ok(())
+}
+
+pub async fn get_temp_to_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "my_api", Level::DEBUG, "call get_temp_to_task");
+    Ok(())
+}
+
+pub async fn get_task_run(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "my_api", Level::DEBUG, "call get_task_run");
     Ok(())
 }

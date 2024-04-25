@@ -1,4 +1,7 @@
+use std::env;
+
 use sqlx::postgres::PgPoolOptions;
+use tracing::{event, Level};
 use tracing_subscriber::fmt::format::FmtSpan;
 
 #[tokio::main]
@@ -19,10 +22,20 @@ async fn main() {
         Err(e) => panic!("Couldn't establish DB connection: {}", e),
     };
 
-    //sqlx::migrate!()
-    //    .run(&db_pool)
-    //    .await
-    //    .expect("Cannot run migration");
+    sqlx::migrate!()
+        .run(&db_pool)
+        .await
+        .expect("Cannot run migration");
 
-    security_api::get_security_all_code(&db_pool).await.unwrap();
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 0 {
+        let action_code = args[1].as_str();
+        match action_code {
+            "get_web_security" => security_api::get_security_all_code(&db_pool).await.unwrap(),
+            "res_to_temp" => security_api::get_security_to_temp(&db_pool).await.unwrap(),
+            "temp_to_task" => security_api::get_temp_to_task(&db_pool).await.unwrap(),
+            "task_run" => security_api::get_task_run(&db_pool).await.unwrap(),
+            _ => event!(target: "my_api", Level::DEBUG, "{:?}", args[1]),
+        }
+    }
 }
