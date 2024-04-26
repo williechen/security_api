@@ -1,10 +1,11 @@
 use sqlx::{postgres::PgRow, Row};
+use tracing::{event, Level};
 
 use super::model::SecurityTask;
 
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: SecurityTask,
+    data: &SecurityTask,
 ) -> Result<(usize, Vec<SecurityTask>), sqlx::Error> {
     let mut select_str = r#" 
         SELECT row_id
@@ -79,16 +80,16 @@ pub async fn read_all(
     let mut query = sqlx::query(&select_str);
 
     if data.market_type.is_some() {
-        query = query.bind(data.market_type);
+        query = query.bind(&data.market_type);
     }
     if data.security_code.is_some() {
-        query = query.bind(data.security_code);
+        query = query.bind(&data.security_code);
     }
     if data.issue_date.is_some() {
-        query = query.bind(data.issue_date);
+        query = query.bind(&data.issue_date);
     }
     if data.twse_date.is_some() {
-        query = query.bind(data.twse_date);
+        query = query.bind(&data.twse_date);
     }
     if data.is_enabled.is_some() {
         query = query.bind(data.is_enabled);
@@ -138,7 +139,10 @@ pub async fn read_all_by_sql(
         .await
     {
         Ok(rows) => Ok((rows.len(), rows)),
-        Err(_) => Ok((0, vec![])),
+        Err(e) => {
+            event!(target: "my_api", Level::ERROR, "{:?}", e);
+            Ok((0, vec![]))
+        }
     }
 }
 

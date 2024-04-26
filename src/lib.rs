@@ -84,5 +84,6 @@ pub async fn get_temp_to_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::er
 
 pub async fn get_task_run(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "my_api", Level::DEBUG, "call get_task_run");
+    security_task::service::get_all_task(pool).await?;
     Ok(())
 }
