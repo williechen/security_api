@@ -1,7 +1,10 @@
 use chrono::Local;
 use tracing::{event, Level};
 
-use crate::response_data::{model::ResponseData, web_service};
+use crate::{
+    response_data::{model::ResponseData, web_service},
+    security_temp::model::SecurityTemp,
+};
 
 mod response_data;
 mod security_task;
@@ -23,8 +26,8 @@ pub async fn get_security_all_code(pool: &sqlx::PgPool) -> Result<(), Box<dyn st
         updated_date: Some(now),
     };
 
-    let data = response_data::dao::read_all(&mut transaction, &query_response_data).await?;
-    if data.0 <= 0 {
+    let data_list = response_data::dao::read_all(&mut transaction, &query_response_data).await?;
+    if data_list.0 <= 0 {
         let content = web_service::get_web_security_data().await?;
 
         let response_data = ResponseData {
@@ -47,11 +50,35 @@ pub async fn get_security_all_code(pool: &sqlx::PgPool) -> Result<(), Box<dyn st
 
 pub async fn get_security_to_temp(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "my_api", Level::DEBUG, "call get_security_to_temp");
+
+    let mut transaction = pool.begin().await?;
+
+    let now = Local::now().naive_local();
+
+    let query_response_data = ResponseData {
+        row_id: None,
+        data_content: None,
+        data_code: Some("seecurity".to_string()),
+        read_date: Some(now.format("%Y%m%d").to_string()),
+        created_date: Some(now),
+        updated_date: Some(now),
+    };
+
+    let data_list = response_data::dao::read_all(&mut transaction, &query_response_data).await?;
+    if data_list.0 > 0 {
+        if let Some(data) = data_list.1.get(0) {
+            if let Some(data_content) = &data.data_content {
+                security_temp::service::insert_temp_data(pool, data_content).await?
+            }
+        }
+    }
+
     Ok(())
 }
 
 pub async fn get_temp_to_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "my_api", Level::DEBUG, "call get_temp_to_task");
+    security_task::service::insert_task_data(pool).await?;
     Ok(())
 }
 
