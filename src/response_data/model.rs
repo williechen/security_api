@@ -1,4 +1,4 @@
-use chrono::{Local, NaiveDateTime};
+use chrono::NaiveDateTime;
 
 #[derive(Debug, Clone)]
 pub struct ResponseData {

@@ -17,6 +17,7 @@ pub async fn read_all(
              , security_seed
              , is_enabled
              , sort_no
+             , retry_count
              , created_date
              , updated_date
           FROM security_task
@@ -106,6 +107,7 @@ pub async fn read_all(
             security_seed: row.get("security_seed"),
             is_enabled: row.get("is_enabled"),
             sort_no: row.get("sort_no"),
+            retry_count: row.get("retry_count"),
             created_date: row.get("created_date"),
             updated_date: row.get("updated_date"),
         })
@@ -132,6 +134,7 @@ pub async fn read_all_by_sql(
             security_seed: row.get("security_seed"),
             is_enabled: row.get("is_enabled"),
             sort_no: row.get("sort_no"),
+            retry_count: row.get("retry_count"),
             created_date: row.get("created_date"),
             updated_date: row.get("updated_date"),
         })
@@ -161,6 +164,7 @@ pub async fn read(
              , security_seed
              , is_enabled
              , sort_no
+             , retry_count
              , created_date
              , updated_date
           FROM security_task
@@ -177,6 +181,7 @@ pub async fn read(
         security_seed: row.get("security_seed"),
         is_enabled: row.get("is_enabled"),
         sort_no: row.get("sort_no"),
+        retry_count: row.get("retry_count"),
         created_date: row.get("created_date"),
         updated_date: row.get("updated_date"),
     })
@@ -202,7 +207,8 @@ pub async fn create(
              , security_seed
              , is_enabled
              , sort_no
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)  "#,
+             , retry_count
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)  "#,
     )
     .bind(data.market_type)
     .bind(data.security_code)
@@ -212,6 +218,7 @@ pub async fn create(
     .bind(data.security_seed)
     .bind(data.is_enabled)
     .bind(data.sort_no)
+    .bind(data.retry_count)
     .execute(&mut **transaction)
     .await
     {
@@ -234,8 +241,9 @@ pub async fn update(
               , security_seed= $6
               , is_enabled= $7
               , sort_no= $8
-              , updated_date = $9
-            WHERE row_id = $10
+              , retry_count = $9
+              , updated_date = $10
+            WHERE row_id = $11
           "#,
     )
     .bind(data.market_type)
@@ -246,6 +254,7 @@ pub async fn update(
     .bind(data.security_seed)
     .bind(data.is_enabled)
     .bind(data.sort_no)
+    .bind(data.retry_count)
     .bind(data.updated_date)
     .bind(data.row_id)
     .execute(&mut **transaction)

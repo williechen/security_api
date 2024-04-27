@@ -1,10 +1,7 @@
 use chrono::Local;
 use tracing::{event, Level};
 
-use crate::{
-    response_data::{model::ResponseData, web_service},
-    security_temp::model::SecurityTemp,
-};
+use crate::response_data::{model::ResponseData, web_service};
 
 mod response_data;
 mod security_task;

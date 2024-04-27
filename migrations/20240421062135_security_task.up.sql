@@ -9,6 +9,7 @@ CREATE TABLE security_task (
     security_seed varchar not null default '',
     is_enabled integer not null default 0,
     sort_no integer not null default 99999,
+    retry_count integer not null default 0,
     created_date timestamp not null default now(),
     updated_date timestamp not null default now(),
     CONSTRAINT security_task_key PRIMARY KEY (row_id)
@@ -32,5 +33,6 @@ COMMENT ON COLUMN security_task.tpex_date IS 'Employee ID number';
 COMMENT ON COLUMN security_task.security_seed IS 'Employee ID number';
 COMMENT ON COLUMN security_task.is_enabled IS 'Employee ID number';
 COMMENT ON COLUMN security_task.sort_no IS 'Employee ID number';
+COMMENT ON COLUMN security_task.retry_count IS 'Employee ID number';
 COMMENT ON COLUMN security_task.created_date IS 'Employee ID number';
 COMMENT ON COLUMN security_task.updated_date IS 'Employee ID number';

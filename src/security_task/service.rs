@@ -38,13 +38,13 @@ async fn loop_date_temp_data(
         };
 
         for y in (issue_date.year()..=now.year()).rev() {
-            let mut me = (1..=12).rev();
+            let mut me = (1..13).rev();
             if issue_date.year() == y && issue_date.year() == now.year() {
-                me = (1..=now.month0()).rev();
+                me = (issue_date.month()..now.month()).rev();
             } else if now.year() == y {
-                me = (1..=now.month0()).rev();
+                me = (1..now.month()).rev();
             } else if issue_date.year() == y {
-                me = (issue_date.month()..=12).rev();
+                me = (issue_date.month()..13).rev();
             }
 
             for m in me {
@@ -87,6 +87,7 @@ async fn loop_date_temp_data(
                         security_seed: Some(security_seed),
                         is_enabled: Some(1),
                         sort_no: Some(sort_no),
+                        retry_count: Some(0),
                         created_date: Some(now),
                         updated_date: Some(now),
                     };
@@ -127,7 +128,7 @@ async fn select_temp_to_twse(
                   WHERE version_code='{}' 
                     AND market_type in ('上市')
                     AND security_type in ('ETF', 'ETN', '股票', '特別股', '轉換公司債', '交換公司債')
-                  ORDER BY market_type, security_type, security_code, issue_date
+                  ORDER BY security_code, issue_date, market_type, security_type
             "#, date.format("%Y%m%d"))).await{
             Ok(rows) => Ok(rows.1),
             Err(e) => Ok(vec![])
@@ -157,7 +158,7 @@ async fn select_temp_to_tpex(
                   WHERE version_code='{}' 
                     AND market_type in ('上櫃', '興櫃')
                     AND security_type in ('ETF', 'ETN', '股票', '特別股', '轉換公司債', '交換公司債')
-                    ORDER BY market_type, security_type, security_code, issue_date
+                    ORDER BY security_code, issue_date, market_type, security_type
             "#,date.format("%Y%m%d"))).await{
                 Ok(rows) => Ok(rows.1),
                 Err(e) => Ok(vec![])
@@ -221,7 +222,7 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
             time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
         } else {
             event!(target: "my_api", Level::DEBUG, "{:?}<>{:?}", next_market_type, market_type);
-            time::sleep(time::Duration::from_secs(rng.gen_range(2..4))).await;
+            time::sleep(time::Duration::from_secs(rng.gen_range(3..6))).await;
         }
 
         next_market_type = security.market_type;
@@ -245,6 +246,7 @@ async fn select_all_task(
         , security_seed 
         , is_enabled
         , sort_no
+        , retry_count
         , created_date
         , updated_date
      FROM security_task
@@ -280,6 +282,10 @@ async fn add_res_data(
 
     let mut security_task = data.clone();
     security_task.is_enabled = Some(0);
+    security_task.retry_count = match security_task.retry_count {
+        Some(v) => Some(v + 1),
+        None => Some(0),
+    };
 
     dao::update(transaction, security_task.to_owned()).await?;
 

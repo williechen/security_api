@@ -11,6 +11,7 @@ pub struct SecurityTask {
     pub security_seed: Option<String>,
     pub is_enabled: Option<i32>,
     pub sort_no: Option<i32>,
+    pub retry_count: Option<i32>,
     pub created_date: Option<NaiveDateTime>,
     pub updated_date: Option<NaiveDateTime>,
 }
@@ -27,6 +28,7 @@ impl SecurityTask {
             security_seed: None,
             is_enabled: None,
             sort_no: None,
+            retry_count: None,
             created_date: None,
             updated_date: None,
         }
@@ -46,6 +48,7 @@ impl std::fmt::Display for SecurityTask {
             security_seed: {:?}, 
             is_enabled: {:?}, 
             sort_no: {:?}, 
+            retry_count: {:?},
             created_date: {:?}, 
             updated_date: {:?}
             "#,
@@ -58,6 +61,7 @@ impl std::fmt::Display for SecurityTask {
             self.security_seed,
             self.is_enabled,
             self.sort_no,
+            self.retry_count,
             self.created_date,
             self.updated_date
         )
