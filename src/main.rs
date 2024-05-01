@@ -28,7 +28,7 @@ async fn main() {
         .expect("Cannot run migration");
 
     let args: Vec<String> = env::args().collect();
-    if args.len() > 0 {
+    if args.len() > 1 {
         let action_code = args[1].as_str();
         match action_code {
             "get_web_security" => security_api::get_security_all_code(&db_pool).await.unwrap(),

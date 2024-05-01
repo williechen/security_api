@@ -1,6 +1,10 @@
 use chrono::{Datelike, Local, NaiveDate};
 use rand::{thread_rng, Rng};
 use tokio::time;
+use tokio_retry::{
+    strategy::{jitter, ExponentialBackoff},
+    Retry,
+};
 use tracing::{event, Level};
 
 use super::{dao, model::SecurityTask};
@@ -166,9 +170,13 @@ async fn select_temp_to_tpex(
 }
 
 pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let retry_strategy = ExponentialBackoff::from_millis(100)
+        .map(jitter) // add jitter to delays
+        .take(3);
+
     let mut transaction = pool.begin().await?;
 
-    let mut next_market_type = Some(String::new());
+    let mut last_market_type = Some(String::new());
 
     let task_datas = select_all_task(&mut transaction).await?;
     for security in task_datas {
@@ -186,46 +194,55 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
             response_data::dao::read_all(&mut transaction_loop, &query_response_data).await?;
         if res_list.0 <= 0 {
             if Some("上市".to_string()) == market_type {
-                let data = response_data::web_service::get_twse_json(&security).await?;
+                let data = Retry::spawn(retry_strategy.clone(), || async {
+                    response_data::service::get_twse_json(&security).await
+                })
+                .await?;
 
                 match add_res_data(&mut transaction_loop, &security, &data).await {
                     Ok(_) => transaction_loop.commit().await?,
                     Err(_) => transaction_loop.rollback().await?,
                 };
             } else if Some("上櫃".to_string()) == market_type {
-                let data = response_data::web_service::get_tpex1_json(&security).await?;
+                let data = Retry::spawn(retry_strategy.clone(), || async {
+                    response_data::service::get_tpex1_json(&security).await
+                })
+                .await?;
 
                 match add_res_data(&mut transaction_loop, &security, &data).await {
                     Ok(_) => transaction_loop.commit().await?,
                     Err(_) => transaction_loop.rollback().await?,
                 };
             } else if Some("興櫃".to_string()) == market_type {
-                let data = response_data::web_service::get_tpex2_html(&security).await?;
+                let data = Retry::spawn(retry_strategy.clone(), || async {
+                    response_data::service::get_tpex2_html(&security).await
+                })
+                .await?;
 
                 match add_res_data(&mut transaction_loop, &security, &data).await {
                     Ok(_) => transaction_loop.commit().await?,
                     Err(_) => transaction_loop.rollback().await?,
                 };
             }
-        }
 
-        let mut rng = thread_rng();
-        if next_market_type == market_type {
-            event!(target: "my_api", Level::DEBUG, "{:?}={:?}", next_market_type, market_type);
-            time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
-        } else if next_market_type != market_type
-            && (Some("上櫃".to_string()) == next_market_type
-                || Some("興欏".to_string()) == next_market_type)
-            && (Some("上櫃".to_string()) == market_type || Some("興欏".to_string()) == market_type)
-        {
-            event!(target: "my_api", Level::DEBUG, "{:?}={:?}", next_market_type, market_type);
-            time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
-        } else {
-            event!(target: "my_api", Level::DEBUG, "{:?}<>{:?}", next_market_type, market_type);
-            time::sleep(time::Duration::from_secs(rng.gen_range(3..6))).await;
+            let mut rng = thread_rng();
+            if last_market_type == market_type {
+                event!(target: "my_api", Level::DEBUG, "{:?}={:?}", last_market_type, market_type);
+                time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
+            } else if last_market_type != market_type
+                && (Some("上櫃".to_string()) == last_market_type
+                    || Some("興欏".to_string()) == last_market_type)
+                && (Some("上櫃".to_string()) == market_type
+                    || Some("興欏".to_string()) == market_type)
+            {
+                event!(target: "my_api", Level::DEBUG, "{:?}={:?}", last_market_type, market_type);
+                time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
+            } else {
+                event!(target: "my_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
+                time::sleep(time::Duration::from_secs(rng.gen_range(3..6))).await;
+            }
         }
-
-        next_market_type = security.market_type;
+        last_market_type = security.market_type;
     }
 
     Ok(())
