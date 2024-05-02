@@ -116,8 +116,10 @@ async fn select_temp_to_twse(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     date: NaiveDate,
 ) -> Result<Vec<SecurityTemp>, Box<dyn std::error::Error>> {
-    match security_temp::dao::read_all_by_sql(transaction,
-        &format!(r#" SELECT row_id
+    match security_temp::dao::read_all_by_sql(
+        transaction,
+        &format!(
+            r#" SELECT row_id
                       , version_code 
                       , international_code
                       , security_code
@@ -134,23 +136,30 @@ async fn select_temp_to_twse(
                    FROM security_temp 
                   WHERE version_code='{}' 
                     AND market_type in ('上市')
-                    AND security_type in ('ETF', 'ETN', '股票', '特別股', '轉換公司債', '交換公司債')
+                    AND security_type in ('ETF', 'ETN', '股票', '特別股')
                   ORDER BY security_code, issue_date, market_type, security_type
-            "#, date.format("%Y%m%d"))).await{
-            Ok(rows) => Ok(rows.1),
-            Err(e) => {
-                event!(target: "my_api", Level::ERROR, "{:?}", &e);
-                Ok(vec![])
-            }
-                    }
+            "#,
+            date.format("%Y%m%d")
+        ),
+    )
+    .await
+    {
+        Ok(rows) => Ok(rows.1),
+        Err(e) => {
+            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+            Ok(vec![])
+        }
+    }
 }
 
 async fn select_temp_to_tpex(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     date: NaiveDate,
 ) -> Result<Vec<SecurityTemp>, Box<dyn std::error::Error>> {
-    match security_temp::dao::read_all_by_sql(transaction,
-        &format!(r#" SELECT row_id
+    match security_temp::dao::read_all_by_sql(
+        transaction,
+        &format!(
+            r#" SELECT row_id
         , version_code 
         , international_code
         , security_code
@@ -167,20 +176,25 @@ async fn select_temp_to_tpex(
                    FROM security_temp 
                   WHERE version_code='{}' 
                     AND market_type in ('上櫃', '興櫃')
-                    AND security_type in ('ETF', 'ETN', '股票', '特別股', '轉換公司債', '交換公司債')
+                    AND security_type in ('ETF', 'ETN', '股票', '特別股')
                     ORDER BY security_code, issue_date, market_type, security_type
-            "#,date.format("%Y%m%d"))).await{
-                Ok(rows) => Ok(rows.1),
-                Err(e) => {
-                    event!(target: "my_api", Level::ERROR, "{:?}", &e);
-                    Ok(vec![])
-                }
-                        }
+            "#,
+            date.format("%Y%m%d")
+        ),
+    )
+    .await
+    {
+        Ok(rows) => Ok(rows.1),
+        Err(e) => {
+            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+            Ok(vec![])
+        }
+    }
 }
 
 pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let retry_strategy = ExponentialBackoff::from_millis(100)
-        .map(jitter) // add jitter to delays
+        .max_delay(time::Duration::from_secs(4))
         .take(3);
 
     let mut transaction = pool.begin().await?;
@@ -294,7 +308,7 @@ async fn select_all_task(
                       , updated_date
                    FROM security_task
                   WHERE is_enabled = 1
-                    AND twse_date < '{}0101'
+                    AND twse_date >= '{}0101'
                   ORDER BY twse_date DESC, sort_no 
         "#,
             year
