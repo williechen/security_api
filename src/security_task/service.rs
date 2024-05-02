@@ -204,7 +204,7 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
         if res_list.0 <= 0 {
             if Some("上市".to_string()) == market_type {
                 let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "my_api", Level::DEBUG, "retry 上市");
+                    event!(target: "my_api", Level::DEBUG, "try 上市");
                     response_data::service::get_twse_json(&security).await
                 })
                 .await?;
@@ -218,7 +218,7 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
                 };
             } else if Some("上櫃".to_string()) == market_type {
                 let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "my_api", Level::DEBUG, "retry 上櫃");
+                    event!(target: "my_api", Level::DEBUG, "try 上櫃");
                     response_data::service::get_tpex1_json(&security).await
                 })
                 .await?;
@@ -232,7 +232,7 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
                 };
             } else if Some("興櫃".to_string()) == market_type {
                 let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "my_api", Level::DEBUG, "retry 興櫃");
+                    event!(target: "my_api", Level::DEBUG, "try 興櫃");
                     response_data::service::get_tpex2_html(&security).await
                 })
                 .await?;
