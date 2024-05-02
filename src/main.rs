@@ -42,7 +42,7 @@ async fn main() {
             "res_to_temp" => security_api::get_security_to_temp(&db_pool).await.unwrap(),
             "temp_to_task" => security_api::get_temp_to_task(&db_pool).await.unwrap(),
             "task_run" => security_api::get_task_run(&db_pool).await.unwrap(),
-            _ => event!(target: "my_api", Level::DEBUG, "{:?}", args[1]),
+            _ => event!(target: "my_api", Level::INFO, "{:?}", args[1]),
         }
     }
 }

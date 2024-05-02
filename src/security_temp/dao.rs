@@ -1,4 +1,5 @@
 use sqlx::{postgres::PgRow, Row};
+use tracing::{event, Level};
 
 use super::model::SecurityTemp;
 
@@ -131,7 +132,10 @@ pub async fn read_all(
         .await
     {
         Ok(rows) => Ok((rows.len(), rows)),
-        Err(_) => Ok((0, vec![])),
+        Err(e) => {
+            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+            Err(e)
+        }
     }
 }
 
@@ -160,7 +164,10 @@ pub async fn read_all_by_sql(
         .await
     {
         Ok(rows) => Ok((rows.len(), rows)),
-        Err(_) => Ok((0, vec![])),
+        Err(e) => {
+            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+            Err(e)
+        }
     }
 }
 
@@ -208,7 +215,10 @@ pub async fn read(
     .await
     {
         Ok(row) => Ok(Some(row)),
-        Err(_) => Ok(None),
+        Err(e) => {
+            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+            Err(e)
+        }
     }
 }
 
@@ -246,7 +256,10 @@ pub async fn create(
     .await
     {
         Ok(row) => Ok(row.rows_affected()),
-        Err(_) => Ok(0),
+        Err(e) => {
+            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+            Err(e)
+        }
     }
 }
 
@@ -288,7 +301,10 @@ pub async fn update(
     .await
     {
         Ok(row) => Ok(row.rows_affected()),
-        Err(_) => Ok(0),
+        Err(e) => {
+            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+            Err(e)
+        }
     }
 }
 
@@ -302,6 +318,9 @@ pub async fn delete(
         .await
     {
         Ok(row) => Ok(row.rows_affected()),
-        Err(_) => Ok(0),
+        Err(e) => {
+            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+            Err(e)
+        }
     }
 }

@@ -98,7 +98,10 @@ async fn loop_date_temp_data(
 
                     match dao::create(&mut transaction, security_task).await {
                         Ok(_) => transaction.commit().await?,
-                        Err(_) => transaction.rollback().await?,
+                        Err(e) => {
+                            transaction.rollback().await?;
+                            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+                        }
                     };
                 }
             }
@@ -135,7 +138,10 @@ async fn select_temp_to_twse(
                   ORDER BY security_code, issue_date, market_type, security_type
             "#, date.format("%Y%m%d"))).await{
             Ok(rows) => Ok(rows.1),
-            Err(e) => Ok(vec![])
+            Err(e) => {
+                event!(target: "my_api", Level::ERROR, "{:?}", &e);
+                Ok(vec![])
+            }
                     }
 }
 
@@ -165,7 +171,10 @@ async fn select_temp_to_tpex(
                     ORDER BY security_code, issue_date, market_type, security_type
             "#,date.format("%Y%m%d"))).await{
                 Ok(rows) => Ok(rows.1),
-                Err(e) => Ok(vec![])
+                Err(e) => {
+                    event!(target: "my_api", Level::ERROR, "{:?}", &e);
+                    Ok(vec![])
+                }
                         }
 }
 
@@ -195,33 +204,45 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
         if res_list.0 <= 0 {
             if Some("上市".to_string()) == market_type {
                 let data = Retry::spawn(retry_strategy.clone(), || async {
+                    event!(target: "my_api", Level::DEBUG, "retry 上市");
                     response_data::service::get_twse_json(&security).await
                 })
                 .await?;
 
                 match add_res_data(&mut transaction_loop, &security, &data).await {
                     Ok(_) => transaction_loop.commit().await?,
-                    Err(_) => transaction_loop.rollback().await?,
+                    Err(e) => {
+                        transaction_loop.rollback().await?;
+                        event!(target: "my_api", Level::ERROR, "{:?}", &e);
+                    }
                 };
             } else if Some("上櫃".to_string()) == market_type {
                 let data = Retry::spawn(retry_strategy.clone(), || async {
+                    event!(target: "my_api", Level::DEBUG, "retry 上櫃");
                     response_data::service::get_tpex1_json(&security).await
                 })
                 .await?;
 
                 match add_res_data(&mut transaction_loop, &security, &data).await {
                     Ok(_) => transaction_loop.commit().await?,
-                    Err(_) => transaction_loop.rollback().await?,
+                    Err(e) => {
+                        transaction_loop.rollback().await?;
+                        event!(target: "my_api", Level::ERROR, "{:?}", &e);
+                    }
                 };
             } else if Some("興櫃".to_string()) == market_type {
                 let data = Retry::spawn(retry_strategy.clone(), || async {
+                    event!(target: "my_api", Level::DEBUG, "retry 興櫃");
                     response_data::service::get_tpex2_html(&security).await
                 })
                 .await?;
 
                 match add_res_data(&mut transaction_loop, &security, &data).await {
                     Ok(_) => transaction_loop.commit().await?,
-                    Err(_) => transaction_loop.rollback().await?,
+                    Err(e) => {
+                        transaction_loop.rollback().await?;
+                        event!(target: "my_api", Level::ERROR, "{:?}", &e);
+                    }
                 };
             }
 
@@ -235,7 +256,7 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
                 && (Some("上櫃".to_string()) == market_type
                     || Some("興欏".to_string()) == market_type)
             {
-                event!(target: "my_api", Level::DEBUG, "{:?}={:?}", last_market_type, market_type);
+                event!(target: "my_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
                 time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
             } else {
                 event!(target: "my_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
@@ -253,29 +274,28 @@ async fn select_all_task(
 ) -> Result<Vec<SecurityTask>, Box<dyn std::error::Error>> {
     match dao::read_all_by_sql(
         transaction,
-        &r#" SELECT 
-          row_id
-        , market_type
-        , security_code
-        , issue_date
-        , twse_date
-        , tpex_date
-        , security_seed 
-        , is_enabled
-        , sort_no
-        , retry_count
-        , created_date
-        , updated_date
-     FROM security_task
-     WHERE is_enabled = 1
-     ORDER BY twse_date DESC, sort_no 
-            "#,
+        &r#" SELECT row_id
+                      , market_type
+                      , security_code
+                      , issue_date
+                      , twse_date
+                      , tpex_date
+                      , security_seed 
+                      , is_enabled
+                      , sort_no
+                      , retry_count
+                      , created_date
+                      , updated_date
+                   FROM security_task
+                  WHERE is_enabled = 1
+                  ORDER BY twse_date DESC, sort_no 
+        "#,
     )
     .await
     {
         Ok(rows) => Ok(rows.1),
         Err(e) => {
-            event!(target: "my_api", Level::ERROR, "{:?}", e);
+            event!(target: "my_api", Level::ERROR, "{:?}", &e);
             Ok(vec![])
         }
     }

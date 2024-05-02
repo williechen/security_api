@@ -38,7 +38,10 @@ pub async fn get_security_all_code(pool: &sqlx::PgPool) -> Result<(), Box<dyn st
 
         match response_data::dao::create(&mut transaction, response_data).await {
             Ok(_) => transaction.commit().await?,
-            Err(_) => transaction.rollback().await?,
+            Err(e) => {
+                transaction.rollback().await?;
+                event!(target: "my_api", Level::ERROR, "{:?}", e);
+            }
         };
     }
 

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chrono::Local;
 use scraper::{Html, Selector};
+use tracing::{event, Level};
 
 use super::{dao, model::SecurityTemp};
 
@@ -70,7 +71,10 @@ pub async fn insert_temp_data(
 
             match dao::create(&mut transaction_loop, security_temp).await {
                 Ok(_) => transaction_loop.commit().await?,
-                Err(_) => transaction_loop.rollback().await?,
+                Err(e) => {
+                    transaction_loop.rollback().await?;
+                    event!(target: "my_api", Level::ERROR, "{:?}", e);
+                }
             };
         }
     }
