@@ -1,0 +1,33 @@
+[package]
+name = "security_api"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono="0.4"
+
+encoding_rs = "0.8"
+
+http="1.1"
+
+rand = "0.8.5"
+
+reqwest = {version="0.12", features=["json", "blocking"]}
+
+regex ="1.10"
+
+scraper="0.19"
+
+serde = { version = "1.0", features = ["derive"]}
+serde_json = "1.0"
+
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "migrate", "chrono", "postgres"]}
+
+tokio = {version = "1.2", features = ["full"]}
+tokio-retry = "0.3"
+
+tracing = {version = "0.1", features=["log"]}
+tracing-subscriber = {version="0.3", features=["env-filter", "json"]}
+tracing-appender = "0.2"
