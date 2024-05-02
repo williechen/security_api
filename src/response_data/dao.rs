@@ -86,7 +86,7 @@ pub async fn read_all_by_sql(
 ) -> Result<(usize, Vec<ResponseData>), sqlx::Error> {
     match sqlx::query(sql)
         .map(|row: PgRow| ResponseData {
-            row_id: row.get("row_id"),
+            row_id: row.try_get("row_id").unwrap_or(None),
             data_content: row.get("data_content"),
             data_code: row.get("data_code"),
             read_date: row.get("read_date"),

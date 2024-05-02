@@ -13,11 +13,13 @@ pub async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error
         .get("https://isin.twse.com.tw/isin/class_main.jsp")
         .send()
         .await?;
+    event!(target: "my_api", Level::DEBUG, "{:?}", &res.headers());
 
     let big5_text = res.bytes().await?;
     let utf8_text = encoding_rs::BIG5.decode(&big5_text);
 
     let result_html = parse_web_security_data(&utf8_text.0.to_string())?;
+    event!(target: "my_api", Level::DEBUG, "{:?}", &result_html);
 
     Ok(result_html)
 }
@@ -47,6 +49,7 @@ pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::e
         .query(&[("_", &task.security_seed)])
         .send()
         .await?;
+    event!(target: "my_api", Level::DEBUG, "{:?}", &res.headers());
 
     let json = res.text().await?;
     event!(target: "my_api", Level::DEBUG, "{:?}", &json);
@@ -64,12 +67,12 @@ pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::
         .query(&[("_", &task.security_seed)])
         .send()
         .await?;
+    event!(target: "my_api", Level::DEBUG, "{:?}", &res.headers());
 
     let json = res.text().await?;
     event!(target: "my_api", Level::DEBUG, "{:?}", &json);
 
     let parse_text = decode_unicode_escape(&json);
-
     event!(target: "my_api", Level::DEBUG, "{:?}", &parse_text);
 
     Ok(parse_text)
@@ -121,6 +124,7 @@ pub async fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::
         .form(&params)
         .send()
         .await?;
+    event!(target: "my_api", Level::DEBUG, "{:?}", &res.headers());
 
     let text = res.text().await?;
     event!(target: "my_api", Level::DEBUG, "{:?}", &text);

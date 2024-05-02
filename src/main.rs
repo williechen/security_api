@@ -6,11 +6,18 @@ use tracing_subscriber::fmt::format::FmtSpan;
 
 #[tokio::main]
 async fn main() {
-    let log_filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "my_api=debug".to_owned());
+    let log_filter =
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "my_api=debug,sqlx=debug".to_owned());
+
+    let file_appender = tracing_appender::rolling::hourly("", "security_api.log");
+
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
     tracing_subscriber::fmt()
+        .json()
         .with_env_filter(log_filter)
         .with_span_events(FmtSpan::CLOSE)
+        .with_writer(non_blocking)
         .init();
 
     let db_pool = match PgPoolOptions::new()
