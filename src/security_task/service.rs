@@ -187,83 +187,87 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
 
     let mut last_market_type = Some(String::new());
 
-    let task_datas = select_all_task(&mut transaction).await?;
-    for security in task_datas {
-        let mut transaction_loop = pool.begin().await?;
+    let now = Local::now().naive_local();
 
-        let market_type = security.market_type.clone();
-        let security_code = security.security_code.clone();
-        let twse_date = security.twse_date.clone();
+    for year in (1962..=now.year()).rev() {
+        let task_datas = select_all_task(&mut transaction, &year).await?;
+        for security in task_datas {
+            let mut transaction_loop = pool.begin().await?;
 
-        let mut query_response_data = ResponseData::new();
-        query_response_data.read_date = twse_date.clone();
-        query_response_data.data_code = security_code.clone();
+            let market_type = security.market_type.clone();
+            let security_code = security.security_code.clone();
+            let twse_date = security.twse_date.clone();
 
-        let res_list =
-            response_data::dao::read_all(&mut transaction_loop, &query_response_data).await?;
-        if res_list.0 <= 0 {
-            if Some("上市".to_string()) == market_type {
-                let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "my_api", Level::DEBUG, "try 上市");
-                    response_data::service::get_twse_json(&security).await
-                })
-                .await?;
+            let mut query_response_data = ResponseData::new();
+            query_response_data.read_date = twse_date.clone();
+            query_response_data.data_code = security_code.clone();
 
-                match add_res_data(&mut transaction_loop, &security, &data).await {
-                    Ok(_) => transaction_loop.commit().await?,
-                    Err(e) => {
-                        transaction_loop.rollback().await?;
-                        event!(target: "my_api", Level::ERROR, "{:?}", &e);
-                    }
-                };
-            } else if Some("上櫃".to_string()) == market_type {
-                let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "my_api", Level::DEBUG, "try 上櫃");
-                    response_data::service::get_tpex1_json(&security).await
-                })
-                .await?;
+            let res_list =
+                response_data::dao::read_all(&mut transaction_loop, &query_response_data).await?;
+            if res_list.0 <= 0 {
+                if Some("上市".to_string()) == market_type {
+                    let data = Retry::spawn(retry_strategy.clone(), || async {
+                        event!(target: "my_api", Level::DEBUG, "try 上市");
+                        response_data::service::get_twse_json(&security).await
+                    })
+                    .await?;
 
-                match add_res_data(&mut transaction_loop, &security, &data).await {
-                    Ok(_) => transaction_loop.commit().await?,
-                    Err(e) => {
-                        transaction_loop.rollback().await?;
-                        event!(target: "my_api", Level::ERROR, "{:?}", &e);
-                    }
-                };
-            } else if Some("興櫃".to_string()) == market_type {
-                let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "my_api", Level::DEBUG, "try 興櫃");
-                    response_data::service::get_tpex2_html(&security).await
-                })
-                .await?;
+                    match add_res_data(&mut transaction_loop, &security, &data).await {
+                        Ok(_) => transaction_loop.commit().await?,
+                        Err(e) => {
+                            transaction_loop.rollback().await?;
+                            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+                        }
+                    };
+                } else if Some("上櫃".to_string()) == market_type {
+                    let data = Retry::spawn(retry_strategy.clone(), || async {
+                        event!(target: "my_api", Level::DEBUG, "try 上櫃");
+                        response_data::service::get_tpex1_json(&security).await
+                    })
+                    .await?;
 
-                match add_res_data(&mut transaction_loop, &security, &data).await {
-                    Ok(_) => transaction_loop.commit().await?,
-                    Err(e) => {
-                        transaction_loop.rollback().await?;
-                        event!(target: "my_api", Level::ERROR, "{:?}", &e);
-                    }
-                };
+                    match add_res_data(&mut transaction_loop, &security, &data).await {
+                        Ok(_) => transaction_loop.commit().await?,
+                        Err(e) => {
+                            transaction_loop.rollback().await?;
+                            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+                        }
+                    };
+                } else if Some("興櫃".to_string()) == market_type {
+                    let data = Retry::spawn(retry_strategy.clone(), || async {
+                        event!(target: "my_api", Level::DEBUG, "try 興櫃");
+                        response_data::service::get_tpex2_html(&security).await
+                    })
+                    .await?;
+
+                    match add_res_data(&mut transaction_loop, &security, &data).await {
+                        Ok(_) => transaction_loop.commit().await?,
+                        Err(e) => {
+                            transaction_loop.rollback().await?;
+                            event!(target: "my_api", Level::ERROR, "{:?}", &e);
+                        }
+                    };
+                }
+
+                let mut rng = thread_rng();
+                if last_market_type == market_type {
+                    event!(target: "my_api", Level::DEBUG, "{:?}={:?}", last_market_type, market_type);
+                    time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
+                } else if last_market_type != market_type
+                    && (Some("上櫃".to_string()) == last_market_type
+                        || Some("興欏".to_string()) == last_market_type)
+                    && (Some("上櫃".to_string()) == market_type
+                        || Some("興欏".to_string()) == market_type)
+                {
+                    event!(target: "my_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
+                    time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
+                } else {
+                    event!(target: "my_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
+                    time::sleep(time::Duration::from_secs(rng.gen_range(3..6))).await;
+                }
             }
-
-            let mut rng = thread_rng();
-            if last_market_type == market_type {
-                event!(target: "my_api", Level::DEBUG, "{:?}={:?}", last_market_type, market_type);
-                time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
-            } else if last_market_type != market_type
-                && (Some("上櫃".to_string()) == last_market_type
-                    || Some("興欏".to_string()) == last_market_type)
-                && (Some("上櫃".to_string()) == market_type
-                    || Some("興欏".to_string()) == market_type)
-            {
-                event!(target: "my_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
-                time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
-            } else {
-                event!(target: "my_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
-                time::sleep(time::Duration::from_secs(rng.gen_range(3..6))).await;
-            }
+            last_market_type = security.market_type;
         }
-        last_market_type = security.market_type;
     }
 
     Ok(())
@@ -271,10 +275,12 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
 
 async fn select_all_task(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    year: &i32,
 ) -> Result<Vec<SecurityTask>, Box<dyn std::error::Error>> {
     match dao::read_all_by_sql(
         transaction,
-        &r#" SELECT row_id
+        &format!(
+            r#" SELECT row_id
                       , market_type
                       , security_code
                       , issue_date
@@ -288,8 +294,11 @@ async fn select_all_task(
                       , updated_date
                    FROM security_task
                   WHERE is_enabled = 1
+                    AND twse_date < '{}0101'
                   ORDER BY twse_date DESC, sort_no 
         "#,
+            year
+        ),
     )
     .await
     {

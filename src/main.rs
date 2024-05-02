@@ -23,7 +23,6 @@ async fn main() {
 
     let db_pool = match PgPoolOptions::new()
         .max_connections(5)
-        .acquire_timeout(time::Duration::from_secs(4))
         .connect("postgres://willie:Gn220304@localhost:5432/my_security")
         .await
     {
