@@ -1,10 +1,7 @@
 use chrono::{Datelike, Local, NaiveDate};
 use rand::{thread_rng, Rng};
 use tokio::time;
-use tokio_retry::{
-    strategy::{jitter, ExponentialBackoff},
-    Retry,
-};
+use tokio_retry::{strategy::ExponentialBackoff, Retry};
 use tracing::{event, Level};
 
 use super::{dao, model::SecurityTask};
@@ -194,8 +191,8 @@ async fn select_temp_to_tpex(
 
 pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let retry_strategy = ExponentialBackoff::from_millis(100)
-        .max_delay(time::Duration::from_secs(4))
-        .take(3);
+        .max_delay(time::Duration::from_secs(10))
+        .take(5);
 
     let mut transaction = pool.begin().await?;
 
