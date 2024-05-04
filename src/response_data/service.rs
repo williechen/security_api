@@ -57,6 +57,25 @@ pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::e
     Ok(json)
 }
 
+pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    let client = Client::new();
+
+    let res = client
+        .get("https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY_AVG")
+        .query(&[("date", &task.twse_date)])
+        .query(&[("stockNo", &task.security_code)])
+        .query(&[("response", "json")])
+        .query(&[("_", &task.security_seed)])
+        .send()
+        .await?;
+    event!(target: "my_api", Level::DEBUG, "{:?}", &res.headers());
+
+    let json = res.text().await?;
+    event!(target: "my_api", Level::DEBUG, "{:?}", &json);
+
+    Ok(json)
+}
+
 pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 

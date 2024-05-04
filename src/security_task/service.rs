@@ -223,7 +223,7 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
                 if Some("上市".to_string()) == market_type {
                     let Ok(data) = Retry::spawn(retry_strategy.clone(), || async {
                         event!(target: "my_api", Level::DEBUG, "try 上市");
-                        response_data::service::get_twse_json(&security).await
+                        response_data::service::get_twse_avg_json(&security).await
                     })
                     .await
                     else {
