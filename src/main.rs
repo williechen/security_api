@@ -20,7 +20,7 @@ async fn main() {
 
     let db_pool = match PgPoolOptions::new()
         .max_connections(5)
-        .connect("postgres://willie:Gn220304@localhost:5432/my_securiOk(Ok(ty")
+        .connect("postgres://willie:Gn220304@localhost:5432/my_security")
         .await
     {
         Ok(pool) => pool,
