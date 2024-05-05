@@ -8,7 +8,7 @@ mod security_task;
 mod security_temp;
 
 pub async fn get_security_all_code(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "my_api", Level::DEBUG, "call get_security_all_code");
+    event!(target: "my_api", Level::INFO, "call get_security_all_code");
 
     let mut transaction = pool.begin().await?;
 
@@ -49,7 +49,7 @@ pub async fn get_security_all_code(pool: &sqlx::PgPool) -> Result<(), Box<dyn st
 }
 
 pub async fn get_security_to_temp(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "my_api", Level::DEBUG, "call get_security_to_temp");
+    event!(target: "my_api", Level::INFO, "call get_security_to_temp");
 
     let mut transaction = pool.begin().await?;
 
@@ -77,13 +77,13 @@ pub async fn get_security_to_temp(pool: &sqlx::PgPool) -> Result<(), Box<dyn std
 }
 
 pub async fn get_temp_to_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "my_api", Level::DEBUG, "call get_temp_to_task");
+    event!(target: "my_api", Level::INFO, "call get_temp_to_task");
     security_task::service::insert_task_data(pool).await?;
     Ok(())
 }
 
 pub async fn get_task_run(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "my_api", Level::DEBUG, "call get_task_run");
+    event!(target: "my_api", Level::INFO, "call get_task_run");
     security_task::service::get_all_task(pool).await?;
     Ok(())
 }
