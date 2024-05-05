@@ -221,14 +221,11 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
                 response_data::dao::read_all(&mut transaction_loop, &query_response_data).await?;
             if res_list.0 <= 0 {
                 if Some("上市".to_string()) == market_type {
-                    let Ok(data) = Retry::spawn(retry_strategy.clone(), || async {
+                    let data = Retry::spawn(retry_strategy.clone(), || async {
                         event!(target: "my_api", Level::DEBUG, "try 上市");
                         response_data::service::get_twse_avg_json(&security).await
                     })
-                    .await
-                    else {
-                        return Err("timeout or too many retries".into());
-                    };
+                    .await?;
 
                     match add_res_data(&mut transaction_loop, &security, &data).await {
                         Ok(_) => transaction_loop.commit().await?,
@@ -238,14 +235,11 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
                         }
                     };
                 } else if Some("上櫃".to_string()) == market_type {
-                    let Ok(data) = Retry::spawn(retry_strategy.clone(), || async {
+                    let data = Retry::spawn(retry_strategy.clone(), || async {
                         event!(target: "my_api", Level::DEBUG, "try 上櫃");
                         response_data::service::get_tpex1_json(&security).await
                     })
-                    .await
-                    else {
-                        return Err("timeout or too many retries".into());
-                    };
+                    .await?;
 
                     match add_res_data(&mut transaction_loop, &security, &data).await {
                         Ok(_) => transaction_loop.commit().await?,
@@ -255,14 +249,11 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
                         }
                     };
                 } else if Some("興櫃".to_string()) == market_type {
-                    let Ok(data) = Retry::spawn(retry_strategy.clone(), || async {
+                    let data = Retry::spawn(retry_strategy.clone(), || async {
                         event!(target: "my_api", Level::DEBUG, "try 興櫃");
                         response_data::service::get_tpex2_html(&security).await
                     })
-                    .await
-                    else {
-                        return Err("timeout or too many retries".into());
-                    };
+                    .await?;
 
                     match add_res_data(&mut transaction_loop, &security, &data).await {
                         Ok(_) => transaction_loop.commit().await?,
