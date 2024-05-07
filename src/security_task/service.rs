@@ -230,7 +230,7 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
 
                     let json_value: Value = serde_json::from_str(&data)?;
                     let data_status = match json_value.get("stat") {
-                        Some(t) => "Ok" == t,
+                        Some(t) => "Ok" == t.as_str().unwrap_or(""),
                         None => false,
                     };
 
