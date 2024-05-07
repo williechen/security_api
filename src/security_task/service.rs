@@ -1,5 +1,6 @@
 use chrono::{Datelike, Local, NaiveDate};
 use rand::{thread_rng, Rng};
+use serde_json::Value;
 use tokio::time;
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
@@ -227,7 +228,13 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
                     })
                     .await?;
 
-                    match add_res_data(&mut transaction_loop, &security, &data).await {
+                    let json_value: Value = serde_json::from_str(&data)?;
+                    let data_status = match json_value.get("stat") {
+                        Some(t) => "Ok" == t,
+                        None => false,
+                    };
+
+                    match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
                         Ok(_) => transaction_loop.commit().await?,
                         Err(e) => {
                             transaction_loop.rollback().await?;
@@ -241,7 +248,13 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
                     })
                     .await?;
 
-                    match add_res_data(&mut transaction_loop, &security, &data).await {
+                    let json_value: Value = serde_json::from_str(&data)?;
+                    let data_status = match json_value.get("iTotalRecords") {
+                        Some(t) => 0 < t.as_i64().unwrap_or(0),
+                        None => false,
+                    };
+
+                    match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
                         Ok(_) => transaction_loop.commit().await?,
                         Err(e) => {
                             transaction_loop.rollback().await?;
@@ -255,7 +268,13 @@ pub async fn get_all_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error:
                     })
                     .await?;
 
-                    match add_res_data(&mut transaction_loop, &security, &data).await {
+                    let json_value: Value = serde_json::from_str(&data)?;
+                    let data_status = match json_value.get("data_cnt") {
+                        Some(t) => 0 < t.as_i64().unwrap_or(0),
+                        None => false,
+                    };
+
+                    match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
                         Ok(_) => transaction_loop.commit().await?,
                         Err(e) => {
                             transaction_loop.rollback().await?;
@@ -310,6 +329,7 @@ async fn select_all_task(
                    FROM security_task
                   WHERE is_enabled = 1
                     AND twse_date >= '{}0101'
+                    AND retry_count < 10
                   ORDER BY twse_date DESC, sort_no 
         "#,
             year
@@ -329,26 +349,36 @@ async fn add_res_data(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: &SecurityTask,
     html: &String,
+    data_status: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let response_data = ResponseData {
-        row_id: None,
-        data_content: Some(html.to_string()),
-        data_code: data.security_code.clone(),
-        read_date: data.twse_date.clone(),
-        created_date: Some(Local::now().naive_local()),
-        updated_date: Some(Local::now().naive_local()),
-    };
+    if data_status {
+        let response_data = ResponseData {
+            row_id: None,
+            data_content: Some(html.to_string()),
+            data_code: data.security_code.clone(),
+            read_date: data.twse_date.clone(),
+            created_date: Some(Local::now().naive_local()),
+            updated_date: Some(Local::now().naive_local()),
+        };
 
-    response_data::dao::create(transaction, response_data).await?;
+        response_data::dao::create(transaction, response_data).await?;
 
-    let mut security_task = data.clone();
-    security_task.is_enabled = Some(0);
-    security_task.retry_count = match security_task.retry_count {
-        Some(v) => Some(v + 1),
-        None => Some(0),
-    };
+        let mut security_task = data.clone();
+        security_task.is_enabled = Some(0);
+        security_task.retry_count = match security_task.retry_count {
+            Some(v) => Some(v + 1),
+            None => Some(0),
+        };
 
-    dao::update(transaction, security_task.to_owned()).await?;
+        dao::update(transaction, security_task.to_owned()).await?;
+    } else {
+        let mut security_task = data.clone();
+        security_task.retry_count = match security_task.retry_count {
+            Some(v) => Some(v + 1),
+            None => Some(0),
+        };
 
+        dao::update(transaction, security_task.to_owned()).await?;
+    }
     Ok(())
 }

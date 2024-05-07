@@ -6,9 +6,9 @@ use tracing::{event, Level};
 #[tokio::main]
 async fn main() {
     let log_filter =
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "my_api=info,sqlx=info".to_owned());
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "my_api=debug,sqlx=info".to_owned());
 
-    let file_appender = tracing_appender::rolling::hourly("", "security_api.log");
+    let file_appender = tracing_appender::rolling::hourly("logs", "security_api.log");
 
     let (file_non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 

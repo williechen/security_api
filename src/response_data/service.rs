@@ -183,6 +183,10 @@ fn parse_web_tpex2_data(document: &String) -> Result<String, Box<dyn std::error:
         }
         data_row.push(json!(row));
     }
+    data_map.insert(
+        "data_cnt".to_string(),
+        serde_json::Value::Number((data_row.len() - 2).into()),
+    );
     data_map.insert("data_row".to_string(), serde_json::Value::Array(data_row));
 
     Ok(serde_json::to_string(&data_map)?)
