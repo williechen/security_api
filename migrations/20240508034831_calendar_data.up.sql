@@ -17,7 +17,7 @@ CREATE INDEX calendar_data_tw_year_idx ON calendar_data USING btree (tw_year);
 CREATE INDEX calendar_data_ce_month_idx ON calendar_data USING btree (ce_month);
 CREATE INDEX calendar_data_ce_day_idx ON calendar_data USING btree (ce_day);
 CREATE INDEX calendar_data_date_status_idx ON calendar_data USING btree (date_status);
-CREATE INDEX calendar_data_task_type_idx ON calendar_data USING btree (task_type);
+CREATE INDEX calendar_data_group_task_idx ON calendar_data USING btree (group_task);
 
 
 COMMENT ON TABLE calendar_data IS 'This is my table.';
@@ -28,6 +28,6 @@ COMMENT ON COLUMN calendar_data.tw_year IS 'Employee ID number';
 COMMENT ON COLUMN calendar_data.ce_month IS 'Employee ID number';
 COMMENT ON COLUMN calendar_data.ce_day IS 'Employee ID number';
 COMMENT ON COLUMN calendar_data.date_status IS 'Employee ID number';
-COMMENT ON COLUMN calendar_data.task_type IS 'Employee ID number';
+COMMENT ON COLUMN calendar_data.group_task IS 'Employee ID number';
 COMMENT ON COLUMN calendar_data.created_date IS 'Employee ID number';
 COMMENT ON COLUMN calendar_data.updated_date IS 'Employee ID number';
