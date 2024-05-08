@@ -1,2 +1,2 @@
 -- Add down migration script here
-DROP TABLE stock_close_price;
+DROP TABLE security_price;
