@@ -13,11 +13,11 @@ CREATE TABLE task_setting (
     CONSTRAINT task_setting_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX task_setting_group_code_idx ON calendar_data USING btree (group_code);
-CREATE INDEX task_setting_task_code_idx ON calendar_data USING btree (task_code);
-CREATE INDEX task_setting_wait_last_step_idx ON calendar_data USING btree (wait_last_step);
-CREATE INDEX task_setting_sort_no_idx ON calendar_data USING btree (sort_no);
-CREATE INDEX task_setting_is_enabled_idx ON calendar_data USING btree (is_enabled);
+CREATE INDEX task_setting_group_code_idx ON task_setting USING btree (group_code);
+CREATE INDEX task_setting_task_code_idx ON task_setting USING btree (task_code);
+CREATE INDEX task_setting_wait_last_step_idx ON task_setting USING btree (wait_last_step);
+CREATE INDEX task_setting_sort_no_idx ON task_setting USING btree (sort_no);
+CREATE INDEX task_setting_is_enabled_idx ON task_setting USING btree (is_enabled);
 
 
 COMMENT ON TABLE task_setting IS 'This is my table.';
