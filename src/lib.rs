@@ -3,9 +3,13 @@ use tracing::{event, Level};
 
 use crate::response_data::{model::ResponseData, service};
 
+mod calendar_data;
+mod daily_task;
 mod response_data;
+mod security_price;
 mod security_task;
 mod security_temp;
+mod task_setting;
 
 pub async fn get_security_all_code(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "my_api", Level::INFO, "call get_security_all_code");
@@ -19,8 +23,6 @@ pub async fn get_security_all_code(pool: &sqlx::PgPool) -> Result<(), Box<dyn st
         data_content: None,
         data_code: Some("seecurity".to_string()),
         read_date: Some(now.format("%Y%m%d").to_string()),
-        created_date: Some(now),
-        updated_date: Some(now),
     };
 
     let data_list = response_data::dao::read_all(&mut transaction, &query_response_data).await?;
@@ -32,8 +34,6 @@ pub async fn get_security_all_code(pool: &sqlx::PgPool) -> Result<(), Box<dyn st
             data_content: Some(content),
             data_code: Some("seecurity".to_string()),
             read_date: Some(now.format("%Y%m%d").to_string()),
-            created_date: Some(now),
-            updated_date: Some(now),
         };
 
         match response_data::dao::create(&mut transaction, response_data).await {
@@ -60,8 +60,6 @@ pub async fn get_security_to_temp(pool: &sqlx::PgPool) -> Result<(), Box<dyn std
         data_content: None,
         data_code: Some("seecurity".to_string()),
         read_date: Some(now.format("%Y%m%d").to_string()),
-        created_date: Some(now),
-        updated_date: Some(now),
     };
 
     let data_list = response_data::dao::read_all(&mut transaction, &query_response_data).await?;

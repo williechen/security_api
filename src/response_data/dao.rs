@@ -70,8 +70,6 @@ pub async fn read_all(
             data_content: row.get("data_content"),
             data_code: row.get("data_code"),
             read_date: row.get("read_date"),
-            created_date: row.get("created_date"),
-            updated_date: row.get("updated_date"),
         })
         .fetch_all(&mut **transaction)
         .await
@@ -94,8 +92,6 @@ pub async fn read_all_by_sql(
             data_content: row.get("data_content"),
             data_code: row.get("data_code"),
             read_date: row.get("read_date"),
-            created_date: row.get("created_date"),
-            updated_date: row.get("updated_date"),
         })
         .fetch_all(&mut **transaction)
         .await
@@ -129,8 +125,6 @@ pub async fn read(
         data_content: row.get("data_content"),
         data_code: row.get("data_code"),
         read_date: row.get("read_date"),
-        created_date: row.get("created_date"),
-        updated_date: row.get("updated_date"),
     })
     .fetch_one(&mut **transaction)
     .await

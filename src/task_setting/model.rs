@@ -1,45 +1,60 @@
-use chrono::NaiveDateTime;
-
 #[derive(Debug, Clone)]
-pub struct ResponseData {
+pub struct TaskSetting {
     pub row_id: Option<String>,
-    pub data_content: Option<String>,
-    pub data_code: Option<String>,
-    pub read_date: Option<String>,
-    pub created_date: Option<NaiveDateTime>,
-    pub updated_date: Option<NaiveDateTime>,
+    pub group_code: Option<String>,
+    pub job_code: Option<String>,
+    pub wait_type: Option<String>,
+    pub wait_number: Option<i32>,
+    pub wait_last_step: Option<i32>,
+    pub is_enabled: Option<i32>,
+    pub sort_no: Option<i32>,
 }
 
-impl ResponseData {
+impl TaskSetting {
     pub fn new() -> Self {
-        ResponseData {
+        TaskSetting {
             row_id: None,
-            data_content: None,
-            data_code: None,
-            read_date: None,
-            created_date: None,
-            updated_date: None,
+            group_code: None,
+            job_code: None,
+            wait_type: None,
+            wait_number: None,
+            wait_last_step: None,
+            is_enabled: None,
+            sort_no: None,
         }
     }
 }
 
-impl std::fmt::Display for ResponseData {
+impl std::fmt::Display for TaskSetting {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        let row_id = self.row_id.clone().unwrap_or(String::from(""));
+        let group_code = self.group_code.clone().unwrap_or(String::from(""));
+        let job_code = self.job_code.clone().unwrap_or(String::from(""));
+        let wait_type = self.wait_type.clone().unwrap_or(String::from(""));
+        let wait_number = self.wait_number.unwrap_or(0);
+        let wait_last_step = self.wait_last_step.unwrap_or(0);
+        let is_enabled = self.is_enabled.unwrap_or(0);
+        let sort_no = self.sort_no.unwrap_or(0);
+
         write!(
             f,
-            r#"{:?}, 
-            data_content: {:?}, 
-            data_code: {:?}, 
-            read_date: {:?}, 
-            created_date: {:?}, 
-            updated_date: {:?}
+            r#"{}, 
+            group_code: {}, 
+            job_code: {}, 
+            wait_type: {}, 
+            wait_number: {}, 
+            wait_last_step: {},
+            is_enabled: {},
+            sort_no: {}
             "#,
-            self.row_id,
-            self.data_content,
-            self.data_code,
-            self.read_date,
-            self.created_date,
-            self.updated_date
+            row_id,
+            group_code,
+            job_code,
+            wait_type,
+            wait_number,
+            wait_last_step,
+            is_enabled,
+            sort_no,
         )
     }
 }

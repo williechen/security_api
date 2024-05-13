@@ -1,45 +1,37 @@
-use chrono::NaiveDateTime;
-
 #[derive(Debug, Clone)]
-pub struct ResponseData {
+pub struct DailyTask {
     pub row_id: Option<String>,
-    pub data_content: Option<String>,
-    pub data_code: Option<String>,
-    pub read_date: Option<String>,
-    pub created_date: Option<NaiveDateTime>,
-    pub updated_date: Option<NaiveDateTime>,
+    pub version_code: Option<String>,
+    pub job_code: Option<String>,
+    pub exec_status: Option<String>,
 }
 
-impl ResponseData {
+impl DailyTask {
     pub fn new() -> Self {
-        ResponseData {
+        DailyTask {
             row_id: None,
-            data_content: None,
-            data_code: None,
-            read_date: None,
-            created_date: None,
-            updated_date: None,
+            version_code: None,
+            job_code: None,
+            exec_status: None,
         }
     }
 }
 
-impl std::fmt::Display for ResponseData {
+impl std::fmt::Display for DailyTask {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        let row_id = self.row_id.clone().unwrap_or(String::from(""));
+        let version_code = self.version_code.clone().unwrap_or(String::from(""));
+        let job_code = self.job_code.clone().unwrap_or(String::from(""));
+        let exec_status = self.exec_status.clone().unwrap_or(String::from(""));
+
         write!(
             f,
-            r#"{:?}, 
-            data_content: {:?}, 
-            data_code: {:?}, 
-            read_date: {:?}, 
-            created_date: {:?}, 
-            updated_date: {:?}
+            r#"{0}, 
+            version_code: {1}, 
+            job_code: {2}, 
+            exec_status: {3}
             "#,
-            self.row_id,
-            self.data_content,
-            self.data_code,
-            self.read_date,
-            self.created_date,
-            self.updated_date
+            row_id, version_code, job_code, exec_status
         )
     }
 }

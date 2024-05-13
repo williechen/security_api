@@ -1,5 +1,3 @@
-use chrono::NaiveDateTime;
-
 #[derive(Debug, Clone)]
 pub struct SecurityTemp {
     pub row_id: Option<String>,
@@ -14,8 +12,6 @@ pub struct SecurityTemp {
     pub cfi_code: Option<String>,
     pub remark: Option<String>,
     pub is_enabled: Option<i32>,
-    pub created_date: Option<NaiveDateTime>,
-    pub updated_date: Option<NaiveDateTime>,
 }
 
 impl SecurityTemp {
@@ -33,45 +29,52 @@ impl SecurityTemp {
             cfi_code: None,
             remark: None,
             is_enabled: None,
-            created_date: None,
-            updated_date: None,
         }
     }
 }
 
 impl std::fmt::Display for SecurityTemp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        let row_id = self.row_id.clone().unwrap_or(String::from(""));
+        let version_code = self.version_code.clone().unwrap_or(String::from(""));
+        let international_code = self.international_code.clone().unwrap_or(String::from(""));
+        let security_code = self.security_code.clone().unwrap_or(String::from(""));
+        let security_name = self.security_name.clone().unwrap_or(String::from(""));
+        let market_type = self.market_type.clone().unwrap_or(String::from(""));
+        let security_type = self.security_type.clone().unwrap_or(String::from(""));
+        let industry_type = self.industry_type.clone().unwrap_or(String::from(""));
+        let issue_date = self.issue_date.clone().unwrap_or(String::from(""));
+        let cfi_code = self.cfi_code.clone().unwrap_or(String::from(""));
+        let remark = self.remark.clone().unwrap_or(String::from(""));
+        let is_enabled = self.is_enabled.unwrap_or(0);
+
         write!(
             f,
-            r#"{:?}, 
-            version_code: {:?}, 
-            international_code: {:?}, 
-            security_code: {:?}, 
-            security_name: {:?}, 
-            market_type: {:?}, 
-            security_type: {:?}, 
-            industry_type: {:?}, 
-            issue_date: {:?}, 
-            cfi_code: {:?}, 
-            remark: {:?}, 
-            is_enabled: {:?}, 
-            created_date: {:?}, 
-            updated_date: {:?}
+            r#"{}, 
+            version_code: {}, 
+            international_code: {}, 
+            security_code: {}, 
+            security_name: {}, 
+            market_type: {}, 
+            security_type: {}, 
+            industry_type: {}, 
+            issue_date: {}, 
+            cfi_code: {}, 
+            remark: {}, 
+            is_enabled: {}
             "#,
-            self.row_id,
-            self.version_code,
-            self.international_code,
-            self.security_code,
-            self.security_name,
-            self.market_type,
-            self.security_type,
-            self.industry_type,
-            self.issue_date,
-            self.cfi_code,
-            self.remark,
-            self.is_enabled,
-            self.created_date,
-            self.updated_date
+            row_id,
+            version_code,
+            international_code,
+            security_code,
+            security_name,
+            market_type,
+            security_type,
+            industry_type,
+            issue_date,
+            cfi_code,
+            remark,
+            is_enabled
         )
     }
 }
