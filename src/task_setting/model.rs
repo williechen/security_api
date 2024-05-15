@@ -5,7 +5,6 @@ pub struct TaskSetting {
     pub job_code: Option<String>,
     pub wait_type: Option<String>,
     pub wait_number: Option<i32>,
-    pub wait_last_step: Option<i32>,
     pub is_enabled: Option<i32>,
     pub sort_no: Option<i32>,
 }
@@ -18,7 +17,6 @@ impl TaskSetting {
             job_code: None,
             wait_type: None,
             wait_number: None,
-            wait_last_step: None,
             is_enabled: None,
             sort_no: None,
         }
@@ -32,7 +30,6 @@ impl std::fmt::Display for TaskSetting {
         let job_code = self.job_code.clone().unwrap_or(String::from(""));
         let wait_type = self.wait_type.clone().unwrap_or(String::from(""));
         let wait_number = self.wait_number.unwrap_or(0);
-        let wait_last_step = self.wait_last_step.unwrap_or(0);
         let is_enabled = self.is_enabled.unwrap_or(0);
         let sort_no = self.sort_no.unwrap_or(0);
 
@@ -43,18 +40,10 @@ impl std::fmt::Display for TaskSetting {
             job_code: {}, 
             wait_type: {}, 
             wait_number: {}, 
-            wait_last_step: {},
             is_enabled: {},
             sort_no: {}
             "#,
-            row_id,
-            group_code,
-            job_code,
-            wait_type,
-            wait_number,
-            wait_last_step,
-            is_enabled,
-            sort_no,
+            row_id, group_code, job_code, wait_type, wait_number, is_enabled, sort_no,
         )
     }
 }

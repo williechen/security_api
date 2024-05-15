@@ -2,27 +2,26 @@ use chrono::Local;
 use sqlx::{postgres::PgRow, Row};
 use tracing::{event, Level};
 
-use super::model::SecurityTemp;
+use super::model::SecurityPrice;
 
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: &SecurityTemp,
-) -> Result<(usize, Vec<SecurityTemp>), sqlx::Error> {
+    data: &SecurityPrice,
+) -> Result<(usize, Vec<SecurityPrice>), sqlx::Error> {
     let mut select_str = r#" 
         SELECT row_id
              , version_code
-             , international_code
              , security_code
-             , security_name
-             , market_type
-             , security_type
-             , industry_type
-             , issue_date
-             , cfi_code
-             , remark
+             , price_date
+             , price_close
+             , price_avg
+             , price_hight
+             , price_hight_avg
+             , price_lowest
+             , price_lowest_avg
              , created_date
              , updated_date
-          FROM security_temp
+          FROM security_price
     "#
     .to_string();
 
@@ -33,17 +32,8 @@ pub async fn read_all(
     if data.security_code.is_some() {
         select_str.push_str(&where_append("security_code", "=", &mut index));
     }
-    if data.security_name.is_some() {
-        select_str.push_str(&where_append("security_name", "like", &mut index));
-    }
-    if data.market_type.is_some() {
-        select_str.push_str(&where_append("market_type", "like", &mut index));
-    }
-    if data.security_type.is_some() {
-        select_str.push_str(&where_append("security_type", "like", &mut index));
-    }
-    if data.issue_date.is_some() {
-        select_str.push_str(&where_append("issue_date", ">=", &mut index));
+    if data.price_date.is_some() {
+        select_str.push_str(&where_append("price_date", "=", &mut index));
     }
 
     let mut query = sqlx::query(&select_str);
@@ -54,32 +44,22 @@ pub async fn read_all(
     if data.security_code.is_some() {
         query = query.bind(data.security_code.clone());
     }
-    if data.security_name.is_some() {
-        query = query.bind(data.security_name.clone());
-    }
-    if data.market_type.is_some() {
-        query = query.bind(data.market_type.clone());
-    }
-    if data.security_type.is_some() {
-        query = query.bind(data.security_type.clone());
-    }
-    if data.issue_date.is_some() {
-        query = query.bind(data.issue_date.clone());
+    if data.price_date.is_some() {
+        query = query.bind(data.price_date.clone());
     }
 
     match query
-        .map(|row: PgRow| SecurityTemp {
+        .map(|row: PgRow| SecurityPrice {
             row_id: row.get("row_id"),
             version_code: row.get("version_code"),
-            international_code: row.get("international_code"),
             security_code: row.get("security_code"),
-            security_name: row.get("security_name"),
-            market_type: row.get("market_type"),
-            security_type: row.get("security_type"),
-            industry_type: row.get("industry_type"),
-            issue_date: row.get("issue_date"),
-            cfi_code: row.get("cfi_code"),
-            remark: row.get("remark"),
+            price_date: row.get("price_date"),
+            price_close: row.get("price_close"),
+            price_avg: row.get("price_avg"),
+            price_hight: row.get("price_hight"),
+            price_hight_avg: row.get("price_hight_avg"),
+            price_lowest: row.get("price_lowest"),
+            price_lowest_avg: row.get("price_lowest_avg"),
         })
         .fetch_all(&mut **transaction)
         .await
@@ -108,20 +88,19 @@ fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
 pub async fn read_all_by_sql(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     sql: &str,
-) -> Result<(usize, Vec<SecurityTemp>), sqlx::Error> {
+) -> Result<(usize, Vec<SecurityPrice>), sqlx::Error> {
     match sqlx::query(sql)
-        .map(|row: PgRow| SecurityTemp {
+        .map(|row: PgRow| SecurityPrice {
             row_id: row.get("row_id"),
             version_code: row.get("version_code"),
-            international_code: row.get("international_code"),
             security_code: row.get("security_code"),
-            security_name: row.get("security_name"),
-            market_type: row.get("market_type"),
-            security_type: row.get("security_type"),
-            industry_type: row.get("industry_type"),
-            issue_date: row.get("issue_date"),
-            cfi_code: row.get("cfi_code"),
-            remark: row.get("remark"),
+            price_date: row.get("price_date"),
+            price_close: row.get("price_close"),
+            price_avg: row.get("price_avg"),
+            price_hight: row.get("price_hight"),
+            price_hight_avg: row.get("price_hight_avg"),
+            price_lowest: row.get("price_lowest"),
+            price_lowest_avg: row.get("price_lowest_avg"),
         })
         .fetch_all(&mut **transaction)
         .await
@@ -137,38 +116,36 @@ pub async fn read_all_by_sql(
 pub async fn read(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     row_id: &str,
-) -> Result<Option<SecurityTemp>, sqlx::Error> {
+) -> Result<Option<SecurityPrice>, sqlx::Error> {
     match sqlx::query(
         r#"
         SELECT row_id
              , version_code
-             , international_code
              , security_code
-             , security_name
-             , market_type
-             , security_type
-             , industry_type
-             , issue_date
-             , cfi_code
-             , remark
+             , price_date
+             , price_close
+             , price_avg
+             , price_hight
+             , price_hight_avg
+             , price_lowest
+             , price_lowest_avg
              , created_date
              , updated_date
-          FROM security_temp
+          FROM security_price
          WHERE row_id = $1 "#,
     )
     .bind(row_id)
-    .map(|row: PgRow| SecurityTemp {
+    .map(|row: PgRow| SecurityPrice {
         row_id: row.get("row_id"),
         version_code: row.get("version_code"),
-        international_code: row.get("international_code"),
         security_code: row.get("security_code"),
-        security_name: row.get("security_name"),
-        market_type: row.get("market_type"),
-        security_type: row.get("security_type"),
-        industry_type: row.get("industry_type"),
-        issue_date: row.get("issue_date"),
-        cfi_code: row.get("cfi_code"),
-        remark: row.get("remark"),
+        price_date: row.get("price_date"),
+        price_close: row.get("price_close"),
+        price_avg: row.get("price_avg"),
+        price_hight: row.get("price_hight"),
+        price_hight_avg: row.get("price_hight_avg"),
+        price_lowest: row.get("price_lowest"),
+        price_lowest_avg: row.get("price_lowest_avg"),
     })
     .fetch_one(&mut **transaction)
     .await
@@ -183,34 +160,32 @@ pub async fn read(
 
 pub async fn create(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: SecurityTemp,
+    data: SecurityPrice,
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" 
-        INSERT INTO security_temp(version_code
-            , international_code
+        INSERT INTO security_price(version_code
             , security_code
-            , security_name
-            , market_type
-            , security_type
-            , industry_type
-            , issue_date
-            , cfi_code
-            , remark
+            , price_date
+            , price_close
+            , price_avg
+            , price_hight
+            , price_hight_avg
+            , price_lowest
+            , price_lowest_avg
             , created_date
             , updated_date
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)  "#,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)  "#,
     )
     .bind(data.version_code)
-    .bind(data.international_code)
     .bind(data.security_code)
-    .bind(data.security_name)
-    .bind(data.market_type)
-    .bind(data.security_type)
-    .bind(data.industry_type)
-    .bind(data.issue_date)
-    .bind(data.cfi_code)
-    .bind(data.remark)
+    .bind(data.price_date)
+    .bind(data.price_close)
+    .bind(data.price_avg)
+    .bind(data.price_hight)
+    .bind(data.price_hight_avg)
+    .bind(data.price_lowest)
+    .bind(data.price_lowest_avg)
     .bind(Local::now().naive_local())
     .bind(Local::now().naive_local())
     .execute(&mut **transaction)
@@ -226,34 +201,32 @@ pub async fn create(
 
 pub async fn update(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: SecurityTemp,
+    data: SecurityPrice,
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
-        r#" UPDATE security_temp
+        r#" UPDATE security_price
             SET version_code = $1
-            , international_code = $2
-            , security_code = $3
-            , security_name = $4
-            , market_type = $5 
-            , security_type = $6
-            , industry_type = $7
-            , issue_date = $8
-            , cfi_code = $9
-            , remark = $10
-            , updated_date = $11
-            WHERE row_id = $12
+              , security_code = $2
+              , price_date = $3
+              , price_close = $4
+              , price_avg = $5
+              , price_hight = $6
+              , price_hight_avg = $7
+              , price_lowest = $8
+              , price_lowest_avg =$9
+              , updated_date = $10
+            WHERE row_id = $11
           "#,
     )
     .bind(data.version_code)
-    .bind(data.international_code)
     .bind(data.security_code)
-    .bind(data.security_name)
-    .bind(data.market_type)
-    .bind(data.security_type)
-    .bind(data.industry_type)
-    .bind(data.issue_date)
-    .bind(data.cfi_code)
-    .bind(data.remark)
+    .bind(data.price_date)
+    .bind(data.price_close)
+    .bind(data.price_avg)
+    .bind(data.price_hight)
+    .bind(data.price_hight_avg)
+    .bind(data.price_lowest)
+    .bind(data.price_lowest_avg)
     .bind(Local::now().naive_local())
     .bind(data.row_id)
     .execute(&mut **transaction)
@@ -269,9 +242,9 @@ pub async fn update(
 
 pub async fn delete(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: SecurityTemp,
+    data: SecurityPrice,
 ) -> Result<u64, sqlx::Error> {
-    match sqlx::query(r#" DELETE FROM security_temp WHERE row_id = $1 "#)
+    match sqlx::query(r#" DELETE FROM security_price WHERE row_id = $1 "#)
         .bind(data.row_id)
         .execute(&mut **transaction)
         .await

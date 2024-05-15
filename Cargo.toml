@@ -17,14 +17,12 @@ reqwest = {version="0.12", features=["json", "blocking"]}
 
 regex ="1.10"
 
-rust_decimal = "1.35"
-
 scraper="0.19"
 
 serde = { version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "migrate", "chrono", "postgres"]}
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "migrate", "bigdecimal", "chrono", "postgres"]}
 
 tokio = {version = "1.2", features = ["full"]}
 tokio-retry = "0.3"

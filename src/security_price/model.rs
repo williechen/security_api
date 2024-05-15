@@ -1,4 +1,4 @@
-use rust_decimal::Decimal;
+use sqlx::types::BigDecimal;
 
 #[derive(Debug, Clone)]
 pub struct SecurityPrice {
@@ -6,12 +6,12 @@ pub struct SecurityPrice {
     pub version_code: Option<String>,
     pub security_code: Option<String>,
     pub price_date: Option<String>,
-    pub price_close: Option<Decimal>,
-    pub price_avg: Option<Decimal>,
-    pub price_hight: Option<Decimal>,
-    pub price_hight_avg: Option<Decimal>,
-    pub price_lowest: Option<Decimal>,
-    pub price_lowest_avg: Option<Decimal>,
+    pub price_close: Option<BigDecimal>,
+    pub price_avg: Option<BigDecimal>,
+    pub price_hight: Option<BigDecimal>,
+    pub price_hight_avg: Option<BigDecimal>,
+    pub price_lowest: Option<BigDecimal>,
+    pub price_lowest_avg: Option<BigDecimal>,
 }
 
 impl SecurityPrice {
@@ -37,12 +37,15 @@ impl std::fmt::Display for SecurityPrice {
         let version_code = self.version_code.clone().unwrap_or(String::from(""));
         let security_code = self.security_code.clone().unwrap_or(String::from(""));
         let price_date = self.price_date.clone().unwrap_or(String::from(""));
-        let price_close = self.price_close.clone().unwrap_or(Decimal::ZERO);
-        let price_avg = self.price_avg.clone().unwrap_or(Decimal::ZERO);
-        let price_hight = self.price_hight.clone().unwrap_or(Decimal::ZERO);
-        let price_hight_avg = self.price_hight_avg.clone().unwrap_or(Decimal::ZERO);
-        let price_lowest = self.price_lowest.clone().unwrap_or(Decimal::ZERO);
-        let price_lowest_avg = self.price_lowest_avg.clone().unwrap_or(Decimal::ZERO);
+        let price_close = self.price_close.clone().unwrap_or(BigDecimal::default());
+        let price_avg = self.price_avg.clone().unwrap_or(BigDecimal::default());
+        let price_hight = self.price_hight.clone().unwrap_or(BigDecimal::default());
+        let price_hight_avg = self.price_hight_avg.clone().unwrap_or(BigDecimal::default());
+        let price_lowest = self.price_lowest.clone().unwrap_or(BigDecimal::default());
+        let price_lowest_avg = self
+            .price_lowest_avg
+            .clone()
+            .unwrap_or(BigDecimal::default());
 
         write!(
             f,

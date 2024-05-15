@@ -11,7 +11,6 @@ pub struct SecurityTemp {
     pub issue_date: Option<String>,
     pub cfi_code: Option<String>,
     pub remark: Option<String>,
-    pub is_enabled: Option<i32>,
 }
 
 impl SecurityTemp {
@@ -28,7 +27,6 @@ impl SecurityTemp {
             issue_date: None,
             cfi_code: None,
             remark: None,
-            is_enabled: None,
         }
     }
 }
@@ -46,7 +44,6 @@ impl std::fmt::Display for SecurityTemp {
         let issue_date = self.issue_date.clone().unwrap_or(String::from(""));
         let cfi_code = self.cfi_code.clone().unwrap_or(String::from(""));
         let remark = self.remark.clone().unwrap_or(String::from(""));
-        let is_enabled = self.is_enabled.unwrap_or(0);
 
         write!(
             f,
@@ -61,7 +58,6 @@ impl std::fmt::Display for SecurityTemp {
             issue_date: {}, 
             cfi_code: {}, 
             remark: {}, 
-            is_enabled: {}
             "#,
             row_id,
             version_code,
@@ -74,7 +70,6 @@ impl std::fmt::Display for SecurityTemp {
             issue_date,
             cfi_code,
             remark,
-            is_enabled
         )
     }
 }

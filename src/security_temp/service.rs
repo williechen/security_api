@@ -23,7 +23,7 @@ pub async fn insert_temp_data(
             None => None,
         };
 
-        let data_list = dao::read_all(&mut transaction_loop, query_security_temp).await?;
+        let data_list = dao::read_all(&mut transaction_loop, &query_security_temp).await?;
         if data_list.0 <= 0 {
             let security_temp = SecurityTemp {
                 row_id: None,
@@ -64,16 +64,13 @@ pub async fn insert_temp_data(
                     Some(t) => Some(t.to_owned()),
                     None => None,
                 },
-                is_enabled: Some(1),
-                created_date: Some(now),
-                updated_date: Some(now),
             };
 
             match dao::create(&mut transaction_loop, security_temp).await {
                 Ok(_) => transaction_loop.commit().await?,
                 Err(e) => {
                     transaction_loop.rollback().await?;
-                    event!(target: "my_api", Level::ERROR, "{:?}", e);
+                    event!(target: "security_api", Level::ERROR, "{:?}", e);
                 }
             };
         }

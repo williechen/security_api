@@ -5,7 +5,7 @@ CREATE TABLE calendar_data (
     tw_year varchar not null default '051',
     ce_month varchar not null default '01',
     ce_day varchar not null default '01',
-    date_status varchar not null default 'W',
+    date_status varchar not null default 'O',
     group_task varchar not null default 'ALL',
     created_date timestamp not null default now(),
     updated_date timestamp not null default now(),
@@ -27,7 +27,7 @@ COMMENT ON COLUMN calendar_data.ce_year IS '西元年';
 COMMENT ON COLUMN calendar_data.tw_year IS '民國年';
 COMMENT ON COLUMN calendar_data.ce_month IS '西元月';
 COMMENT ON COLUMN calendar_data.ce_day IS '西元日';
-COMMENT ON COLUMN calendar_data.date_status IS '工作:W/假日:H/颱風:T';
+COMMENT ON COLUMN calendar_data.date_status IS '開市:O/休市:S';
 COMMENT ON COLUMN calendar_data.group_task IS '任務群組';
 COMMENT ON COLUMN calendar_data.created_date IS '新增日期';
 COMMENT ON COLUMN calendar_data.updated_date IS '修改日期';

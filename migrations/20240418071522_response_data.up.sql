@@ -10,8 +10,8 @@ CREATE TABLE response_data (
 );
 
 CREATE INDEX response_data_version_code_idx ON response_data USING btree (version_code);
-CREATE INDEX response_data_data_code_idx ON response_data USING btree (data_code);
-CREATE INDEX response_data_read_date_idx ON response_data USING btree (read_date);
+CREATE INDEX response_data_exec_code_idx ON response_data USING btree (exec_code);
+CREATE INDEX response_data_data_content_idx ON response_data USING btree (data_content);
 
 COMMENT ON TABLE response_data IS '網頁資料';
 

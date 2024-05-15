@@ -6,7 +6,7 @@ use tracing::{event, Level};
 #[tokio::main]
 async fn main() {
     let log_filter =
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "my_api=info,sqlx=info".to_owned());
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "security_api=info,sqlx=info".to_owned());
 
     let file_appender = tracing_appender::rolling::hourly("logs", "security_api.log");
 
@@ -20,7 +20,7 @@ async fn main() {
 
     let db_pool = match PgPoolOptions::new()
         .max_connections(5)
-        .connect("postgres://willie:Gn220304@localhost:5432/my_security")
+        .connect("postgres://willie:Gn220304@localhost:5432/security_api")
         .await
     {
         Ok(pool) => pool,
@@ -36,35 +36,42 @@ async fn main() {
     if args.len() > 1 {
         let action_code = args[1].as_str();
         match action_code {
-            "get_web_security" => match security_api::get_security_all_code(&db_pool).await {
-                Ok(_) => event!(target: "my_api", Level::INFO, "get_web_security Done"),
+            "add_next_year" => match security_api::add_next_year(&db_pool).await {
+                Ok(_) => event!(target: "security_api", Level::INFO, "add_next_year Done"),
                 Err(e) => {
-                    event!(target: "my_api", Level::ERROR, "{:?}", e);
+                    event!(target: "security_api", Level::ERROR, "{:?}", e);
+                    panic!("add_next_year Error {}", e)
+                }
+            },
+            "get_web_security" => match security_api::get_security_all_code(&db_pool).await {
+                Ok(_) => event!(target: "security_api", Level::INFO, "get_web_security Done"),
+                Err(e) => {
+                    event!(target: "security_api", Level::ERROR, "{:?}", e);
                     panic!("get_web_security Error {}", e)
                 }
             },
             "res_to_temp" => match security_api::get_security_to_temp(&db_pool).await {
-                Ok(_) => event!(target: "my_api", Level::INFO, "res_to_temp Done"),
+                Ok(_) => event!(target: "security_api", Level::INFO, "res_to_temp Done"),
                 Err(e) => {
-                    event!(target: "my_api", Level::ERROR, "{:?}", e);
+                    event!(target: "security_api", Level::ERROR, "{:?}", e);
                     panic!("res_to_temp Error {}", e)
                 }
             },
             "temp_to_task" => match security_api::get_temp_to_task(&db_pool).await {
-                Ok(_) => event!(target: "my_api", Level::INFO, "temp_to_task Done"),
+                Ok(_) => event!(target: "security_api", Level::INFO, "temp_to_task Done"),
                 Err(e) => {
-                    event!(target: "my_api", Level::ERROR, "{:?}", e);
+                    event!(target: "security_api", Level::ERROR, "{:?}", e);
                     panic!("temp_to_task Error {}", e)
                 }
             },
             "task_run" => match security_api::get_task_run(&db_pool).await {
-                Ok(_) => event!(target: "my_api", Level::INFO, "task_run Done"),
+                Ok(_) => event!(target: "security_api", Level::INFO, "task_run Done"),
                 Err(e) => {
-                    event!(target: "my_api", Level::ERROR, "{:?}", e);
+                    event!(target: "security_api", Level::ERROR, "{:?}", e);
                     panic!("task_run Error {}", e)
                 }
             },
-            _ => event!(target: "my_api", Level::INFO, "{:?}", args[1]),
+            _ => event!(target: "security_api", Level::INFO, "{:?}", args[1]),
         }
     }
 }
