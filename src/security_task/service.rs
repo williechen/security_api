@@ -1,4 +1,4 @@
-use chrono::{Datelike, Local};
+use chrono::{Datelike, Local, NaiveDate};
 use rand::{thread_rng, Rng};
 use serde_json::Value;
 use tokio::time;
@@ -49,7 +49,7 @@ async fn loop_date_temp_data(
             let query_security_task = match data.market_type.clone().unwrap().as_str() {
                 "上市" => SecurityTask {
                     row_id: None,
-                    open_date: None,
+                    open_date: task_info.open_date.clone(),
                     security_code: data.security_code.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
@@ -61,7 +61,7 @@ async fn loop_date_temp_data(
                 },
                 "上櫃" => SecurityTask {
                     row_id: None,
-                    open_date: None,
+                    open_date: task_info.open_date.clone(),
                     security_code: data.security_code.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
@@ -73,7 +73,7 @@ async fn loop_date_temp_data(
                 },
                 "興櫃" => SecurityTask {
                     row_id: None,
-                    open_date: None,
+                    open_date: task_info.open_date.clone(),
                     security_code: data.security_code.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
@@ -260,93 +260,124 @@ pub async fn get_all_task(
         let open_date = security.open_date.clone().unwrap();
         let security_code = security.security_code.clone().unwrap();
 
-        match security.market_type.clone().unwrap().as_str() {
-            "上市" => {
-                let data = Retry::spawn(retry_strategy.clone(), || async {
+        let open_month = NaiveDate::parse_from_str(&open_date, "%Y%m%d")?;
+
+        let query_response_date = ResponseData {
+            row_id: None,
+            open_date: Some(format!(
+                "{:04}{:02}01",
+                open_month.year(),
+                open_month.month()
+            )),
+            exec_code: Some(security_code.clone()),
+            data_content: None,
+        };
+        let res_list = response_data::dao::read_all(&mut transaction, &query_response_date).await?;
+        if res_list.0 <= 0 {
+            match security.market_type.clone().unwrap().as_str() {
+                "上市" => {
+                    let data = Retry::spawn(retry_strategy.clone(), || async {
                         event!(target: "security_api", Level::INFO, "try 上市 {:?} {:?}", &security_code, &open_date);
                         response_data::service::get_twse_avg_json(&security).await
                     })
                     .await?;
 
-                let json_value: Value = serde_json::from_str(&data)?;
-                let data_status = match json_value.get("stat") {
-                    Some(t) => "OK" == t.as_str().unwrap_or(""),
-                    None => false,
-                };
+                    let json_value: Value = serde_json::from_str(&data)?;
+                    let data_status = match json_value.get("stat") {
+                        Some(t) => "OK" == t.as_str().unwrap_or(""),
+                        None => false,
+                    };
 
-                match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
-                    Ok(_) => transaction_loop.commit().await?,
-                    Err(e) => {
-                        transaction_loop.rollback().await?;
-                        event!(target: "security_api", Level::ERROR, "get_all_task {}", &e);
-                        panic!("get_all_task Error {}", &e)
-                    }
-                };
-            }
-            "上櫃" => {
-                let data = Retry::spawn(retry_strategy.clone(), || async {
+                    match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
+                        Ok(_) => transaction_loop.commit().await?,
+                        Err(e) => {
+                            transaction_loop.rollback().await?;
+                            event!(target: "security_api", Level::ERROR, "get_all_task {}", &e);
+                            panic!("get_all_task Error {}", &e)
+                        }
+                    };
+                }
+                "上櫃" => {
+                    let data = Retry::spawn(retry_strategy.clone(), || async {
                     event!(target: "security_api", Level::INFO, "try 上櫃 {:?} {:?}", &security_code, &open_date);
                     response_data::service::get_tpex1_json(&security).await
                 })
                 .await?;
 
-                let json_value: Value = serde_json::from_str(&data)?;
-                let data_status = match json_value.get("iTotalRecords") {
-                    Some(t) => 0 < t.as_i64().unwrap_or(0),
-                    None => false,
-                };
+                    let json_value: Value = serde_json::from_str(&data)?;
+                    let data_status = match json_value.get("iTotalRecords") {
+                        Some(t) => 0 < t.as_i64().unwrap_or(0),
+                        None => false,
+                    };
 
-                match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
-                    Ok(_) => transaction_loop.commit().await?,
-                    Err(e) => {
-                        transaction_loop.rollback().await?;
-                        event!(target: "security_api", Level::ERROR, "get_all_task {}", &e);
-                        panic!("get_all_task Error {}", &e)
-                    }
-                };
-            }
-            "興櫃" => {
-                let data = Retry::spawn(retry_strategy.clone(), || async {
+                    match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
+                        Ok(_) => transaction_loop.commit().await?,
+                        Err(e) => {
+                            transaction_loop.rollback().await?;
+                            event!(target: "security_api", Level::ERROR, "get_all_task {}", &e);
+                            panic!("get_all_task Error {}", &e)
+                        }
+                    };
+                }
+                "興櫃" => {
+                    let data = Retry::spawn(retry_strategy.clone(), || async {
                     event!(target: "security_api", Level::INFO, "try 興櫃 {:?} {:?}", &security_code, &open_date);
                     response_data::service::get_tpex2_html(&security).await
                 })
                 .await?;
 
-                let json_value: Value = serde_json::from_str(&data)?;
-                let data_status = match json_value.get("data_cnt") {
-                    Some(t) => 0 < t.as_i64().unwrap_or(0),
-                    None => false,
-                };
+                    let json_value: Value = serde_json::from_str(&data)?;
+                    let data_status = match json_value.get("data_cnt") {
+                        Some(t) => 0 < t.as_i64().unwrap_or(0),
+                        None => false,
+                    };
 
-                match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
-                    Ok(_) => transaction_loop.commit().await?,
-                    Err(e) => {
-                        transaction_loop.rollback().await?;
-                        event!(target: "security_api", Level::ERROR, "get_all_task {}", &e);
-                        panic!("get_all_task Error {}", &e)
-                    }
-                };
+                    match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
+                        Ok(_) => transaction_loop.commit().await?,
+                        Err(e) => {
+                            transaction_loop.rollback().await?;
+                            event!(target: "security_api", Level::ERROR, "get_all_task {}", &e);
+                            panic!("get_all_task Error {}", &e)
+                        }
+                    };
+                }
+                _ => (),
+            };
+
+            let mut rng = thread_rng();
+            let market_type = security.market_type.clone();
+            if last_market_type == market_type {
+                event!(target: "security_api", Level::DEBUG, "{:?}={:?}", last_market_type, market_type);
+                time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
+            } else if last_market_type != market_type
+                && (Some("上櫃".to_string()) == last_market_type
+                    || Some("興欏".to_string()) == last_market_type)
+                && (Some("上櫃".to_string()) == market_type
+                    || Some("興欏".to_string()) == market_type)
+            {
+                event!(target: "security_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
+                time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
+            } else {
+                event!(target: "security_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
+                time::sleep(time::Duration::from_secs(rng.gen_range(3..6))).await;
             }
-            _ => (),
-        };
-
-        let mut rng = thread_rng();
-        let market_type = security.market_type.clone();
-        if last_market_type == market_type {
-            event!(target: "security_api", Level::DEBUG, "{:?}={:?}", last_market_type, market_type);
-            time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
-        } else if last_market_type != market_type
-            && (Some("上櫃".to_string()) == last_market_type
-                || Some("興欏".to_string()) == last_market_type)
-            && (Some("上櫃".to_string()) == market_type || Some("興欏".to_string()) == market_type)
-        {
-            event!(target: "security_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
-            time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
         } else {
-            event!(target: "security_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
-            time::sleep(time::Duration::from_secs(rng.gen_range(3..6))).await;
-        }
+            let mut security_task = security.clone();
+            security_task.is_enabled = Some(0);
+            security_task.exec_count = match security_task.exec_count {
+                Some(v) => Some(v + 1),
+                None => Some(0),
+            };
 
+            match dao::update(&mut transaction_loop, security_task.to_owned()).await {
+                Ok(_) => transaction_loop.commit().await?,
+                Err(e) => {
+                    transaction_loop.rollback().await?;
+                    event!(target: "security_api", Level::ERROR, "get_all_task {}", &e);
+                    panic!("get_all_task Error {}", &e)
+                }
+            };
+        }
         last_market_type = security.market_type;
     }
 
@@ -360,10 +391,17 @@ async fn add_res_data(
     data_status: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if data_status {
+        let open_date = data.open_date.clone().unwrap();
+        let open_month = NaiveDate::parse_from_str(&open_date, "%Y%m%d")?;
+
         let response_data = ResponseData {
             row_id: None,
             data_content: Some(html.to_string()),
-            open_date: data.open_date.clone(),
+            open_date: Some(format!(
+                "{:04}{:02}01",
+                open_month.year(),
+                open_month.month()
+            )),
             exec_code: data.security_code.clone(),
         };
 

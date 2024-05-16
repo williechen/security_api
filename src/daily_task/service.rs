@@ -86,7 +86,9 @@ pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::err
                         panic!("task_run Error {}", &e)
                     }
                 },
-                _ => event!(target: "security_api", Level::INFO, "othen job"),
+                _ => {
+                    event!(target: "security_api", Level::INFO, "othen job {}", task_info.job_code.clone().unwrap())
+                }
             };
         }
         // 等待數量
