@@ -1,7 +1,16 @@
 use chrono::{Local, NaiveDate};
+use tokio::time;
 use tracing::{event, Level};
 
-use super::{dao, model::DailyTask};
+use crate::{
+    response_data::{self, model::ResponseData},
+    security_task, security_temp,
+};
+
+use super::{
+    dao,
+    model::{DailyTask, DailyTaskInfo},
+};
 
 pub async fn insert_task_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let mut transaction = pool.begin().await?;
@@ -9,6 +18,92 @@ pub async fn insert_task_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::er
     let task_list = select_task(&mut transaction, Local::now().date_naive()).await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &task_list);
     loop_date_task_data(pool, &task_list).await?;
+
+    Ok(())
+}
+
+pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let mut transaction = pool.begin().await?;
+    let task_info_list =
+        dao::read_all_by_daily(&mut transaction, Local::now().date_naive()).await?;
+    for task_info in task_info_list {
+        if task_info.job_code.is_some() {
+            // 執行任務
+            match task_info.job_code.clone().unwrap().as_str() {
+                "get_web_security" => match get_security_all_code(&pool, &task_info).await {
+                    Ok(_) => event!(target: "security_api", Level::INFO, "get_web_security Done"),
+                    Err(e) => {
+                        event!(target: "security_api", Level::ERROR, "{:?}", e);
+                        panic!("get_web_security Error {}", e)
+                    }
+                },
+                "res_to_temp" => match get_security_to_temp(&pool, &task_info).await {
+                    Ok(_) => event!(target: "security_api", Level::INFO, "res_to_temp Done"),
+                    Err(e) => {
+                        event!(target: "security_api", Level::ERROR, "{:?}", e);
+                        panic!("res_to_temp Error {}", e)
+                    }
+                },
+                "temp_to_task" => match get_temp_to_task(&pool, &task_info).await {
+                    Ok(_) => event!(target: "security_api", Level::INFO, "temp_to_task Done"),
+                    Err(e) => {
+                        event!(target: "security_api", Level::ERROR, "{:?}", e);
+                        panic!("temp_to_task Error {}", e)
+                    }
+                },
+                "task_run" => match get_task_run(&pool, &task_info).await {
+                    Ok(_) => event!(target: "security_api", Level::INFO, "task_run Done"),
+                    Err(e) => {
+                        event!(target: "security_api", Level::ERROR, "{:?}", e);
+                        panic!("task_run Error {}", e)
+                    }
+                },
+                _ => event!(target: "security_api", Level::INFO, "othen job"),
+            };
+        }
+        // 等待數量
+        let wait_number = task_info.wait_number.unwrap_or(0);
+
+        // 等待單位
+        if task_info.wait_type.is_some() {
+            match task_info.wait_type.clone().unwrap().as_str() {
+                "DM" => {
+                    time::sleep(time::Duration::from_secs(
+                        (60 * 60 * 24 * 30 * wait_number).try_into().unwrap(),
+                    ))
+                    .await
+                }
+                "DW" => {
+                    time::sleep(time::Duration::from_secs(
+                        (60 * 60 * 24 * 7 * wait_number).try_into().unwrap(),
+                    ))
+                    .await
+                }
+                "DD" => {
+                    time::sleep(time::Duration::from_secs(
+                        (60 * 60 * 24 * wait_number).try_into().unwrap(),
+                    ))
+                    .await
+                }
+                "TH" => {
+                    time::sleep(time::Duration::from_secs(
+                        (60 * 60 * wait_number).try_into().unwrap(),
+                    ))
+                    .await
+                }
+                "TM" => {
+                    time::sleep(time::Duration::from_secs(
+                        (60 * wait_number).try_into().unwrap(),
+                    ))
+                    .await
+                }
+                "TS" => {
+                    time::sleep(time::Duration::from_secs(wait_number.try_into().unwrap())).await
+                }
+                _ => time::sleep(time::Duration::from_secs(0)).await,
+            };
+        }
+    }
 
     Ok(())
 }
@@ -78,7 +173,7 @@ async fn select_task(
                 AND cd.date_status = 'O'
              ORDER BY cd.ce_month desc, cd.ce_day desc, cd.ce_year desc, ts.sort_no  
             "#,
-            date.format("%Y%m%d")
+            date.format("%Y%m%d").to_string()
         ),
     )
     .await
@@ -89,4 +184,94 @@ async fn select_task(
             Ok(vec![])
         }
     }
+}
+
+pub async fn get_security_all_code(
+    pool: &sqlx::PgPool,
+    task_info: &DailyTaskInfo,
+) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "call get_security_all_code");
+
+    let mut transaction = pool.begin().await?;
+
+    let query_response_data = ResponseData {
+        row_id: None,
+        version_code: task_info.version_code.clone(),
+        exec_code: Some("seecurity".to_string()),
+        data_content: None,
+    };
+
+    let data_list = response_data::dao::read_all(&mut transaction, &query_response_data).await?;
+    if data_list.0 <= 0 {
+        let content = response_data::service::get_web_security_data().await?;
+
+        let response_data = ResponseData {
+            row_id: None,
+            version_code: task_info.version_code.clone(),
+            exec_code: Some("seecurity".to_string()),
+            data_content: Some(content),
+        };
+
+        match response_data::dao::create(&mut transaction, response_data).await {
+            Ok(_) => transaction.commit().await?,
+            Err(e) => {
+                transaction.rollback().await?;
+                event!(target: "security_api", Level::ERROR, "{:?}", e);
+            }
+        };
+    }
+
+    Ok(())
+}
+
+pub async fn get_security_to_temp(
+    pool: &sqlx::PgPool,
+    task_info: &DailyTaskInfo,
+) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "call get_security_to_temp");
+
+    let mut transaction = pool.begin().await?;
+
+    let query_response_data = ResponseData {
+        row_id: None,
+        version_code: task_info.version_code.clone(),
+        exec_code: Some("seecurity".to_string()),
+        data_content: None,
+    };
+
+    let data_list = response_data::dao::read_all(&mut transaction, &query_response_data).await?;
+    if data_list.0 > 0 {
+        if let Some(data) = data_list.1.get(0) {
+            if let Some(data_content) = &data.data_content {
+                security_temp::service::insert_temp_data(pool, data_content).await?
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn get_temp_to_task(
+    pool: &sqlx::PgPool,
+    task_info: &DailyTaskInfo,
+) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "call get_temp_to_task");
+    security_task::service::insert_task_data(pool, task_info).await?;
+    Ok(())
+}
+
+pub async fn delete_temp(
+    pool: &sqlx::PgPool,
+    task_info: &DailyTaskInfo,
+) -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
+}
+
+pub async fn get_task_run(
+    pool: &sqlx::PgPool,
+    task_info: &DailyTaskInfo,
+) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "call get_task_run");
+    //security_task::service::get_all_task(pool).await?;
+    Ok(())
 }

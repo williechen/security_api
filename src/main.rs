@@ -43,32 +43,18 @@ async fn main() {
                     panic!("add_next_year Error {}", e)
                 }
             },
-            "get_web_security" => match security_api::get_security_all_code(&db_pool).await {
-                Ok(_) => event!(target: "security_api", Level::INFO, "get_web_security Done"),
+            "add_daily_task" => match security_api::add_daily_task(&db_pool).await {
+                Ok(_) => event!(target: "security_api", Level::INFO, "add_daily_task Done"),
                 Err(e) => {
                     event!(target: "security_api", Level::ERROR, "{:?}", e);
-                    panic!("get_web_security Error {}", e)
+                    panic!("add_daily_task Error {}", e)
                 }
             },
-            "res_to_temp" => match security_api::get_security_to_temp(&db_pool).await {
-                Ok(_) => event!(target: "security_api", Level::INFO, "res_to_temp Done"),
+            "run_daily_task" => match security_api::run_daily_task(&db_pool).await {
+                Ok(_) => event!(target: "security_api", Level::INFO, "run_daily_task Done"),
                 Err(e) => {
                     event!(target: "security_api", Level::ERROR, "{:?}", e);
-                    panic!("res_to_temp Error {}", e)
-                }
-            },
-            "temp_to_task" => match security_api::get_temp_to_task(&db_pool).await {
-                Ok(_) => event!(target: "security_api", Level::INFO, "temp_to_task Done"),
-                Err(e) => {
-                    event!(target: "security_api", Level::ERROR, "{:?}", e);
-                    panic!("temp_to_task Error {}", e)
-                }
-            },
-            "task_run" => match security_api::get_task_run(&db_pool).await {
-                Ok(_) => event!(target: "security_api", Level::INFO, "task_run Done"),
-                Err(e) => {
-                    event!(target: "security_api", Level::ERROR, "{:?}", e);
-                    panic!("task_run Error {}", e)
+                    panic!("run_daily_task Error {}", e)
                 }
             },
             _ => event!(target: "security_api", Level::INFO, "{:?}", args[1]),

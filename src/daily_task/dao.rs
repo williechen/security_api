@@ -1,8 +1,8 @@
-use chrono::Local;
+use chrono::{Local, NaiveDate};
 use sqlx::{postgres::PgRow, Row};
 use tracing::{event, Level};
 
-use super::model::DailyTask;
+use super::model::{DailyTask, DailyTaskInfo};
 
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -211,6 +211,53 @@ pub async fn delete(
         .await
     {
         Ok(row) => Ok(row.rows_affected()),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "{:?}", &e);
+            Err(e)
+        }
+    }
+}
+
+pub async fn read_all_by_daily(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    date: NaiveDate,
+) -> Result<Vec<DailyTaskInfo>, sqlx::Error> {
+    match sqlx::query(
+        r#"
+        SELECT dt.version_code
+             , dt.job_code
+             , dt.open_date
+             , CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) AS ce_date
+             , CONCAT(cd.tw_year, '/', cd.ce_month) AS tw_date
+             , ts.wait_type
+             , ts.wait_number
+             , dt.exec_status
+          FROM daily_task dt
+          JOIN calendar_data cd
+            ON dt.open_date = CONCAT(cd.ce_year, cd.ce_month, cd.ce_day)
+          JOIN task_setting ts
+            ON dt.job_code = ts.job_code
+           AND cd.group_task = ts.group_code
+         WHERE dt.open_date <= $1 
+           AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
+         ORDER BY dt.open_date desc, ts.sort_no
+         "#,
+    )
+    .bind(date.format("%Y%m%d").to_string())
+    .map(|row: PgRow| DailyTaskInfo {
+        version_code: row.get("version_code"),
+        job_code: row.get("job_code"),
+        exec_status: row.get("exec_status"),
+        open_date: row.get("open_date"),
+        ce_date: row.get("ce_date"),
+        tw_date: row.get("tw_date"),
+        wait_type: row.get("wait_type"),
+        wait_number: row.get("wait_number"),
+    })
+    .fetch_all(&mut **transaction)
+    .await
+    {
+        Ok(row) => Ok(row),
         Err(e) => {
             event!(target: "security_api", Level::ERROR, "{:?}", &e);
             Err(e)

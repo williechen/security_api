@@ -39,3 +39,14 @@ impl std::fmt::Display for DailyTask {
         )
     }
 }
+
+pub struct DailyTaskInfo {
+    pub version_code: Option<String>,
+    pub job_code: Option<String>,
+    pub open_date: Option<String>,
+    pub ce_date: Option<String>,
+    pub tw_date: Option<String>,
+    pub wait_type: Option<String>,
+    pub wait_number: Option<i32>,
+    pub exec_status: Option<String>,
+}
