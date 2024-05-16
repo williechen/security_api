@@ -3,7 +3,7 @@ use sqlx::types::BigDecimal;
 #[derive(Debug, Clone)]
 pub struct SecurityPrice {
     pub row_id: Option<String>,
-    pub version_code: Option<String>,
+    pub open_date: Option<String>,
     pub security_code: Option<String>,
     pub price_date: Option<String>,
     pub price_close: Option<BigDecimal>,
@@ -18,7 +18,7 @@ impl SecurityPrice {
     pub fn new() -> Self {
         SecurityPrice {
             row_id: None,
-            version_code: None,
+            open_date: None,
             security_code: None,
             price_date: None,
             price_close: None,
@@ -34,13 +34,16 @@ impl SecurityPrice {
 impl std::fmt::Display for SecurityPrice {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         let row_id = self.row_id.clone().unwrap_or(String::from(""));
-        let version_code = self.version_code.clone().unwrap_or(String::from(""));
+        let open_date = self.open_date.clone().unwrap_or(String::from(""));
         let security_code = self.security_code.clone().unwrap_or(String::from(""));
         let price_date = self.price_date.clone().unwrap_or(String::from(""));
         let price_close = self.price_close.clone().unwrap_or(BigDecimal::default());
         let price_avg = self.price_avg.clone().unwrap_or(BigDecimal::default());
         let price_hight = self.price_hight.clone().unwrap_or(BigDecimal::default());
-        let price_hight_avg = self.price_hight_avg.clone().unwrap_or(BigDecimal::default());
+        let price_hight_avg = self
+            .price_hight_avg
+            .clone()
+            .unwrap_or(BigDecimal::default());
         let price_lowest = self.price_lowest.clone().unwrap_or(BigDecimal::default());
         let price_lowest_avg = self
             .price_lowest_avg
@@ -50,7 +53,7 @@ impl std::fmt::Display for SecurityPrice {
         write!(
             f,
             r#"{}, 
-            version_code: {}, 
+            open_date: {}, 
             security_code: {}, 
             price_date: {}, 
             price_close: {}, 
@@ -61,7 +64,7 @@ impl std::fmt::Display for SecurityPrice {
             price_lowest_avg: {},
             "#,
             row_id,
-            version_code,
+            open_date,
             security_code,
             price_date,
             price_close,

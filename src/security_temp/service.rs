@@ -17,7 +17,7 @@ pub async fn insert_temp_data(
         let now = Local::now().naive_local();
 
         let mut query_security_temp = SecurityTemp::new();
-        query_security_temp.version_code = Some(now.format("%Y%m%d").to_string());
+        query_security_temp.open_date = Some(now.format("%Y%m%d").to_string());
         query_security_temp.security_code = match row.get("2") {
             Some(t) => Some(t.to_owned()),
             None => None,
@@ -27,7 +27,7 @@ pub async fn insert_temp_data(
         if data_list.0 <= 0 {
             let security_temp = SecurityTemp {
                 row_id: None,
-                version_code: Some(now.format("%Y%m%d").to_string()),
+                open_date: Some(now.format("%Y%m%d").to_string()),
                 international_code: match row.get("1") {
                     Some(t) => Some(t.to_owned()),
                     None => None,

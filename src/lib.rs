@@ -13,7 +13,7 @@ mod task_setting;
 
 pub async fn add_next_year(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call add_next_year");
-    calendar_data::service::init_calendar_data(pool).await?;
+    calendar_data::service::insert_calendar_data(pool).await?;
     Ok(())
 }
 

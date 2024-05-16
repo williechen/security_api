@@ -1,7 +1,7 @@
 #[derive(Debug, Clone)]
 pub struct SecurityTemp {
     pub row_id: Option<String>,
-    pub version_code: Option<String>,
+    pub open_date: Option<String>,
     pub international_code: Option<String>,
     pub security_code: Option<String>,
     pub security_name: Option<String>,
@@ -17,7 +17,7 @@ impl SecurityTemp {
     pub fn new() -> Self {
         SecurityTemp {
             row_id: None,
-            version_code: None,
+            open_date: None,
             international_code: None,
             security_code: None,
             security_name: None,
@@ -34,7 +34,7 @@ impl SecurityTemp {
 impl std::fmt::Display for SecurityTemp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         let row_id = self.row_id.clone().unwrap_or(String::from(""));
-        let version_code = self.version_code.clone().unwrap_or(String::from(""));
+        let open_date = self.open_date.clone().unwrap_or(String::from(""));
         let international_code = self.international_code.clone().unwrap_or(String::from(""));
         let security_code = self.security_code.clone().unwrap_or(String::from(""));
         let security_name = self.security_name.clone().unwrap_or(String::from(""));
@@ -48,7 +48,7 @@ impl std::fmt::Display for SecurityTemp {
         write!(
             f,
             r#"{}, 
-            version_code: {}, 
+            open_date: {}, 
             international_code: {}, 
             security_code: {}, 
             security_name: {}, 
@@ -60,7 +60,7 @@ impl std::fmt::Display for SecurityTemp {
             remark: {}, 
             "#,
             row_id,
-            version_code,
+            open_date,
             international_code,
             security_code,
             security_name,

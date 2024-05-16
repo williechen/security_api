@@ -21,13 +21,13 @@ pub async fn insert_task_data(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut transaction = pool.begin().await?;
 
-    let version_code = task_info.version_code.clone().unwrap();
+    let open_date = task_info.open_date.clone().unwrap();
 
-    let twse_list = select_temp_to_twse(&mut transaction, &version_code).await?;
+    let twse_list = select_temp_to_twse(&mut transaction, &open_date).await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", twse_list);
     loop_date_temp_data(pool, &twse_list, task_info, 1).await?;
 
-    let tpex_list = select_temp_to_tpex(&mut transaction, &version_code).await?;
+    let tpex_list = select_temp_to_tpex(&mut transaction, &open_date).await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", tpex_list);
     loop_date_temp_data(pool, &tpex_list, task_info, 2).await?;
 
@@ -48,7 +48,7 @@ async fn loop_date_temp_data(
         let query_security_task = match data.market_type.clone().unwrap().as_str() {
             "上市" => SecurityTask {
                 row_id: None,
-                version_code: None,
+                open_date: None,
                 security_code: data.security_code.clone(),
                 market_type: data.market_type.clone(),
                 issue_date: data.issue_date.clone(),
@@ -60,7 +60,7 @@ async fn loop_date_temp_data(
             },
             "上櫃" => SecurityTask {
                 row_id: None,
-                version_code: None,
+                open_date: None,
                 security_code: data.security_code.clone(),
                 market_type: data.market_type.clone(),
                 issue_date: data.issue_date.clone(),
@@ -72,7 +72,7 @@ async fn loop_date_temp_data(
             },
             "興櫃" => SecurityTask {
                 row_id: None,
-                version_code: None,
+                open_date: None,
                 security_code: data.security_code.clone(),
                 market_type: data.market_type.clone(),
                 issue_date: data.issue_date.clone(),
@@ -94,7 +94,7 @@ async fn loop_date_temp_data(
             let security_task = match data.market_type.clone().unwrap().as_str() {
                 "上市" => SecurityTask {
                     row_id: None,
-                    version_code: task_info.version_code.clone(),
+                    open_date: task_info.open_date.clone(),
                     security_code: data.security_code.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
@@ -106,7 +106,7 @@ async fn loop_date_temp_data(
                 },
                 "上櫃" => SecurityTask {
                     row_id: None,
-                    version_code: task_info.version_code.clone(),
+                    open_date: task_info.open_date.clone(),
                     security_code: data.security_code.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
@@ -118,7 +118,7 @@ async fn loop_date_temp_data(
                 },
                 "興櫃" => SecurityTask {
                     row_id: None,
-                    version_code: task_info.version_code.clone(),
+                    open_date: task_info.open_date.clone(),
                     security_code: data.security_code.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
@@ -148,13 +148,13 @@ async fn loop_date_temp_data(
 
 async fn select_temp_to_twse(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    version_code: &str,
+    open_date: &str,
 ) -> Result<Vec<SecurityTemp>, Box<dyn std::error::Error>> {
     match security_temp::dao::read_all_by_sql(
         transaction,
         &format!(
             r#" SELECT row_id
-                      , version_code 
+                      , open_date
                       , international_code
                       , security_code
                       , security_name
@@ -164,16 +164,15 @@ async fn select_temp_to_twse(
                       , issue_date
                       , cfi_code
                       , remark
-                      , is_enabled
                       , created_date
                       , updated_date
                    FROM security_temp 
-                  WHERE version_code='{}' 
+                  WHERE open_date='{}' 
                     AND market_type in ('上市')
                     AND security_type in ('ETF', 'ETN', '股票', '特別股')
                   ORDER BY security_code, issue_date, market_type, security_type
             "#,
-            version_code
+            open_date
         ),
     )
     .await
@@ -188,13 +187,13 @@ async fn select_temp_to_twse(
 
 async fn select_temp_to_tpex(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    version_code: &str,
+    open_date: &str,
 ) -> Result<Vec<SecurityTemp>, Box<dyn std::error::Error>> {
     match security_temp::dao::read_all_by_sql(
         transaction,
         &format!(
             r#" SELECT row_id
-        , version_code 
+        , open_date
         , international_code
         , security_code
         , security_name
@@ -204,16 +203,15 @@ async fn select_temp_to_tpex(
         , issue_date
         , cfi_code
         , remark
-        , is_enabled
         , created_date
         , updated_date
                    FROM security_temp 
-                  WHERE version_code='{}' 
+                  WHERE open_date='{}' 
                     AND market_type in ('上櫃', '興櫃')
                     AND security_type in ('ETF', 'ETN', '股票', '特別股')
                     ORDER BY security_code, issue_date, market_type, security_type
             "#,
-            version_code
+            open_date
         ),
     )
     .await
@@ -242,7 +240,7 @@ pub async fn get_all_task(
 
     let query_security_task = SecurityTask {
         row_id: None,
-        version_code: task_info.version_code.clone(),
+        open_date: task_info.open_date.clone(),
         security_code: None,
         market_type: None,
         issue_date: None,
@@ -259,7 +257,7 @@ pub async fn get_all_task(
 
         let query_response_data = ResponseData {
             row_id: None,
-            version_code: task_info.open_date.clone(),
+            open_date: task_info.open_date.clone(),
             exec_code: security.security_code.clone(),
             data_content: None,
         };
@@ -267,13 +265,13 @@ pub async fn get_all_task(
         let res_list =
             response_data::dao::read_all(&mut transaction_loop, &query_response_data).await?;
         if res_list.0 <= 0 {
-            let version_code = security.version_code.clone().unwrap();
+            let open_date = security.open_date.clone().unwrap();
             let security_code = security.security_code.clone().unwrap();
 
             match security.market_type.clone().unwrap().as_str() {
                 "上市" => {
                     let data = Retry::spawn(retry_strategy.clone(), || async {
-                        event!(target: "security_api", Level::INFO, "try 上市 {:?} {:?}", &security_code, &version_code);
+                        event!(target: "security_api", Level::INFO, "try 上市 {:?} {:?}", &security_code, &open_date);
                         response_data::service::get_twse_avg_json(&security).await
                     })
                     .await?;
@@ -294,7 +292,7 @@ pub async fn get_all_task(
                 }
                 "上櫃" => {
                     let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "security_api", Level::INFO, "try 上櫃 {:?} {:?}", &security_code, &version_code);
+                    event!(target: "security_api", Level::INFO, "try 上櫃 {:?} {:?}", &security_code, &open_date);
                     response_data::service::get_tpex1_json(&security).await
                 })
                 .await?;
@@ -315,7 +313,7 @@ pub async fn get_all_task(
                 }
                 "興櫃" => {
                     let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "security_api", Level::INFO, "try 興櫃 {:?} {:?}", &security_code, &version_code);
+                    event!(target: "security_api", Level::INFO, "try 興櫃 {:?} {:?}", &security_code, &open_date);
                     response_data::service::get_tpex2_html(&security).await
                 })
                 .await?;
@@ -370,7 +368,7 @@ async fn add_res_data(
         let response_data = ResponseData {
             row_id: None,
             data_content: Some(html.to_string()),
-            version_code: data.version_code.clone(),
+            open_date: data.open_date.clone(),
             exec_code: data.security_code.clone(),
         };
 

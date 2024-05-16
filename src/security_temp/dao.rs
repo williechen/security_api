@@ -10,7 +10,7 @@ pub async fn read_all(
 ) -> Result<(usize, Vec<SecurityTemp>), sqlx::Error> {
     let mut select_str = r#" 
         SELECT row_id
-             , version_code
+             , open_date
              , international_code
              , security_code
              , security_name
@@ -27,8 +27,8 @@ pub async fn read_all(
     .to_string();
 
     let mut index = 0;
-    if data.version_code.is_some() {
-        select_str.push_str(&where_append("version_code", "=", &mut index));
+    if data.open_date.is_some() {
+        select_str.push_str(&where_append("open_date", "=", &mut index));
     }
     if data.security_code.is_some() {
         select_str.push_str(&where_append("security_code", "=", &mut index));
@@ -48,8 +48,8 @@ pub async fn read_all(
 
     let mut query = sqlx::query(&select_str);
 
-    if data.version_code.is_some() {
-        query = query.bind(data.version_code.clone());
+    if data.open_date.is_some() {
+        query = query.bind(data.open_date.clone());
     }
     if data.security_code.is_some() {
         query = query.bind(data.security_code.clone());
@@ -70,7 +70,7 @@ pub async fn read_all(
     match query
         .map(|row: PgRow| SecurityTemp {
             row_id: row.get("row_id"),
-            version_code: row.get("version_code"),
+            open_date: row.get("open_date"),
             international_code: row.get("international_code"),
             security_code: row.get("security_code"),
             security_name: row.get("security_name"),
@@ -112,7 +112,7 @@ pub async fn read_all_by_sql(
     match sqlx::query(sql)
         .map(|row: PgRow| SecurityTemp {
             row_id: row.get("row_id"),
-            version_code: row.get("version_code"),
+            open_date: row.get("open_date"),
             international_code: row.get("international_code"),
             security_code: row.get("security_code"),
             security_name: row.get("security_name"),
@@ -141,7 +141,7 @@ pub async fn read(
     match sqlx::query(
         r#"
         SELECT row_id
-             , version_code
+             , open_date
              , international_code
              , security_code
              , security_name
@@ -159,7 +159,7 @@ pub async fn read(
     .bind(row_id)
     .map(|row: PgRow| SecurityTemp {
         row_id: row.get("row_id"),
-        version_code: row.get("version_code"),
+        open_date: row.get("open_date"),
         international_code: row.get("international_code"),
         security_code: row.get("security_code"),
         security_name: row.get("security_name"),
@@ -187,7 +187,7 @@ pub async fn create(
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" 
-        INSERT INTO security_temp(version_code
+        INSERT INTO security_temp(open_date
             , international_code
             , security_code
             , security_name
@@ -201,7 +201,7 @@ pub async fn create(
             , updated_date
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)  "#,
     )
-    .bind(data.version_code)
+    .bind(data.open_date)
     .bind(data.international_code)
     .bind(data.security_code)
     .bind(data.security_name)
@@ -230,7 +230,7 @@ pub async fn update(
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" UPDATE security_temp
-            SET version_code = $1
+            SET open_date= $1
             , international_code = $2
             , security_code = $3
             , security_name = $4
@@ -244,7 +244,7 @@ pub async fn update(
             WHERE row_id = $12
           "#,
     )
-    .bind(data.version_code)
+    .bind(data.open_date)
     .bind(data.international_code)
     .bind(data.security_code)
     .bind(data.security_name)
@@ -273,6 +273,21 @@ pub async fn delete(
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(r#" DELETE FROM security_temp WHERE row_id = $1 "#)
         .bind(data.row_id)
+        .execute(&mut **transaction)
+        .await
+    {
+        Ok(row) => Ok(row.rows_affected()),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "{:?}", &e);
+            Err(e)
+        }
+    }
+}
+
+pub async fn truncate(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+) -> Result<u64, sqlx::Error> {
+    match sqlx::query(r#" TRUNCATE TABLE security_temp CONTINUE IDENTITY RESTRICT; "#)
         .execute(&mut **transaction)
         .await
     {

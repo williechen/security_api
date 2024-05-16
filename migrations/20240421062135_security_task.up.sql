@@ -1,7 +1,7 @@
 -- Add up migration script here
 CREATE TABLE security_task (
     row_id varchar not null default uuid_generate_v4(),
-    version_code varchar not null default '',
+    open_date varchar not null default '',
     security_code varchar not null default '',
     market_type varchar not null default '',
     issue_date varchar not null default '',
@@ -15,7 +15,7 @@ CREATE TABLE security_task (
     CONSTRAINT security_task_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX security_task_version_code_idx ON security_task USING btree (version_code);
+CREATE INDEX security_task_open_date_idx ON security_task USING btree (open_date);
 CREATE INDEX security_task_security_code_idx ON security_task USING btree (security_code);
 CREATE INDEX security_task_market_type_idx ON security_task USING btree (market_type);
 CREATE INDEX security_task_security_date_idx ON security_task USING btree (security_date);
@@ -27,7 +27,7 @@ CREATE INDEX security_task_exec_count_idx ON security_task USING btree (exec_cou
 COMMENT ON TABLE security_task IS '證券任務';
 
 COMMENT ON COLUMN security_task.row_id IS '序號';
-COMMENT ON COLUMN security_task.version_code IS '版本號';
+COMMENT ON COLUMN security_task.open_date IS '開市日期';
 COMMENT ON COLUMN security_task.security_code IS '代碼';
 COMMENT ON COLUMN security_task.market_type IS '市場別';
 COMMENT ON COLUMN security_task.issue_date IS '發行日期';

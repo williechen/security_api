@@ -1,7 +1,7 @@
 #[derive(Debug, Clone)]
 pub struct SecurityTask {
     pub row_id: Option<String>,
-    pub version_code: Option<String>,
+    pub open_date: Option<String>,
     pub security_code: Option<String>,
     pub market_type: Option<String>,
     pub issue_date: Option<String>,
@@ -16,7 +16,7 @@ impl SecurityTask {
     pub fn new() -> Self {
         SecurityTask {
             row_id: None,
-            version_code: None,
+            open_date: None,
             security_code: None,
             market_type: None,
             issue_date: None,
@@ -32,7 +32,7 @@ impl SecurityTask {
 impl std::fmt::Display for SecurityTask {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         let row_id = self.row_id.clone().unwrap_or(String::from(""));
-        let version_code = self.version_code.clone().unwrap_or(String::from(""));
+        let open_date = self.open_date.clone().unwrap_or(String::from(""));
         let security_code = self.security_code.clone().unwrap_or(String::from(""));
         let market_type = self.market_type.clone().unwrap_or(String::from(""));
         let issue_date = self.issue_date.clone().unwrap_or(String::from(""));
@@ -45,7 +45,7 @@ impl std::fmt::Display for SecurityTask {
         write!(
             f,
             r#"{}, 
-            version_code: {}, 
+            open_date: {}, 
             security_code: {}, 
             market_type: {}, 
             issue_date: {}, 
@@ -56,7 +56,7 @@ impl std::fmt::Display for SecurityTask {
             sort_no: {}
             "#,
             row_id,
-            version_code,
+            open_date,
             security_code,
             market_type,
             issue_date,

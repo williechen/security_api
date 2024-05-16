@@ -10,7 +10,7 @@ pub async fn read_all(
 ) -> Result<(usize, Vec<SecurityPrice>), sqlx::Error> {
     let mut select_str = r#" 
         SELECT row_id
-             , version_code
+             , open_date
              , security_code
              , price_date
              , price_close
@@ -26,8 +26,8 @@ pub async fn read_all(
     .to_string();
 
     let mut index = 0;
-    if data.version_code.is_some() {
-        select_str.push_str(&where_append("version_code", "=", &mut index));
+    if data.open_date.is_some() {
+        select_str.push_str(&where_append("open_date", "=", &mut index));
     }
     if data.security_code.is_some() {
         select_str.push_str(&where_append("security_code", "=", &mut index));
@@ -38,8 +38,8 @@ pub async fn read_all(
 
     let mut query = sqlx::query(&select_str);
 
-    if data.version_code.is_some() {
-        query = query.bind(data.version_code.clone());
+    if data.open_date.is_some() {
+        query = query.bind(data.open_date.clone());
     }
     if data.security_code.is_some() {
         query = query.bind(data.security_code.clone());
@@ -51,7 +51,7 @@ pub async fn read_all(
     match query
         .map(|row: PgRow| SecurityPrice {
             row_id: row.get("row_id"),
-            version_code: row.get("version_code"),
+            open_date: row.get("open_date"),
             security_code: row.get("security_code"),
             price_date: row.get("price_date"),
             price_close: row.get("price_close"),
@@ -92,7 +92,7 @@ pub async fn read_all_by_sql(
     match sqlx::query(sql)
         .map(|row: PgRow| SecurityPrice {
             row_id: row.get("row_id"),
-            version_code: row.get("version_code"),
+            open_date: row.get("open_date"),
             security_code: row.get("security_code"),
             price_date: row.get("price_date"),
             price_close: row.get("price_close"),
@@ -120,7 +120,7 @@ pub async fn read(
     match sqlx::query(
         r#"
         SELECT row_id
-             , version_code
+             , open_date
              , security_code
              , price_date
              , price_close
@@ -137,7 +137,7 @@ pub async fn read(
     .bind(row_id)
     .map(|row: PgRow| SecurityPrice {
         row_id: row.get("row_id"),
-        version_code: row.get("version_code"),
+        open_date: row.get("open_date"),
         security_code: row.get("security_code"),
         price_date: row.get("price_date"),
         price_close: row.get("price_close"),
@@ -164,7 +164,7 @@ pub async fn create(
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" 
-        INSERT INTO security_price(version_code
+        INSERT INTO security_price(open_date
             , security_code
             , price_date
             , price_close
@@ -177,7 +177,7 @@ pub async fn create(
             , updated_date
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)  "#,
     )
-    .bind(data.version_code)
+    .bind(data.open_date)
     .bind(data.security_code)
     .bind(data.price_date)
     .bind(data.price_close)
@@ -205,7 +205,7 @@ pub async fn update(
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" UPDATE security_price
-            SET version_code = $1
+            SET open_date= $1
               , security_code = $2
               , price_date = $3
               , price_close = $4
@@ -218,7 +218,7 @@ pub async fn update(
             WHERE row_id = $11
           "#,
     )
-    .bind(data.version_code)
+    .bind(data.open_date)
     .bind(data.security_code)
     .bind(data.price_date)
     .bind(data.price_close)

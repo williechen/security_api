@@ -10,7 +10,6 @@ pub async fn read_all(
 ) -> Result<(usize, Vec<DailyTask>), sqlx::Error> {
     let mut select_str = r#" 
         SELECT row_id
-             , version_code
              , open_date
              , job_code
              , exec_status
@@ -21,9 +20,6 @@ pub async fn read_all(
     .to_string();
 
     let mut index = 0;
-    if data.version_code.is_some() {
-        select_str.push_str(&where_append("version_code", "=", &mut index));
-    }
     if data.open_date.is_some() {
         select_str.push_str(&where_append("open_date", "=", &mut index));
     }
@@ -36,9 +32,6 @@ pub async fn read_all(
 
     let mut query = sqlx::query(&select_str);
 
-    if data.version_code.is_some() {
-        query = query.bind(data.version_code.clone());
-    }
     if data.open_date.is_some() {
         query = query.bind(data.open_date.clone());
     }
@@ -52,7 +45,6 @@ pub async fn read_all(
     match query
         .map(|row: PgRow| DailyTask {
             row_id: row.get("row_id"),
-            version_code: row.get("version_code"),
             open_date: row.get("open_date"),
             job_code: row.get("job_code"),
             exec_status: row.get("exec_status"),
@@ -88,7 +80,6 @@ pub async fn read_all_by_sql(
     match sqlx::query(sql)
         .map(|row: PgRow| DailyTask {
             row_id: row.get("row_id"),
-            version_code: row.get("version_code"),
             open_date: row.get("open_date"),
             job_code: row.get("job_code"),
             exec_status: row.get("exec_status"),
@@ -111,7 +102,6 @@ pub async fn read(
     match sqlx::query(
         r#"
         SELECT row_id
-             , version_code
              , open_date
              , job_code
              , exec_status
@@ -123,7 +113,6 @@ pub async fn read(
     .bind(row_id)
     .map(|row: PgRow| DailyTask {
         row_id: row.get("row_id"),
-        version_code: row.get("version_code"),
         open_date: row.get("open_date"),
         job_code: row.get("job_code"),
         exec_status: row.get("exec_status"),
@@ -145,15 +134,13 @@ pub async fn create(
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" 
-        INSERT INTO daily_task(version_code
-             , open_date
+        INSERT INTO daily_task(open_date
              , job_code
              , exec_status
              , created_date
              , updated_date
-        ) VALUES ($1, $2, $3, $4, $5, $6)  "#,
+        ) VALUES ($1, $2, $3, $4, $5)  "#,
     )
-    .bind(data.version_code)
     .bind(data.open_date)
     .bind(data.job_code)
     .bind(data.exec_status)
@@ -176,15 +163,13 @@ pub async fn update(
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" UPDATE daily_task
-            SET version_code = $1
-              , open_date = $2
-              , job_code = $3
-              , exec_status = $4
-              , updated_date = $5
-            WHERE row_id = $6
+            SET open_date = $1
+              , job_code = $2
+              , exec_status = $3
+              , updated_date = $4
+            WHERE row_id = $5
           "#,
     )
-    .bind(data.version_code)
     .bind(data.open_date)
     .bind(data.job_code)
     .bind(data.exec_status)
@@ -224,7 +209,7 @@ pub async fn read_all_by_daily(
 ) -> Result<Vec<DailyTaskInfo>, sqlx::Error> {
     match sqlx::query(
         r#"
-        SELECT dt.version_code
+        SELECT dt.row_id
              , dt.job_code
              , dt.open_date
              , CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) AS ce_date
@@ -245,7 +230,7 @@ pub async fn read_all_by_daily(
     )
     .bind(date.format("%Y%m%d").to_string())
     .map(|row: PgRow| DailyTaskInfo {
-        version_code: row.get("version_code"),
+        row_id: row.get("row_id"),
         job_code: row.get("job_code"),
         exec_status: row.get("exec_status"),
         open_date: row.get("open_date"),

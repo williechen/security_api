@@ -1,7 +1,7 @@
 -- Add up migration script here
 CREATE TABLE security_price (
     row_id varchar not null default uuid_generate_v4(),
-    version_code varchar not null default '',
+    open_date varchar not null default '',
     security_code varchar not null default '',
     price_date varchar not null default '',
     price_close numeric not null default 0,
@@ -15,7 +15,7 @@ CREATE TABLE security_price (
     CONSTRAINT security_price_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX security_price_version_code_idx ON security_price USING btree (version_code);
+CREATE INDEX security_price_open_date_idx ON security_price USING btree (open_date);
 CREATE INDEX security_price_security_code_idx ON security_price USING btree (security_code);
 CREATE INDEX security_price_price_date_idx ON security_price USING btree (price_date);
 CREATE INDEX security_price_price_close_idx ON security_price USING btree (price_close);
@@ -24,7 +24,7 @@ CREATE INDEX security_price_price_close_idx ON security_price USING btree (price
 COMMENT ON TABLE security_price IS '每日收盤價';
 
 COMMENT ON COLUMN security_price.row_id IS '序號';
-COMMENT ON COLUMN security_price.version_code IS '版本號';
+COMMENT ON COLUMN security_price.open_date IS '開市日期';
 COMMENT ON COLUMN security_price.security_code IS '證券代碼';
 COMMENT ON COLUMN security_price.price_date IS '收盤日期';
 COMMENT ON COLUMN security_price.price_close IS '收盤價值';

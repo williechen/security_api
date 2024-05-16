@@ -28,32 +28,60 @@ pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::err
         dao::read_all_by_daily(&mut transaction, Local::now().date_naive()).await?;
     for task_info in task_info_list {
         if task_info.job_code.is_some() {
+            update_task_status(pool, &task_info, "OPEN").await;
             // 執行任務
             match task_info.job_code.clone().unwrap().as_str() {
                 "get_web_security" => match get_security_all_code(&pool, &task_info).await {
-                    Ok(_) => event!(target: "security_api", Level::INFO, "get_web_security Done"),
+                    Ok(_) => {
+                        update_task_status(pool, &task_info, "EXIT").await;
+                        event!(target: "security_api", Level::INFO, "get_web_security Done");
+                    }
                     Err(e) => {
+                        update_task_status(pool, &task_info, "EXEC").await;
                         event!(target: "security_api", Level::ERROR, "{:?}", e);
                         panic!("get_web_security Error {}", e)
                     }
                 },
                 "res_to_temp" => match get_security_to_temp(&pool, &task_info).await {
-                    Ok(_) => event!(target: "security_api", Level::INFO, "res_to_temp Done"),
+                    Ok(_) => {
+                        update_task_status(pool, &task_info, "EXIT").await;
+                        event!(target: "security_api", Level::INFO, "res_to_temp Done");
+                    }
                     Err(e) => {
+                        update_task_status(pool, &task_info, "EXEC").await;
                         event!(target: "security_api", Level::ERROR, "{:?}", e);
                         panic!("res_to_temp Error {}", e)
                     }
                 },
                 "temp_to_task" => match get_temp_to_task(&pool, &task_info).await {
-                    Ok(_) => event!(target: "security_api", Level::INFO, "temp_to_task Done"),
+                    Ok(_) => {
+                        update_task_status(pool, &task_info, "EXIT").await;
+                        event!(target: "security_api", Level::INFO, "temp_to_task Done");
+                    }
                     Err(e) => {
+                        update_task_status(pool, &task_info, "EXEC").await;
                         event!(target: "security_api", Level::ERROR, "{:?}", e);
                         panic!("temp_to_task Error {}", e)
                     }
                 },
-                "task_run" => match get_task_run(&pool, &task_info).await {
-                    Ok(_) => event!(target: "security_api", Level::INFO, "task_run Done"),
+                "delete_temp" => match delete_temp(&pool, &task_info).await {
+                    Ok(_) => {
+                        update_task_status(pool, &task_info, "EXIT").await;
+                        event!(target: "security_api", Level::INFO, "delete_temp Done");
+                    }
                     Err(e) => {
+                        update_task_status(pool, &task_info, "EXEC").await;
+                        event!(target: "security_api", Level::ERROR, "{:?}", e);
+                        panic!("delete_temp Error {}", e)
+                    }
+                },
+                "task_run" => match get_task_run(&pool, &task_info).await {
+                    Ok(_) => {
+                        update_task_status(pool, &task_info, "EXIT").await;
+                        event!(target: "security_api", Level::INFO, "task_run Done");
+                    }
+                    Err(e) => {
+                        update_task_status(pool, &task_info, "EXEC").await;
                         event!(target: "security_api", Level::ERROR, "{:?}", e);
                         panic!("task_run Error {}", e)
                     }
@@ -117,7 +145,6 @@ async fn loop_date_task_data(
 
         let query_daily_task = DailyTask {
             row_id: None,
-            version_code: None,
             open_date: data.open_date.clone(),
             job_code: data.job_code.clone(),
             exec_status: None,
@@ -146,6 +173,25 @@ async fn loop_date_task_data(
     Ok(())
 }
 
+async fn update_task_status(pool: &sqlx::PgPool, task_info: &DailyTaskInfo, status: &str) {
+    let mut transaction = pool.begin().await.unwrap();
+
+    let daily_task = DailyTask {
+        row_id: task_info.row_id.clone(),
+        open_date: task_info.open_date.clone(),
+        job_code: task_info.job_code.clone(),
+        exec_status: Some(status.to_string()),
+    };
+
+    match dao::update(&mut transaction, daily_task).await {
+        Ok(_) => transaction.commit().await.unwrap(),
+        Err(e) => {
+            transaction.rollback().await.unwrap();
+            event!(target: "security_api", Level::ERROR, "{:?}", &e);
+        }
+    };
+}
+
 async fn select_task(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     date: NaiveDate,
@@ -155,7 +201,7 @@ async fn select_task(
         &format!(
             r#"
             SELECT '' AS row_id
-                 , '{0}' AS version_code 
+                 , '{0}' AS open_date
                  , CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) AS open_date
                  , ts.job_code 
                  , 'WAIT' AS exec_status
@@ -196,7 +242,7 @@ pub async fn get_security_all_code(
 
     let query_response_data = ResponseData {
         row_id: None,
-        version_code: task_info.version_code.clone(),
+        open_date: task_info.open_date.clone(),
         exec_code: Some("seecurity".to_string()),
         data_content: None,
     };
@@ -207,7 +253,7 @@ pub async fn get_security_all_code(
 
         let response_data = ResponseData {
             row_id: None,
-            version_code: task_info.version_code.clone(),
+            open_date: task_info.open_date.clone(),
             exec_code: Some("seecurity".to_string()),
             data_content: Some(content),
         };
@@ -234,7 +280,7 @@ pub async fn get_security_to_temp(
 
     let query_response_data = ResponseData {
         row_id: None,
-        version_code: task_info.version_code.clone(),
+        open_date: task_info.open_date.clone(),
         exec_code: Some("seecurity".to_string()),
         data_content: None,
     };
@@ -264,6 +310,8 @@ pub async fn delete_temp(
     pool: &sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let mut transaction = pool.begin().await?;
+    security_temp::dao::truncate(&mut transaction).await?;
     Ok(())
 }
 
@@ -272,6 +320,6 @@ pub async fn get_task_run(
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call get_task_run");
-    //security_task::service::get_all_task(pool).await?;
+    security_task::service::get_all_task(pool, task_info).await?;
     Ok(())
 }
