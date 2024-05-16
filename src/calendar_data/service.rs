@@ -89,7 +89,8 @@ async fn loop_date_calendar(
             Ok(_) => transaction.commit().await?,
             Err(e) => {
                 transaction.rollback().await?;
-                event!(target: "security_api", Level::ERROR, "{:?}", &e);
+                event!(target: "security_api", Level::ERROR, "loop_date_calendar {}", &e);
+                panic!("loop_date_calendar Error {}", &e)
             }
         };
     } else {
@@ -107,7 +108,8 @@ async fn loop_date_calendar(
             Ok(_) => transaction.commit().await?,
             Err(e) => {
                 transaction.rollback().await?;
-                event!(target: "security_api", Level::ERROR, "{:?}", &e);
+                event!(target: "security_api", Level::ERROR, "loop_date_calendar {}", &e);
+                panic!("loop_date_calendar Error {}", &e)
             }
         };
     }

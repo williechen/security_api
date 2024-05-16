@@ -39,22 +39,22 @@ async fn main() {
             "add_next_year" => match security_api::add_next_year(&db_pool).await {
                 Ok(_) => event!(target: "security_api", Level::INFO, "add_next_year Done"),
                 Err(e) => {
-                    event!(target: "security_api", Level::ERROR, "{:?}", e);
-                    panic!("add_next_year Error {}", e)
+                    event!(target: "security_api", Level::ERROR, "add_next_year {}", &e);
+                    panic!("add_next_year Error {}", &e)
                 }
             },
             "add_daily_task" => match security_api::add_daily_task(&db_pool).await {
                 Ok(_) => event!(target: "security_api", Level::INFO, "add_daily_task Done"),
                 Err(e) => {
-                    event!(target: "security_api", Level::ERROR, "{:?}", e);
-                    panic!("add_daily_task Error {}", e)
+                    event!(target: "security_api", Level::ERROR, "add_daily_task {}", &e);
+                    panic!("add_daily_task Error {}", &e)
                 }
             },
             "run_daily_task" => match security_api::run_daily_task(&db_pool).await {
                 Ok(_) => event!(target: "security_api", Level::INFO, "run_daily_task Done"),
                 Err(e) => {
-                    event!(target: "security_api", Level::ERROR, "{:?}", e);
-                    panic!("run_daily_task Error {}", e)
+                    event!(target: "security_api", Level::ERROR, "run_daily_task {}", &e);
+                    panic!("run_daily_task Error {}", &e)
                 }
             },
             _ => event!(target: "security_api", Level::INFO, "{:?}", args[1]),

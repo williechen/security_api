@@ -70,7 +70,8 @@ pub async fn insert_temp_data(
                 Ok(_) => transaction_loop.commit().await?,
                 Err(e) => {
                     transaction_loop.rollback().await?;
-                    event!(target: "security_api", Level::ERROR, "{:?}", e);
+                    event!(target: "security_api", Level::ERROR, "insert_temp_data {}", &e);
+                    panic!("insert_temp_data Error {}", &e)
                 }
             };
         }

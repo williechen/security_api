@@ -86,7 +86,7 @@ pub async fn read_all(
     {
         Ok(rows) => Ok((rows.len(), rows)),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "{:?}", &e);
+            event!(target: "security_api", Level::ERROR, "read_all {}", &e);
             Err(e)
         }
     }
@@ -128,7 +128,7 @@ pub async fn read_all_by_sql(
     {
         Ok(rows) => Ok((rows.len(), rows)),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "{:?}", &e);
+            event!(target: "security_api", Level::ERROR, "read_all_by_sql {}", &e);
             Err(e)
         }
     }
@@ -175,7 +175,7 @@ pub async fn read(
     {
         Ok(row) => Ok(Some(row)),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "{:?}", &e);
+            event!(target: "security_api", Level::ERROR, "read {}", &e);
             Err(e)
         }
     }
@@ -218,7 +218,7 @@ pub async fn create(
     {
         Ok(row) => Ok(row.rows_affected()),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "{:?}", &e);
+            event!(target: "security_api", Level::ERROR, "create {}", &e);
             Err(e)
         }
     }
@@ -261,7 +261,7 @@ pub async fn update(
     {
         Ok(row) => Ok(row.rows_affected()),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "{:?}", &e);
+            event!(target: "security_api", Level::ERROR, "update {}", &e);
             Err(e)
         }
     }
@@ -278,7 +278,7 @@ pub async fn delete(
     {
         Ok(row) => Ok(row.rows_affected()),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "{:?}", &e);
+            event!(target: "security_api", Level::ERROR, "delete {}", &e);
             Err(e)
         }
     }
@@ -293,7 +293,7 @@ pub async fn truncate(
     {
         Ok(row) => Ok(row.rows_affected()),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "{:?}", &e);
+            event!(target: "security_api", Level::ERROR, "truncate {}", &e);
             Err(e)
         }
     }

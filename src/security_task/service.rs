@@ -136,7 +136,8 @@ async fn loop_date_temp_data(
                     Ok(_) => transaction.commit().await?,
                     Err(e) => {
                         transaction.rollback().await?;
-                        event!(target: "security_api", Level::ERROR, "{:?}", &e);
+                        event!(target: "security_api", Level::ERROR, "loop_date_temp_data {}", &e);
+                        panic!("loop_date_temp_data Error {}", &e)
                     }
                 };
 
@@ -168,7 +169,7 @@ async fn select_temp_to_twse(
                       , created_date
                       , updated_date
                    FROM security_temp 
-                  WHERE open_date='{}' 
+                  WHERE open_date >= '{}' 
                     AND market_type in ('上市')
                     AND security_type in ('ETF', 'ETN', '股票', '特別股')
                   ORDER BY security_code, issue_date, market_type, security_type
@@ -180,8 +181,8 @@ async fn select_temp_to_twse(
     {
         Ok(rows) => Ok(rows.1),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "{:?}", &e);
-            Ok(vec![])
+            event!(target: "security_api", Level::ERROR, "select_temp_to_twse {}", &e);
+            panic!("select_temp_to_twse Error {}", &e)
         }
     }
 }
@@ -207,7 +208,7 @@ async fn select_temp_to_tpex(
         , created_date
         , updated_date
                    FROM security_temp 
-                  WHERE open_date='{}' 
+                  WHERE open_date >= '{}' 
                     AND market_type in ('上櫃', '興櫃')
                     AND security_type in ('ETF', 'ETN', '股票', '特別股')
                     ORDER BY security_code, issue_date, market_type, security_type
@@ -219,8 +220,8 @@ async fn select_temp_to_tpex(
     {
         Ok(rows) => Ok(rows.1),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "{:?}", &e);
-            Ok(vec![])
+            event!(target: "security_api", Level::ERROR, "select_temp_to_tpex {}", &e);
+            panic!("select_temp_to_tpex Error {}", &e)
         }
     }
 }
@@ -277,7 +278,8 @@ pub async fn get_all_task(
                     Ok(_) => transaction_loop.commit().await?,
                     Err(e) => {
                         transaction_loop.rollback().await?;
-                        event!(target: "security_api", Level::ERROR, "{:?}", &e);
+                        event!(target: "security_api", Level::ERROR, "get_all_task {}", &e);
+                        panic!("get_all_task Error {}", &e)
                     }
                 };
             }
@@ -298,7 +300,8 @@ pub async fn get_all_task(
                     Ok(_) => transaction_loop.commit().await?,
                     Err(e) => {
                         transaction_loop.rollback().await?;
-                        event!(target: "security_api", Level::ERROR, "{:?}", &e);
+                        event!(target: "security_api", Level::ERROR, "get_all_task {}", &e);
+                        panic!("get_all_task Error {}", &e)
                     }
                 };
             }
@@ -319,7 +322,8 @@ pub async fn get_all_task(
                     Ok(_) => transaction_loop.commit().await?,
                     Err(e) => {
                         transaction_loop.rollback().await?;
-                        event!(target: "security_api", Level::ERROR, "{:?}", &e);
+                        event!(target: "security_api", Level::ERROR, "get_all_task {}", &e);
+                        panic!("get_all_task Error {}", &e)
                     }
                 };
             }
