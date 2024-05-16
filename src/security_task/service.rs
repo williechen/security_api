@@ -43,106 +43,107 @@ async fn loop_date_temp_data(
     let mut item_index = index;
 
     for data in data_list {
-        let mut transaction = pool.begin().await?;
+        if data.issue_date <= task_info.ce_date {
+            let mut transaction = pool.begin().await?;
 
-        let query_security_task = match data.market_type.clone().unwrap().as_str() {
-            "上市" => SecurityTask {
-                row_id: None,
-                open_date: None,
-                security_code: data.security_code.clone(),
-                market_type: data.market_type.clone(),
-                issue_date: data.issue_date.clone(),
-                security_date: task_info.ce_date.clone(),
-                security_seed: None,
-                exec_count: None,
-                is_enabled: None,
-                sort_no: None,
-            },
-            "上櫃" => SecurityTask {
-                row_id: None,
-                open_date: None,
-                security_code: data.security_code.clone(),
-                market_type: data.market_type.clone(),
-                issue_date: data.issue_date.clone(),
-                security_date: task_info.tw_date.clone(),
-                security_seed: None,
-                exec_count: None,
-                is_enabled: None,
-                sort_no: None,
-            },
-            "興櫃" => SecurityTask {
-                row_id: None,
-                open_date: None,
-                security_code: data.security_code.clone(),
-                market_type: data.market_type.clone(),
-                issue_date: data.issue_date.clone(),
-                security_date: task_info.tw_date.clone(),
-                security_seed: None,
-                exec_count: None,
-                is_enabled: None,
-                sort_no: None,
-            },
-            _ => SecurityTask::new(),
-        };
-
-        let task_list = dao::read_all(&mut transaction, &query_security_task).await?;
-        if task_list.0 <= 0 {
-            let seed: i64 = thread_rng().gen_range(1..=9999999999999);
-            let security_seed = format!("{:013}", seed);
-            let sort_no = item_index;
-
-            let security_task = match data.market_type.clone().unwrap().as_str() {
+            let query_security_task = match data.market_type.clone().unwrap().as_str() {
                 "上市" => SecurityTask {
                     row_id: None,
-                    open_date: task_info.open_date.clone(),
+                    open_date: None,
                     security_code: data.security_code.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
-                    security_date: task_info.ce_date.clone(),
-                    security_seed: Some(security_seed),
-                    exec_count: Some(0),
-                    is_enabled: Some(1),
-                    sort_no: Some(sort_no),
+                    security_date: task_info.open_date.clone(),
+                    security_seed: None,
+                    exec_count: None,
+                    is_enabled: None,
+                    sort_no: None,
                 },
                 "上櫃" => SecurityTask {
                     row_id: None,
-                    open_date: task_info.open_date.clone(),
+                    open_date: None,
                     security_code: data.security_code.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
                     security_date: task_info.tw_date.clone(),
-                    security_seed: Some(security_seed),
-                    exec_count: Some(0),
-                    is_enabled: Some(1),
-                    sort_no: Some(sort_no),
+                    security_seed: None,
+                    exec_count: None,
+                    is_enabled: None,
+                    sort_no: None,
                 },
                 "興櫃" => SecurityTask {
                     row_id: None,
-                    open_date: task_info.open_date.clone(),
+                    open_date: None,
                     security_code: data.security_code.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
                     security_date: task_info.tw_date.clone(),
-                    security_seed: Some(security_seed),
-                    exec_count: Some(0),
-                    is_enabled: Some(1),
-                    sort_no: Some(sort_no),
+                    security_seed: None,
+                    exec_count: None,
+                    is_enabled: None,
+                    sort_no: None,
                 },
                 _ => SecurityTask::new(),
             };
 
-            match dao::create(&mut transaction, security_task).await {
-                Ok(_) => transaction.commit().await?,
-                Err(e) => {
-                    transaction.rollback().await?;
-                    event!(target: "security_api", Level::ERROR, "{:?}", &e);
-                }
-            };
+            let task_list = dao::read_all(&mut transaction, &query_security_task).await?;
+            if task_list.0 <= 0 {
+                let seed: i64 = thread_rng().gen_range(1..=9999999999999);
+                let security_seed = format!("{:013}", seed);
+                let sort_no = item_index;
 
-            item_index = item_index + 2;
+                let security_task = match data.market_type.clone().unwrap().as_str() {
+                    "上市" => SecurityTask {
+                        row_id: None,
+                        open_date: task_info.open_date.clone(),
+                        security_code: data.security_code.clone(),
+                        market_type: data.market_type.clone(),
+                        issue_date: data.issue_date.clone(),
+                        security_date: task_info.open_date.clone(),
+                        security_seed: Some(security_seed),
+                        exec_count: Some(0),
+                        is_enabled: Some(1),
+                        sort_no: Some(sort_no),
+                    },
+                    "上櫃" => SecurityTask {
+                        row_id: None,
+                        open_date: task_info.open_date.clone(),
+                        security_code: data.security_code.clone(),
+                        market_type: data.market_type.clone(),
+                        issue_date: data.issue_date.clone(),
+                        security_date: task_info.tw_date.clone(),
+                        security_seed: Some(security_seed),
+                        exec_count: Some(0),
+                        is_enabled: Some(1),
+                        sort_no: Some(sort_no),
+                    },
+                    "興櫃" => SecurityTask {
+                        row_id: None,
+                        open_date: task_info.open_date.clone(),
+                        security_code: data.security_code.clone(),
+                        market_type: data.market_type.clone(),
+                        issue_date: data.issue_date.clone(),
+                        security_date: task_info.tw_date.clone(),
+                        security_seed: Some(security_seed),
+                        exec_count: Some(0),
+                        is_enabled: Some(1),
+                        sort_no: Some(sort_no),
+                    },
+                    _ => SecurityTask::new(),
+                };
+
+                match dao::create(&mut transaction, security_task).await {
+                    Ok(_) => transaction.commit().await?,
+                    Err(e) => {
+                        transaction.rollback().await?;
+                        event!(target: "security_api", Level::ERROR, "{:?}", &e);
+                    }
+                };
+
+                item_index = item_index + 2;
+            }
         }
     }
-
     Ok(())
 }
 
@@ -247,7 +248,7 @@ pub async fn get_all_task(
         security_date: None,
         security_seed: None,
         exec_count: None,
-        is_enabled: None,
+        is_enabled: Some(1),
         sort_no: None,
     };
 

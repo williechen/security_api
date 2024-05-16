@@ -51,7 +51,7 @@ pub async fn read_all(
         select_str.push_str(&where_append("sort_no", "=", &mut index));
     }
 
-    select_str.push_str("ORDER BY ");
+    select_str.push_str("ORDER BY open_date desc, sort_no");
 
     let mut query = sqlx::query(&select_str);
 

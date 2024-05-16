@@ -212,7 +212,7 @@ pub async fn read_all_by_daily(
         SELECT dt.row_id
              , dt.job_code
              , dt.open_date
-             , CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) AS ce_date
+             , CONCAT(cd.ce_year, '/', cd.ce_month, '/', cd.ce_day) AS ce_date
              , CONCAT(cd.tw_year, '/', cd.ce_month) AS tw_date
              , ts.wait_type
              , ts.wait_number
