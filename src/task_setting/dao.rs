@@ -72,7 +72,7 @@ pub async fn read_all(
     {
         Ok(rows) => Ok((rows.len(), rows)),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "read_all {}", &e);
+            event!(target: "security_api", Level::ERROR, "task_setting.read_all: {}", &e);
             Err(e)
         }
     }
@@ -110,7 +110,7 @@ pub async fn read_all_by_sql(
     {
         Ok(rows) => Ok((rows.len(), rows)),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "read_all_by_sql {}", &e);
+            event!(target: "security_api", Level::ERROR, "task_setting.read_all_by_sql: {}", &e);
             Err(e)
         }
     }
@@ -149,7 +149,7 @@ pub async fn read(
     {
         Ok(row) => Ok(Some(row)),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "read {}", &e);
+            event!(target: "security_api", Level::ERROR, "task_setting.read: {}", &e);
             Err(e)
         }
     }
@@ -184,7 +184,7 @@ pub async fn create(
     {
         Ok(row) => Ok(row.rows_affected()),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "create {}", &e);
+            event!(target: "security_api", Level::ERROR, "task_setting.create: {}", &e);
             Err(e)
         }
     }
@@ -219,7 +219,7 @@ pub async fn update(
     {
         Ok(row) => Ok(row.rows_affected()),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "update {}", &e);
+            event!(target: "security_api", Level::ERROR, "task_setting.update: {}", &e);
             Err(e)
         }
     }
@@ -236,7 +236,7 @@ pub async fn delete(
     {
         Ok(row) => Ok(row.rows_affected()),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "delete {}", &e);
+            event!(target: "security_api", Level::ERROR, "task_setting.delete: {}", &e);
             Err(e)
         }
     }

@@ -70,8 +70,12 @@ async fn loop_date_calendar(
     day: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut transaction = pool.begin().await?;
-
+    // 當前日期
+    let now = Local::now().date_naive();
+    // 指定日期
     let this_date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
+
+    // 如果是假日
     if this_date.weekday().number_from_monday() == 6
         || this_date.weekday().number_from_monday() == 7
     {
@@ -89,10 +93,33 @@ async fn loop_date_calendar(
             Ok(_) => transaction.commit().await?,
             Err(e) => {
                 transaction.rollback().await?;
-                event!(target: "security_api", Level::ERROR, "loop_date_calendar {}", &e);
-                panic!("loop_date_calendar Error {}", &e)
+                event!(target: "security_api", Level::ERROR, "calendar_data.loop_date_calendar: {}", &e);
+                panic!("calendar_data.loop_date_calendar Error {}", &e)
             }
         };
+
+    // 如果是初始
+    } else if this_date <= now {
+        let calendar_data = CalendarData {
+            row_id: None,
+            ce_year: Some(format!("{:04}", year)),
+            tw_year: Some(format!("{:03}", year - 1911)),
+            ce_month: Some(format!("{:02}", month)),
+            ce_day: Some(format!("{:02}", day)),
+            date_status: Some("O".to_string()),
+            group_task: Some("INIT".to_string()),
+        };
+
+        match dao::create(&mut transaction, calendar_data).await {
+            Ok(_) => transaction.commit().await?,
+            Err(e) => {
+                transaction.rollback().await?;
+                event!(target: "security_api", Level::ERROR, "calendar_data.loop_date_calendar: {}", &e);
+                panic!("calendar_data.loop_date_calendar Error {}", &e)
+            }
+        };
+
+    // 如果是一般
     } else {
         let calendar_data = CalendarData {
             row_id: None,
@@ -108,8 +135,8 @@ async fn loop_date_calendar(
             Ok(_) => transaction.commit().await?,
             Err(e) => {
                 transaction.rollback().await?;
-                event!(target: "security_api", Level::ERROR, "loop_date_calendar {}", &e);
-                panic!("loop_date_calendar Error {}", &e)
+                event!(target: "security_api", Level::ERROR, "calendar_data.loop_date_calendar: {}", &e);
+                panic!("calendar_data.loop_date_calendar Error {}", &e)
             }
         };
     }
