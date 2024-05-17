@@ -12,11 +12,13 @@ pub async fn init_calendar_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::
 
     for y in min_date.year()..=max_date.year() {
         for m in 1..=12 {
-            for d in 1..=last_day_in_month(y, m).day() {
+            let last_day = last_day_in_month(y, m).day();
+
+            for d in 1..=last_day {
                 let this_date_str = format!("{:04}{:02}{:02}", y, m, d);
 
                 if (max_date_str > this_date_str) && (min_date_str <= this_date_str) {
-                    loop_date_calendar(pool, y, m, d).await?;
+                    loop_date_calendar(pool, y, m, d, last_day).await?;
                 }
             }
         }
@@ -30,7 +32,9 @@ pub async fn insert_calendar_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std
 
     let year = now.year();
     for m in 1..=now.month() {
-        for d in 1..=last_day_in_month(year, m).day() {
+        let last_day = last_day_in_month(year, m).day();
+
+        for d in 1..=last_day {
             let mut transaction = pool.begin().await?;
 
             let query_cal = CalendarData {
@@ -44,7 +48,7 @@ pub async fn insert_calendar_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std
             };
             let cal_list = dao::read_all(&mut transaction, &query_cal).await?;
             if cal_list.0 <= 0 {
-                loop_date_calendar(pool, year, m, d).await?;
+                loop_date_calendar(pool, year, m, d, last_day).await?;
             }
         }
     }
@@ -68,6 +72,7 @@ async fn loop_date_calendar(
     year: i32,
     month: u32,
     day: u32,
+    last_day: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut transaction = pool.begin().await?;
     // 當前日期
@@ -119,7 +124,26 @@ async fn loop_date_calendar(
             }
         };
 
-    // 如果是一般
+    // 如果是最後一日
+    } else if day == last_day {
+        let calendar_data = CalendarData {
+            row_id: None,
+            ce_year: Some(format!("{:04}", year)),
+            tw_year: Some(format!("{:03}", year - 1911)),
+            ce_month: Some(format!("{:02}", month)),
+            ce_day: Some(format!("{:02}", day)),
+            date_status: Some("O".to_string()),
+            group_task: Some("SECURITY".to_string()),
+        };
+
+        match dao::create(&mut transaction, calendar_data).await {
+            Ok(_) => transaction.commit().await?,
+            Err(e) => {
+                transaction.rollback().await?;
+                event!(target: "security_api", Level::ERROR, "calendar_data.loop_date_calendar: {}", &e);
+                panic!("calendar_data.loop_date_calendar Error {}", &e)
+            }
+        };
     } else {
         let calendar_data = CalendarData {
             row_id: None,
