@@ -348,7 +348,11 @@ pub async fn get_all_task(
             let end_time = Local::now().time();
             let seconds = 8 - (end_time - start_time).num_seconds();
 
-            let sleep_num = thread_rng().gen_range(4..seconds);
+            let sleep_num = if seconds > 4 {
+                thread_rng().gen_range(4..seconds)
+            } else {
+                4
+            };
             time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
         } else {
             let mut security_task = security.clone();
