@@ -346,12 +346,12 @@ pub async fn get_all_task(
             };
 
             let end_time = Local::now().time();
-            let seconds = 8 - (end_time - start_time).num_seconds();
+            let seconds = 4 - (end_time - start_time).num_seconds();
 
-            let sleep_num = if seconds > 4 {
-                thread_rng().gen_range(4..seconds)
+            let sleep_num = if seconds > 1 {
+                thread_rng().gen_range(1..seconds)
             } else {
-                4
+                0
             };
             time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
         } else {
