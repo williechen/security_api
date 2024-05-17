@@ -328,7 +328,7 @@ pub async fn get_all_task(
                 .await?;
 
                     let json_value: Value = serde_json::from_str(&data)?;
-                    let data_status = match json_value.get("data_cnt") {
+                    let data_status = match json_value.get("iTotalRecords") {
                         Some(t) => 0 < t.as_i64().unwrap_or(0),
                         None => false,
                     };

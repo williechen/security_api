@@ -168,6 +168,7 @@ fn parse_web_tpex2_data(document: &String) -> Result<String, Box<dyn std::error:
         );
     }
 
+    let mut field_row = Vec::<serde_json::Value>::new();
     let mut data_row = Vec::<serde_json::Value>::new();
 
     let tr_selector = Selector::parse("div.v-pnl table tr").unwrap();
@@ -181,13 +182,20 @@ fn parse_web_tpex2_data(document: &String) -> Result<String, Box<dyn std::error:
         for td in td_content {
             row.push(td.inner_html());
         }
-        data_row.push(json!(row));
+
+        if "日期" == row.get(0).clone().unwrap() || "成交<br>股數" == row.get(0).clone().unwrap()
+        {
+            field_row.push(json!(row));
+        } else {
+            data_row.push(json!(row));
+        }
     }
     data_map.insert(
-        "data_cnt".to_string(),
-        serde_json::Value::Number((data_row.len() - 2).into()),
+        "iTotalRecords".to_string(),
+        serde_json::Value::Number(data_row.len().into()),
     );
-    data_map.insert("data_row".to_string(), serde_json::Value::Array(data_row));
+    data_map.insert("fields".to_string(), serde_json::Value::Array(field_row));
+    data_map.insert("aaData".to_string(), serde_json::Value::Array(data_row));
 
     Ok(serde_json::to_string(&data_map)?)
 }
