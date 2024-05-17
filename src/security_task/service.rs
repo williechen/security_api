@@ -238,8 +238,6 @@ pub async fn get_all_task(
 
     let mut transaction = pool.begin().await?;
 
-    let mut last_market_type = Some(String::new());
-
     let query_security_task = SecurityTask {
         row_id: None,
         open_date: task_info.open_date.clone(),
@@ -255,10 +253,13 @@ pub async fn get_all_task(
 
     let task_datas = dao::read_all(&mut transaction, &query_security_task).await?;
     for security in task_datas.1 {
+        let start_time = Local::now().time();
+
         let mut transaction_loop = pool.begin().await?;
 
         let open_date = security.open_date.clone().unwrap();
         let security_code = security.security_code.clone().unwrap();
+        let market_type = security.market_type.clone().unwrap();
 
         let open_month = NaiveDate::parse_from_str(&open_date, "%Y%m%d")?;
         let year_str = format!("{:04}", open_month.year());
@@ -277,7 +278,7 @@ pub async fn get_all_task(
             match security.market_type.clone().unwrap().as_str() {
                 "上市" => {
                     let data = Retry::spawn(retry_strategy.clone(), || async {
-                        event!(target: "security_api", Level::INFO, "try 上市 {:?} {:?}", &security_code, &open_date);
+                        event!(target: "security_api", Level::INFO, "try 上市 {} {}", &security_code, &open_date);
                         response_data::service::get_twse_avg_json(&security).await
                     })
                     .await?;
@@ -299,7 +300,7 @@ pub async fn get_all_task(
                 }
                 "上櫃" => {
                     let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "security_api", Level::INFO, "try 上櫃 {:?} {:?}", &security_code, &open_date);
+                    event!(target: "security_api", Level::INFO, "try 上櫃 {} {}", &security_code, &open_date);
                     response_data::service::get_tpex1_json(&security).await
                 })
                 .await?;
@@ -321,7 +322,7 @@ pub async fn get_all_task(
                 }
                 "興櫃" => {
                     let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "security_api", Level::INFO, "try 興櫃 {:?} {:?}", &security_code, &open_date);
+                    event!(target: "security_api", Level::INFO, "try 興櫃 {} {}", &security_code, &open_date);
                     response_data::service::get_tpex2_html(&security).await
                 })
                 .await?;
@@ -344,23 +345,11 @@ pub async fn get_all_task(
                 _ => (),
             };
 
-            let mut rng = thread_rng();
-            let market_type = security.market_type.clone();
-            if last_market_type == market_type {
-                event!(target: "security_api", Level::DEBUG, "{:?}={:?}", last_market_type, market_type);
-                time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
-            } else if last_market_type != market_type
-                && (Some("上櫃".to_string()) == last_market_type
-                    || Some("興欏".to_string()) == last_market_type)
-                && (Some("上櫃".to_string()) == market_type
-                    || Some("興欏".to_string()) == market_type)
-            {
-                event!(target: "security_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
-                time::sleep(time::Duration::from_secs(rng.gen_range(4..8))).await;
-            } else {
-                event!(target: "security_api", Level::DEBUG, "{:?}<>{:?}", last_market_type, market_type);
-                time::sleep(time::Duration::from_secs(rng.gen_range(3..6))).await;
-            }
+            let end_time = Local::now().time();
+            let seconds = 8 - (end_time - start_time).num_seconds();
+
+            let sleep_num = thread_rng().gen_range(4..seconds);
+            time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
         } else {
             let mut security_task = security.clone();
             security_task.is_enabled = Some(0);
@@ -378,7 +367,6 @@ pub async fn get_all_task(
                 }
             };
         }
-        last_market_type = security.market_type;
     }
 
     Ok(())
