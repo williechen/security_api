@@ -349,7 +349,7 @@ pub async fn get_all_task(
             let seconds = 6 - (end_time - start_time).num_seconds();
 
             let sleep_num = if seconds > 1 {
-                thread_rng().gen_range(2..seconds)
+                thread_rng().gen_range(2..=seconds)
             } else {
                 4
             };
