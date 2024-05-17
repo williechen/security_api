@@ -287,7 +287,7 @@ pub async fn delete(
 pub async fn truncate(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
 ) -> Result<u64, sqlx::Error> {
-    match sqlx::query(r#" TRUNCATE TABLE security_temp CONTINUE IDENTITY RESTRICT; "#)
+    match sqlx::query(r#" DELETE FROM security_temp WHERE 1=1 "#)
         .execute(&mut **transaction)
         .await
     {

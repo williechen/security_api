@@ -317,7 +317,14 @@ pub async fn delete_temp(
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut transaction = pool.begin().await?;
-    security_temp::dao::truncate(&mut transaction).await?;
+    match security_temp::dao::truncate(&mut transaction).await {
+        Ok(_) => transaction.commit().await?,
+        Err(e) => {
+            transaction.rollback().await?;
+            event!(target: "security_api", Level::ERROR, "delete_temp {}", e);
+            panic!("delete_temp Error {}", &e)
+        }
+    };
     Ok(())
 }
 

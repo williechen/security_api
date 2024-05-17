@@ -202,3 +202,94 @@ pub async fn delete(
         }
     }
 }
+
+pub async fn read_by_max_day(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    security_code: &str,
+    year_str: &str,
+    month_str: &str,
+    day_str: &str,
+) -> Result<Option<ResponseData>, sqlx::Error> {
+    match sqlx::query(
+        r#"
+        SELECT rd.row_id
+             , rd.open_date
+             , rd.exec_code
+             , rd.data_content
+             , rd.created_date
+             , rd.updated_date 
+          FROM response_data rd 
+          JOIN calendar_data cd 
+            ON rd.open_date = CONCAT(cd.ce_year, cd.ce_month, cd.ce_day)
+         WHERE rd.exec_code = $1
+           AND cd.ce_year = $2
+           AND cd.ce_month = $3
+           AND cd.ce_day >= $4
+         "#,
+    )
+    .bind(security_code)
+    .bind(year_str)
+    .bind(month_str)
+    .bind(day_str)
+    .map(|row: PgRow| ResponseData {
+        row_id: row.get("row_id"),
+        open_date: row.get("open_date"),
+        exec_code: row.get("exec_code"),
+        data_content: row.get("data_content"),
+    })
+    .fetch_all(&mut **transaction)
+    .await
+    {
+        Ok(row) => {
+            if row.is_empty() {
+                Ok(None)
+            } else {
+                Ok(row.get(0).cloned())
+            }
+        }
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "read_by_max_day {}", &e);
+            Err(e)
+        }
+    }
+}
+
+pub async fn update_by_max_day(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    data: ResponseData,
+    security_code: &str,
+    year_str: &str,
+    month_str: &str,
+) -> Result<u64, sqlx::Error> {
+    match sqlx::query(
+        r#" UPDATE response_data
+            SET open_date= $1
+              , exec_code = $2
+              , data_content = $3
+              , updated_date = $4
+            WHERE exec_code = $5
+              AND open_date in (
+                SELECT CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) AS open_date
+                  FROM calendar_data cd 
+                 WHERE cd.ce_year = $6
+                   AND cd.ce_month = $7
+            )
+          "#,
+    )
+    .bind(data.open_date)
+    .bind(data.exec_code)
+    .bind(data.data_content)
+    .bind(Local::now().naive_local())
+    .bind(security_code)
+    .bind(year_str)
+    .bind(month_str)
+    .execute(&mut **transaction)
+    .await
+    {
+        Ok(row) => Ok(row.rows_affected()),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "update_by_max_day {}", &e);
+            Err(e)
+        }
+    }
+}

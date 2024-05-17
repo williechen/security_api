@@ -261,19 +261,19 @@ pub async fn get_all_task(
         let security_code = security.security_code.clone().unwrap();
 
         let open_month = NaiveDate::parse_from_str(&open_date, "%Y%m%d")?;
+        let year_str = format!("{:04}", open_month.year());
+        let month_str = format!("{:02}", open_month.month());
+        let day_str = format!("{:02}", open_month.day());
 
-        let query_response_date = ResponseData {
-            row_id: None,
-            open_date: Some(format!(
-                "{:04}{:02}01",
-                open_month.year(),
-                open_month.month()
-            )),
-            exec_code: Some(security_code.clone()),
-            data_content: None,
-        };
-        let res_list = response_data::dao::read_all(&mut transaction, &query_response_date).await?;
-        if res_list.0 <= 0 {
+        let res_date_one = response_data::dao::read_by_max_day(
+            &mut transaction,
+            &security_code,
+            &year_str,
+            &month_str,
+            &day_str,
+        )
+        .await?;
+        if res_date_one.is_none() {
             match security.market_type.clone().unwrap().as_str() {
                 "上市" => {
                     let data = Retry::spawn(retry_strategy.clone(), || async {
@@ -391,21 +391,28 @@ async fn add_res_data(
     data_status: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if data_status {
+        let security_code = data.security_code.clone().unwrap();
         let open_date = data.open_date.clone().unwrap();
+
         let open_month = NaiveDate::parse_from_str(&open_date, "%Y%m%d")?;
+        let year_str = format!("{:04}", open_month.year());
+        let month_str = format!("{:02}", open_month.month());
 
         let response_data = ResponseData {
             row_id: None,
             data_content: Some(html.to_string()),
-            open_date: Some(format!(
-                "{:04}{:02}01",
-                open_month.year(),
-                open_month.month()
-            )),
+            open_date: data.open_date.clone(),
             exec_code: data.security_code.clone(),
         };
 
-        let cnt = response_data::dao::update(transaction, response_data.clone()).await?;
+        let cnt = response_data::dao::update_by_max_day(
+            transaction,
+            response_data.clone(),
+            &security_code,
+            &year_str,
+            &month_str,
+        )
+        .await?;
         if cnt <= 0 {
             response_data::dao::create(transaction, response_data.clone()).await?;
         }
