@@ -12,6 +12,7 @@ pub async fn read_all(
         SELECT row_id
              , open_date
              , security_code
+             , security_name
              , price_date
              , price_close
              , price_avg
@@ -53,6 +54,7 @@ pub async fn read_all(
             row_id: row.get("row_id"),
             open_date: row.get("open_date"),
             security_code: row.get("security_code"),
+            security_name: row.get("security_name"),
             price_date: row.get("price_date"),
             price_close: row.get("price_close"),
             price_avg: row.get("price_avg"),
@@ -94,6 +96,7 @@ pub async fn read_all_by_sql(
             row_id: row.get("row_id"),
             open_date: row.get("open_date"),
             security_code: row.get("security_code"),
+            security_name: row.get("security_name"),
             price_date: row.get("price_date"),
             price_close: row.get("price_close"),
             price_avg: row.get("price_avg"),
@@ -122,6 +125,7 @@ pub async fn read(
         SELECT row_id
              , open_date
              , security_code
+             , security_name
              , price_date
              , price_close
              , price_avg
@@ -139,6 +143,7 @@ pub async fn read(
         row_id: row.get("row_id"),
         open_date: row.get("open_date"),
         security_code: row.get("security_code"),
+        security_name: row.get("security_name"),
         price_date: row.get("price_date"),
         price_close: row.get("price_close"),
         price_avg: row.get("price_avg"),
@@ -166,6 +171,7 @@ pub async fn create(
         r#" 
         INSERT INTO security_price(open_date
             , security_code
+            , security_name
             , price_date
             , price_close
             , price_avg
@@ -175,10 +181,11 @@ pub async fn create(
             , price_lowest_avg
             , created_date
             , updated_date
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)  "#,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)  "#,
     )
     .bind(data.open_date)
     .bind(data.security_code)
+    .bind(data.security_name)
     .bind(data.price_date)
     .bind(data.price_close)
     .bind(data.price_avg)
@@ -208,19 +215,21 @@ pub async fn update(
         UPDATE security_price
             SET open_date= $1
               , security_code = $2
-              , price_date = $3
-              , price_close = $4
-              , price_avg = $5
-              , price_hight = $6
-              , price_hight_avg = $7
-              , price_lowest = $8
-              , price_lowest_avg =$9
-              , updated_date = $10
-            WHERE row_id = $11
+              , security_name = $3
+              , price_date = $4
+              , price_close = $5
+              , price_avg = $6
+              , price_hight = $7
+              , price_hight_avg = $8
+              , price_lowest = $9
+              , price_lowest_avg =$10
+              , updated_date = $11
+            WHERE row_id = $12
         "#,
     )
     .bind(data.open_date)
     .bind(data.security_code)
+    .bind(data.security_name)
     .bind(data.price_date)
     .bind(data.price_close)
     .bind(data.price_avg)

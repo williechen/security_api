@@ -12,6 +12,7 @@ pub async fn read_all(
         SELECT row_id
              , open_date
              , security_code
+             , security_name
              , market_type
              , issue_date
              , security_date
@@ -85,6 +86,7 @@ pub async fn read_all(
             row_id: row.get("row_id"),
             open_date: row.get("open_date"),
             security_code: row.get("security_code"),
+            security_name: row.get("security_name"),
             market_type: row.get("market_type"),
             issue_date: row.get("issue_date"),
             security_date: row.get("security_date"),
@@ -126,6 +128,7 @@ pub async fn read_all_by_sql(
             row_id: row.get("row_id"),
             open_date: row.get("open_date"),
             security_code: row.get("security_code"),
+            security_name: row.get("security_name"),
             market_type: row.get("market_type"),
             issue_date: row.get("issue_date"),
             security_date: row.get("security_date"),
@@ -154,6 +157,7 @@ pub async fn read(
         SELECT row_id
              , open_date
              , security_code
+             , security_name
              , market_type
              , issue_date
              , security_date
@@ -171,6 +175,7 @@ pub async fn read(
         row_id: row.get("row_id"),
         open_date: row.get("open_date"),
         security_code: row.get("security_code"),
+        security_name: row.get("security_name"),
         market_type: row.get("market_type"),
         issue_date: row.get("issue_date"),
         security_date: row.get("security_date"),
@@ -198,6 +203,7 @@ pub async fn create(
         r#" 
         INSERT INTO security_task(open_date
             , security_code
+            , security_name
             , market_type
             , issue_date
             , security_date
@@ -207,10 +213,11 @@ pub async fn create(
             , sort_no
             , created_date
             , updated_date
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)  "#,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)  "#,
     )
     .bind(data.open_date)
     .bind(data.security_code)
+    .bind(data.security_name)
     .bind(data.market_type)
     .bind(data.issue_date)
     .bind(data.security_date)
@@ -239,19 +246,21 @@ pub async fn update(
         r#" UPDATE security_task
             SET open_date= $1
               , security_code = $2
-              , market_type = $3
-              , issue_date = $4
-              , security_date = $5
-              , security_seed = $6
-              , exec_count = $7
-              , is_enabled = $8
-              , sort_no = $9
-              , updated_date = $10
-            WHERE row_id = $11
+              , security_name = $3
+              , market_type = $4
+              , issue_date = $5
+              , security_date = $6
+              , security_seed = $7
+              , exec_count = $8
+              , is_enabled = $9
+              , sort_no = $10
+              , updated_date = $11
+            WHERE row_id = $12
           "#,
     )
     .bind(data.open_date)
     .bind(data.security_code)
+    .bind(data.security_name)
     .bind(data.market_type)
     .bind(data.issue_date)
     .bind(data.security_date)

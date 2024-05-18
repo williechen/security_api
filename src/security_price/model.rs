@@ -5,6 +5,7 @@ pub struct SecurityPrice {
     pub row_id: Option<String>,
     pub open_date: Option<String>,
     pub security_code: Option<String>,
+    pub security_name: Option<String>,
     pub price_date: Option<String>,
     pub price_close: Option<BigDecimal>,
     pub price_avg: Option<BigDecimal>,
@@ -20,6 +21,7 @@ impl SecurityPrice {
             row_id: None,
             open_date: None,
             security_code: None,
+            security_name: None,
             price_date: None,
             price_close: None,
             price_avg: None,
@@ -36,6 +38,7 @@ impl std::fmt::Display for SecurityPrice {
         let row_id = self.row_id.clone().unwrap_or(String::from(""));
         let open_date = self.open_date.clone().unwrap_or(String::from(""));
         let security_code = self.security_code.clone().unwrap_or(String::from(""));
+        let security_name = self.security_name.clone().unwrap_or(String::from(""));
         let price_date = self.price_date.clone().unwrap_or(String::from(""));
         let price_close = self.price_close.clone().unwrap_or(BigDecimal::default());
         let price_avg = self.price_avg.clone().unwrap_or(BigDecimal::default());
@@ -55,6 +58,7 @@ impl std::fmt::Display for SecurityPrice {
             r#"{}, 
             open_date: {}, 
             security_code: {}, 
+            security_name: {}, 
             price_date: {}, 
             price_close: {}, 
             price_avg: {},
@@ -66,6 +70,7 @@ impl std::fmt::Display for SecurityPrice {
             row_id,
             open_date,
             security_code,
+            security_name,
             price_date,
             price_close,
             price_avg,

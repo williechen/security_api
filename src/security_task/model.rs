@@ -3,6 +3,7 @@ pub struct SecurityTask {
     pub row_id: Option<String>,
     pub open_date: Option<String>,
     pub security_code: Option<String>,
+    pub security_name: Option<String>,
     pub market_type: Option<String>,
     pub issue_date: Option<String>,
     pub security_date: Option<String>,
@@ -18,6 +19,7 @@ impl SecurityTask {
             row_id: None,
             open_date: None,
             security_code: None,
+            security_name: None,
             market_type: None,
             issue_date: None,
             security_date: None,
@@ -34,6 +36,7 @@ impl std::fmt::Display for SecurityTask {
         let row_id = self.row_id.clone().unwrap_or(String::from(""));
         let open_date = self.open_date.clone().unwrap_or(String::from(""));
         let security_code = self.security_code.clone().unwrap_or(String::from(""));
+        let security_name = self.security_name.clone().unwrap_or(String::from(""));
         let market_type = self.market_type.clone().unwrap_or(String::from(""));
         let issue_date = self.issue_date.clone().unwrap_or(String::from(""));
         let security_date = self.security_date.clone().unwrap_or(String::from(""));
@@ -47,6 +50,7 @@ impl std::fmt::Display for SecurityTask {
             r#"{}, 
             open_date: {}, 
             security_code: {}, 
+            security_name: {}, 
             market_type: {}, 
             issue_date: {}, 
             security_date: {}, 
@@ -58,6 +62,7 @@ impl std::fmt::Display for SecurityTask {
             row_id,
             open_date,
             security_code,
+            security_name,
             market_type,
             issue_date,
             security_date,

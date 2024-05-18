@@ -3,6 +3,7 @@ CREATE TABLE security_price (
     row_id varchar not null default uuid_generate_v4(),
     open_date varchar not null default '',
     security_code varchar not null default '',
+    security_name varchar not null default '',
     price_date varchar not null default '',
     price_close numeric not null default 0,
     price_avg numeric not null default 0,
@@ -26,6 +27,7 @@ COMMENT ON TABLE security_price IS '每日收盤價';
 COMMENT ON COLUMN security_price.row_id IS '序號';
 COMMENT ON COLUMN security_price.open_date IS '開市日期';
 COMMENT ON COLUMN security_price.security_code IS '證券代碼';
+COMMENT ON COLUMN security_price.security_name IS '證券名稱';
 COMMENT ON COLUMN security_price.price_date IS '收盤日期';
 COMMENT ON COLUMN security_price.price_close IS '收盤價值';
 COMMENT ON COLUMN security_price.price_avg IS '平均價值';

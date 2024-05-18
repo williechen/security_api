@@ -3,6 +3,7 @@ CREATE TABLE security_task (
     row_id varchar not null default uuid_generate_v4(),
     open_date varchar not null default '',
     security_code varchar not null default '',
+    security_name varchar not null default '',
     market_type varchar not null default '',
     issue_date varchar not null default '',
     security_date varchar not null default '',
@@ -28,7 +29,8 @@ COMMENT ON TABLE security_task IS '證券任務';
 
 COMMENT ON COLUMN security_task.row_id IS '序號';
 COMMENT ON COLUMN security_task.open_date IS '開市日期';
-COMMENT ON COLUMN security_task.security_code IS '代碼';
+COMMENT ON COLUMN security_task.security_code IS '證券代碼';
+COMMENT ON COLUMN security_task.security_name IS '證券名稱';
 COMMENT ON COLUMN security_task.market_type IS '市場別';
 COMMENT ON COLUMN security_task.issue_date IS '發行日期';
 COMMENT ON COLUMN security_task.security_date IS '開市日期';

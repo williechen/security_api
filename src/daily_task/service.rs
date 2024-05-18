@@ -42,7 +42,7 @@ pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::err
                         panic!("daily_task.get_web_security Error {}", &e)
                     }
                 },
-                "res_to_temp" => match get_security_to_temp(&pool, &task_info).await {
+                "res_to_temp" => match get_security_to_temp(pool, &task_info).await {
                     Ok(_) => {
                         update_task_status(pool, &task_info, "EXIT").await;
                         event!(target: "security_api", Level::INFO, "daily_task.res_to_temp Done");
@@ -53,7 +53,7 @@ pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::err
                         panic!("daily_task.res_to_temp Error {}", &e)
                     }
                 },
-                "temp_to_task" => match get_temp_to_task(&pool, &task_info).await {
+                "temp_to_task" => match get_temp_to_task(pool, &task_info).await {
                     Ok(_) => {
                         update_task_status(pool, &task_info, "EXIT").await;
                         event!(target: "security_api", Level::INFO, "daily_task.temp_to_task Done");
@@ -64,7 +64,7 @@ pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::err
                         panic!("daily_task.temp_to_task Error {}", &e)
                     }
                 },
-                "delete_temp" => match delete_temp(&pool, &task_info).await {
+                "delete_temp" => match delete_temp(pool, &task_info).await {
                     Ok(_) => {
                         update_task_status(pool, &task_info, "EXIT").await;
                         event!(target: "security_api", Level::INFO, "daily_task.delete_temp Done");
@@ -75,7 +75,7 @@ pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::err
                         panic!("daily_task.delete_temp Error {}", &e)
                     }
                 },
-                "task_run" => match get_task_run(&pool, &task_info).await {
+                "task_run" => match get_task_run(pool, &task_info).await {
                     Ok(_) => {
                         update_task_status(pool, &task_info, "EXIT").await;
                         event!(target: "security_api", Level::INFO, "daily_task.task_run Done");
