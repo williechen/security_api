@@ -29,11 +29,18 @@ pub async fn init_calendar_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::
 }
 
 #[instrument]
-pub async fn insert_calendar_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn insert_calendar_data(
+    pool: &sqlx::PgPool,
+    open_next_year: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let now = Local::now().date_naive();
 
-    let year = now.year();
-    for m in 1..=now.month() {
+    let year = if open_next_year {
+        now.year() + 1
+    } else {
+        now.year()
+    };
+    for m in 1..=12 {
         let last_day = last_day_in_month(year, m).day();
 
         for d in 1..=last_day {

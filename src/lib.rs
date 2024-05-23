@@ -1,3 +1,4 @@
+use chrono::{Datelike, Local};
 use tracing::{event, Level};
 
 mod calendar_data;
@@ -10,7 +11,14 @@ mod task_setting;
 
 pub async fn add_next_year(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call add_next_year");
-    calendar_data::service::insert_calendar_data(pool).await?;
+
+    let now = Local::now().date_naive();
+    if 6 == now.month() && 1 == now.day() {
+        calendar_data::service::insert_calendar_data(pool, true).await?;
+        calendar_data::service::insert_calendar_data(pool, false).await?;
+    } else {
+        calendar_data::service::insert_calendar_data(pool, false).await?;
+    }
     Ok(())
 }
 
