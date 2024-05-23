@@ -24,13 +24,16 @@ async fn main() {
         .await
     {
         Ok(pool) => pool,
-        Err(e) => panic!("Couldn't establish DB connection: {}", e),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "init db_pool {}", &e);
+            panic!("Couldn't establish DB connection: {}", &e)
+        }
     };
 
-    sqlx::migrate!()
-        .run(&db_pool)
-        .await
-        .expect("Cannot run migration");
+    //sqlx::migrate!()
+    //    .run(&db_pool)
+    //    .await
+    //    .expect("Cannot run migration");
 
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 {

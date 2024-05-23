@@ -1,8 +1,9 @@
 use chrono::{Datelike, Local, NaiveDate};
-use tracing::{event, Level};
+use tracing::{event, instrument, Level};
 
 use super::{dao, model::CalendarData};
 
+#[instrument]
 pub async fn init_calendar_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let max_date = Local::now().date_naive();
     let min_date = NaiveDate::from_ymd_opt(1962, 2, 9).unwrap();
@@ -27,6 +28,7 @@ pub async fn init_calendar_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::
     Ok(())
 }
 
+#[instrument]
 pub async fn insert_calendar_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let now = Local::now().date_naive();
 

@@ -1,6 +1,6 @@
 use chrono::{Local, NaiveDate};
 use tokio::time;
-use tracing::{event, Level};
+use tracing::{event, instrument, Level};
 
 use crate::{
     response_data::{self, model::ResponseData},
@@ -12,6 +12,7 @@ use super::{
     model::{DailyTask, DailyTaskInfo},
 };
 
+#[instrument]
 pub async fn insert_task_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let mut transaction = pool.begin().await?;
 
@@ -22,6 +23,7 @@ pub async fn insert_task_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::er
     Ok(())
 }
 
+#[instrument]
 pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let mut transaction = pool.begin().await?;
     let task_info_list =
@@ -237,7 +239,7 @@ async fn select_task(
     }
 }
 
-pub async fn get_security_all_code(
+async fn get_security_all_code(
     pool: &sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -276,7 +278,7 @@ pub async fn get_security_all_code(
     Ok(())
 }
 
-pub async fn get_security_to_temp(
+async fn get_security_to_temp(
     pool: &sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -303,7 +305,7 @@ pub async fn get_security_to_temp(
     Ok(())
 }
 
-pub async fn get_temp_to_task(
+async fn get_temp_to_task(
     pool: &sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -312,7 +314,7 @@ pub async fn get_temp_to_task(
     Ok(())
 }
 
-pub async fn delete_temp(
+async fn delete_temp(
     pool: &sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -328,7 +330,7 @@ pub async fn delete_temp(
     Ok(())
 }
 
-pub async fn get_task_run(
+async fn get_task_run(
     pool: &sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {

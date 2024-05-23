@@ -36,6 +36,7 @@ impl std::fmt::Display for DailyTask {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct DailyTaskInfo {
     pub row_id: Option<String>,
     pub open_date: Option<String>,

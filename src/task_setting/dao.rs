@@ -1,9 +1,10 @@
 use chrono::Local;
 use sqlx::{postgres::PgRow, Row};
-use tracing::{event, Level};
+use tracing::{event, instrument, Level};
 
 use super::model::TaskSetting;
 
+#[instrument]
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: &TaskSetting,
@@ -91,6 +92,7 @@ fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
     format!(" {} {} {} ${} ", plus, field, conditional, index)
 }
 
+#[instrument]
 pub async fn read_all_by_sql(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     sql: &str,
@@ -116,6 +118,7 @@ pub async fn read_all_by_sql(
     }
 }
 
+#[instrument]
 pub async fn read(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     row_id: &str,
@@ -155,6 +158,7 @@ pub async fn read(
     }
 }
 
+#[instrument]
 pub async fn create(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: TaskSetting,
@@ -190,6 +194,7 @@ pub async fn create(
     }
 }
 
+#[instrument]
 pub async fn update(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: TaskSetting,
@@ -225,6 +230,7 @@ pub async fn update(
     }
 }
 
+#[instrument]
 pub async fn delete(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: TaskSetting,

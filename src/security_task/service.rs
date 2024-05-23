@@ -6,7 +6,7 @@ use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
     Retry,
 };
-use tracing::{event, Level};
+use tracing::{event, instrument, Level};
 
 use super::{dao, model::SecurityTask};
 use crate::{
@@ -15,6 +15,7 @@ use crate::{
     security_temp::{self, model::SecurityTemp},
 };
 
+#[instrument]
 pub async fn insert_task_data(
     pool: &sqlx::PgPool,
     task_info: &DailyTaskInfo,
@@ -232,6 +233,7 @@ async fn select_temp_to_tpex(
     }
 }
 
+#[instrument]
 pub async fn get_all_task(
     pool: &sqlx::PgPool,
     task_info: &DailyTaskInfo,
@@ -266,7 +268,6 @@ pub async fn get_all_task(
 
         let open_date = security.open_date.clone().unwrap();
         let security_code = security.security_code.clone().unwrap();
-        let market_type = security.market_type.clone().unwrap();
 
         let open_month = NaiveDate::parse_from_str(&open_date, "%Y%m%d")?;
         let year_str = format!("{:04}", open_month.year());

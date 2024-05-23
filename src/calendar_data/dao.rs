@@ -1,9 +1,10 @@
 use chrono::Local;
 use sqlx::{postgres::PgRow, Row};
-use tracing::{event, Level};
+use tracing::{event, instrument, Level};
 
 use super::model::CalendarData;
 
+#[instrument]
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: &CalendarData,
@@ -161,6 +162,7 @@ pub async fn read(
     }
 }
 
+#[instrument]
 pub async fn create(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: CalendarData,

@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 use chrono::Local;
 use scraper::{Html, Selector};
-use tracing::{event, Level};
+use tracing::{event, instrument, Level};
 
 use super::{dao, model::SecurityTemp};
 
+#[instrument]
 pub async fn insert_temp_data(
     pool: &sqlx::PgPool,
     data_content: &String,

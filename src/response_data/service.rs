@@ -2,10 +2,11 @@ use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
 use serde_json::json;
-use tracing::{event, Level};
+use tracing::{event, instrument, Level};
 
 use crate::security_task::model::SecurityTask;
 
+#[instrument]
 pub async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 
@@ -38,6 +39,7 @@ fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error:
     Ok(result.to_string())
 }
 
+#[instrument]
 pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 
@@ -57,6 +59,7 @@ pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::e
     Ok(json)
 }
 
+#[instrument]
 pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 
@@ -76,6 +79,7 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
     Ok(json)
 }
 
+#[instrument]
 pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 
@@ -129,6 +133,7 @@ fn decode_unicode_escape(s: &str) -> String {
     result
 }
 
+#[instrument]
 pub async fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
     let params = [
         ("input_month", &task.security_date),
