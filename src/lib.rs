@@ -13,7 +13,7 @@ pub async fn add_next_year(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error
     event!(target: "security_api", Level::INFO, "call add_next_year");
 
     let now = Local::now().date_naive();
-    if 6 == now.month() && 1 == now.day() {
+    if 10 == now.month() && 1 == now.day() {
         calendar_data::service::insert_calendar_data(pool, true).await?;
         calendar_data::service::insert_calendar_data(pool, false).await?;
     } else {
