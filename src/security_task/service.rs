@@ -2,10 +2,7 @@ use chrono::{Datelike, Local, NaiveDate};
 use rand::{thread_rng, Rng};
 use serde_json::Value;
 use tokio::time;
-use tokio_retry::{
-    strategy::{jitter, ExponentialBackoff},
-    Retry,
-};
+use tokio_retry::{strategy::ExponentialBackoff, Retry};
 use tracing::{event, instrument, Level};
 
 use super::{dao, model::SecurityTask};
@@ -239,9 +236,8 @@ pub async fn get_all_task(
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // 重試設定
-    let retry_strategy = ExponentialBackoff::from_millis(100)
+    let retry_strategy = ExponentialBackoff::from_millis(2000)
         .max_delay(time::Duration::from_secs(10))
-        .map(jitter) // add jitter to delays
         .take(5);
 
     let mut transaction = pool.begin().await?;
@@ -260,8 +256,15 @@ pub async fn get_all_task(
         sort_no: None,
     };
 
+    let mut index = 0;
     let task_datas = dao::read_all(&mut transaction, &query_security_task).await?;
-    for security in task_datas.1 {
+    loop {
+        if index >= task_datas.0 {
+            break;
+        }
+        let security = &task_datas.1[index];
+        index = index + 1;
+
         let start_time = Local::now().time();
 
         let mut transaction_loop = pool.begin().await?;

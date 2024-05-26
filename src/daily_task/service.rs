@@ -26,9 +26,17 @@ pub async fn insert_task_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::er
 #[instrument]
 pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
     let mut transaction = pool.begin().await?;
+
+    let mut index = 0;
     let task_info_list =
         dao::read_all_by_daily(&mut transaction, Local::now().date_naive()).await?;
-    for task_info in task_info_list {
+    loop {
+        if index >= task_info_list.len() {
+            break;
+        }
+        let task_info = &task_info_list[index];
+        index = index + 1;
+
         if task_info.job_code.is_some() {
             update_task_status(pool, &task_info, "OPEN").await;
             // 執行任務
