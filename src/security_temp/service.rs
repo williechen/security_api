@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use scraper::{Html, Selector};
+use sqlx::Acquire;
 use tracing::{event, instrument, Level};
 
 use crate::daily_task::model::DailyTaskInfo;
@@ -15,7 +16,8 @@ pub async fn insert_temp_data(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let rows = parse_table_data(data_content)?;
     for row in rows {
-        let mut transaction = pool.clone().begin().await?;
+        let mut conn = pool.acquire().await?;
+        let mut transaction = conn.begin().await?;
 
         let open_date = task_info.open_date.clone().unwrap();
 

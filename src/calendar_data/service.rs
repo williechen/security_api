@@ -1,4 +1,5 @@
 use chrono::{Datelike, Local, NaiveDate};
+use sqlx::Acquire;
 use tracing::{event, instrument, Level};
 
 use super::{dao, model::CalendarData};
@@ -16,7 +17,8 @@ pub async fn init_calendar_data(pool: sqlx::PgPool) -> Result<(), Box<dyn std::e
             let last_day = last_day_in_month(y, m).day();
 
             for d in 1..=last_day {
-                let mut transaction = pool.clone().begin().await?;
+                let mut conn = pool.acquire().await?;
+                let mut transaction = conn.begin().await?;
 
                 let this_date_str = format!("{:04}{:02}{:02}", y, m, d);
 
@@ -53,7 +55,8 @@ pub async fn insert_calendar_data(
         let last_day = last_day_in_month(year, m).day();
 
         for d in 1..=last_day {
-            let mut transaction = pool.clone().begin().await?;
+            let mut conn = pool.acquire().await?;
+            let mut transaction = conn.begin().await?;
 
             let query_cal = CalendarData {
                 row_id: None,

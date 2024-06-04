@@ -1,4 +1,5 @@
 use chrono::{Local, NaiveDate};
+use sqlx::{pool::PoolConnection, Acquire, Postgres};
 use tokio::time;
 use tracing::{event, instrument, Level};
 
@@ -14,10 +15,12 @@ use super::{
 
 #[instrument]
 pub async fn insert_task_data(pool: sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    let task_list = select_task(pool.clone(), Local::now().date_naive()).await?;
+    let mut conn = pool.acquire().await?;
+    let task_list = select_task(&mut conn, Local::now().date_naive()).await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &task_list);
     for data in task_list {
-        let mut transaction = pool.clone().begin().await?;
+        let mut conn = pool.acquire().await?;
+        let mut transaction = conn.begin().await?;
         match loop_data_task_data(&mut transaction, data).await {
             Ok(_) => transaction.commit().await?,
             Err(e) => {
@@ -31,9 +34,52 @@ pub async fn insert_task_data(pool: sqlx::PgPool) -> Result<(), Box<dyn std::err
     Ok(())
 }
 
+async fn select_task(
+    conn: &mut PoolConnection<Postgres>,
+    date: NaiveDate,
+) -> Result<Vec<DailyTask>, Box<dyn std::error::Error>> {
+    let mut transaction = conn.begin().await?;
+
+    match dao::read_all_by_sql(
+        &mut transaction,
+        &format!(
+            r#"
+            SELECT '' AS row_id
+                 , '{0}' AS open_date
+                 , CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) AS open_date
+                 , ts.job_code 
+                 , 'WAIT' AS exec_status
+              FROM calendar_data cd
+              JOIN task_setting ts
+                ON cd.group_task = ts.group_code
+              WHERE NOT EXISTS (
+                SELECT 1 
+                  FROM daily_task dt
+                 WHERE dt.open_date = CONCAT(cd.ce_year, cd.ce_month, cd.ce_day)
+                   AND dt.job_code = ts.job_code
+                   AND dt.exec_status = 'EXIT'
+              )
+                AND CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) <= '{0}'
+                AND cd.date_status = 'O'
+             ORDER BY cd.ce_month desc, cd.ce_day desc, cd.ce_year desc, ts.sort_no  
+            "#,
+            date.format("%Y%m%d").to_string()
+        ),
+    )
+    .await
+    {
+        Ok(rows) => Ok(rows.1),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "daily_task.select_task: {}", &e);
+            panic!("daily_task.select_task Error {}", &e)
+        }
+    }
+}
+
 #[instrument]
 pub async fn exec_daily_task(pool: sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    let mut transaction = pool.clone().begin().await?;
+    let mut conn = pool.acquire().await?;
+    let mut transaction = conn.begin().await?;
 
     let task_info_list =
         dao::read_all_by_daily(&mut transaction, Local::now().date_naive()).await?;
@@ -171,7 +217,8 @@ async fn loop_data_task_data(
 }
 
 async fn update_task_status(pool: sqlx::PgPool, task_info: &DailyTaskInfo, status: &str) {
-    let mut transaction = pool.begin().await.unwrap();
+    let mut conn = pool.acquire().await.unwrap();
+    let mut transaction = conn.begin().await.unwrap();
 
     let daily_task = DailyTask {
         row_id: task_info.row_id.clone(),
@@ -190,55 +237,13 @@ async fn update_task_status(pool: sqlx::PgPool, task_info: &DailyTaskInfo, statu
     }
 }
 
-async fn select_task(
-    pool: sqlx::PgPool,
-    date: NaiveDate,
-) -> Result<Vec<DailyTask>, Box<dyn std::error::Error>> {
-    let mut transaction = pool.begin().await?;
-
-    match dao::read_all_by_sql(
-        &mut transaction,
-        &format!(
-            r#"
-            SELECT '' AS row_id
-                 , '{0}' AS open_date
-                 , CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) AS open_date
-                 , ts.job_code 
-                 , 'WAIT' AS exec_status
-              FROM calendar_data cd
-              JOIN task_setting ts
-                ON cd.group_task = ts.group_code
-              WHERE NOT EXISTS (
-                SELECT 1 
-                  FROM daily_task dt
-                 WHERE dt.open_date = CONCAT(cd.ce_year, cd.ce_month, cd.ce_day)
-                   AND dt.job_code = ts.job_code
-                   AND dt.exec_status = 'EXIT'
-              )
-                AND CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) <= '{0}'
-                AND cd.date_status = 'O'
-             ORDER BY cd.ce_month desc, cd.ce_day desc, cd.ce_year desc, ts.sort_no  
-            "#,
-            date.format("%Y%m%d").to_string()
-        ),
-    )
-    .await
-    {
-        Ok(rows) => Ok(rows.1),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "daily_task.select_task: {}", &e);
-            panic!("daily_task.select_task Error {}", &e)
-        }
-    }
-}
-
 async fn get_security_all_code(
     pool: sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call daily_task.get_security_all_code");
-
-    let mut transaction = pool.begin().await?;
+    let mut conn = pool.acquire().await?;
+    let mut transaction = conn.begin().await?;
 
     let query_response_data = ResponseData {
         row_id: None,
@@ -276,8 +281,8 @@ async fn get_security_to_temp(
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call daily_task.get_security_to_temp");
-
-    let mut transaction = pool.begin().await?;
+    let mut conn = pool.acquire().await?;
+    let mut transaction = conn.begin().await?;
 
     let query_response_data = ResponseData {
         row_id: None,
@@ -312,7 +317,8 @@ async fn delete_temp(
     pool: sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut transaction = pool.begin().await?;
+    let mut conn = pool.acquire().await?;
+    let mut transaction = conn.begin().await?;
     match security_temp::dao::truncate(&mut transaction).await {
         Ok(_) => transaction.commit().await?,
         Err(e) => {
