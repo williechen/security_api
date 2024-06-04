@@ -14,150 +14,162 @@ use crate::{
 
 #[instrument]
 pub async fn insert_task_data(
-    pool: &sqlx::PgPool,
+    pool: sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut transaction = pool.begin().await?;
-
     let open_date = task_info.open_date.clone().unwrap();
 
-    let twse_list = select_temp_to_twse(&mut transaction, &open_date).await?;
+    let twse_list = select_temp_to_twse(pool.clone(), open_date.clone()).await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", twse_list);
-    loop_date_temp_data(pool, &twse_list, task_info, 1).await?;
+    let mut item_index = 1;
 
-    let tpex_list = select_temp_to_tpex(&mut transaction, &open_date).await?;
+    for data in twse_list {
+        let mut transaction = pool.begin().await?;
+        match loop_date_temp_data(&mut transaction, data, task_info.clone(), item_index).await {
+            Ok(_) => transaction.commit().await?,
+            Err(e) => {
+                transaction.rollback().await?;
+                event!(target: "security_api", Level::ERROR, "security_task.insert_task_data: {}", &e);
+                panic!("security_task.insert_task_data Error {}", &e);
+            }
+        }
+        item_index = item_index + 2;
+    }
+
+    let tpex_list = select_temp_to_tpex(pool.clone(), open_date.clone()).await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", tpex_list);
-    loop_date_temp_data(pool, &tpex_list, task_info, 2).await?;
+    let mut item_index = 2;
+
+    for data in tpex_list {
+        let mut transaction = pool.begin().await?;
+        match loop_date_temp_data(&mut transaction, data, task_info.clone(), item_index).await {
+            Ok(_) => transaction.commit().await?,
+            Err(e) => {
+                transaction.rollback().await?;
+                event!(target: "security_api", Level::ERROR, "security_task.insert_task_data: {}", &e);
+                panic!("security_task.insert_task_data Error {}", &e);
+            }
+        }
+        item_index = item_index + 2;
+    }
 
     Ok(())
 }
 
 async fn loop_date_temp_data(
-    pool: &sqlx::PgPool,
-    data_list: &Vec<SecurityTemp>,
-    task_info: &DailyTaskInfo,
-    index: i32,
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    data: SecurityTemp,
+    task_info: DailyTaskInfo,
+    item_index: i32,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut item_index = index;
+    if data.issue_date <= task_info.ce_date {
+        let query_security_task = match data.market_type.clone().unwrap().as_str() {
+            "上市" => SecurityTask {
+                row_id: None,
+                open_date: task_info.open_date.clone(),
+                security_code: data.security_code.clone(),
+                security_name: None,
+                market_type: data.market_type.clone(),
+                issue_date: data.issue_date.clone(),
+                security_date: task_info.open_date.clone(),
+                security_seed: None,
+                exec_count: None,
+                is_enabled: None,
+                sort_no: None,
+            },
+            "上櫃" => SecurityTask {
+                row_id: None,
+                open_date: task_info.open_date.clone(),
+                security_code: data.security_code.clone(),
+                security_name: None,
+                market_type: data.market_type.clone(),
+                issue_date: data.issue_date.clone(),
+                security_date: task_info.tw_date.clone(),
+                security_seed: None,
+                exec_count: None,
+                is_enabled: None,
+                sort_no: None,
+            },
+            "興櫃" => SecurityTask {
+                row_id: None,
+                open_date: task_info.open_date.clone(),
+                security_code: data.security_code.clone(),
+                security_name: None,
+                market_type: data.market_type.clone(),
+                issue_date: data.issue_date.clone(),
+                security_date: task_info.tw_date.clone(),
+                security_seed: None,
+                exec_count: None,
+                is_enabled: None,
+                sort_no: None,
+            },
+            _ => SecurityTask::new(),
+        };
 
-    for data in data_list {
-        if data.issue_date <= task_info.ce_date {
-            let mut transaction = pool.begin().await?;
+        let task_list = dao::read_all(transaction, &query_security_task).await?;
+        if task_list.0 <= 0 {
+            let seed: i64 = thread_rng().gen_range(1..=9999999999999);
+            let security_seed = format!("{:013}", seed);
+            let sort_no = item_index;
 
-            let query_security_task = match data.market_type.clone().unwrap().as_str() {
+            let security_task = match data.market_type.clone().unwrap().as_str() {
                 "上市" => SecurityTask {
                     row_id: None,
                     open_date: task_info.open_date.clone(),
                     security_code: data.security_code.clone(),
-                    security_name: None,
+                    security_name: data.security_name.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
                     security_date: task_info.open_date.clone(),
-                    security_seed: None,
-                    exec_count: None,
-                    is_enabled: None,
-                    sort_no: None,
+                    security_seed: Some(security_seed),
+                    exec_count: Some(0),
+                    is_enabled: Some(1),
+                    sort_no: Some(sort_no),
                 },
                 "上櫃" => SecurityTask {
                     row_id: None,
                     open_date: task_info.open_date.clone(),
                     security_code: data.security_code.clone(),
-                    security_name: None,
+                    security_name: data.security_name.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
                     security_date: task_info.tw_date.clone(),
-                    security_seed: None,
-                    exec_count: None,
-                    is_enabled: None,
-                    sort_no: None,
+                    security_seed: Some(security_seed),
+                    exec_count: Some(0),
+                    is_enabled: Some(1),
+                    sort_no: Some(sort_no),
                 },
                 "興櫃" => SecurityTask {
                     row_id: None,
                     open_date: task_info.open_date.clone(),
                     security_code: data.security_code.clone(),
-                    security_name: None,
+                    security_name: data.security_name.clone(),
                     market_type: data.market_type.clone(),
                     issue_date: data.issue_date.clone(),
                     security_date: task_info.tw_date.clone(),
-                    security_seed: None,
-                    exec_count: None,
-                    is_enabled: None,
-                    sort_no: None,
+                    security_seed: Some(security_seed),
+                    exec_count: Some(0),
+                    is_enabled: Some(1),
+                    sort_no: Some(sort_no),
                 },
                 _ => SecurityTask::new(),
             };
 
-            let task_list = dao::read_all(&mut transaction, &query_security_task).await?;
-            if task_list.0 <= 0 {
-                let seed: i64 = thread_rng().gen_range(1..=9999999999999);
-                let security_seed = format!("{:013}", seed);
-                let sort_no = item_index;
-
-                let security_task = match data.market_type.clone().unwrap().as_str() {
-                    "上市" => SecurityTask {
-                        row_id: None,
-                        open_date: task_info.open_date.clone(),
-                        security_code: data.security_code.clone(),
-                        security_name: data.security_name.clone(),
-                        market_type: data.market_type.clone(),
-                        issue_date: data.issue_date.clone(),
-                        security_date: task_info.open_date.clone(),
-                        security_seed: Some(security_seed),
-                        exec_count: Some(0),
-                        is_enabled: Some(1),
-                        sort_no: Some(sort_no),
-                    },
-                    "上櫃" => SecurityTask {
-                        row_id: None,
-                        open_date: task_info.open_date.clone(),
-                        security_code: data.security_code.clone(),
-                        security_name: data.security_name.clone(),
-                        market_type: data.market_type.clone(),
-                        issue_date: data.issue_date.clone(),
-                        security_date: task_info.tw_date.clone(),
-                        security_seed: Some(security_seed),
-                        exec_count: Some(0),
-                        is_enabled: Some(1),
-                        sort_no: Some(sort_no),
-                    },
-                    "興櫃" => SecurityTask {
-                        row_id: None,
-                        open_date: task_info.open_date.clone(),
-                        security_code: data.security_code.clone(),
-                        security_name: data.security_name.clone(),
-                        market_type: data.market_type.clone(),
-                        issue_date: data.issue_date.clone(),
-                        security_date: task_info.tw_date.clone(),
-                        security_seed: Some(security_seed),
-                        exec_count: Some(0),
-                        is_enabled: Some(1),
-                        sort_no: Some(sort_no),
-                    },
-                    _ => SecurityTask::new(),
-                };
-
-                match dao::create(&mut transaction, security_task).await {
-                    Ok(_) => transaction.commit().await?,
-                    Err(e) => {
-                        transaction.rollback().await?;
-                        event!(target: "security_api", Level::ERROR, "security_task.loop_date_temp_data: {}", &e);
-                        panic!("security_task.loop_date_temp_data Error {}", &e)
-                    }
-                };
-
-                item_index = item_index + 2;
-            }
+            dao::create(transaction, security_task).await?;
         }
     }
+
     Ok(())
 }
 
 async fn select_temp_to_twse(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    open_date: &str,
+    pool: sqlx::PgPool,
+    open_date: String,
 ) -> Result<Vec<SecurityTemp>, Box<dyn std::error::Error>> {
+    let mut transaction = pool.begin().await?;
+
     match security_temp::dao::read_all_by_sql(
-        transaction,
+        &mut transaction,
         &format!(
             r#" SELECT row_id
                       , open_date
@@ -192,11 +204,13 @@ async fn select_temp_to_twse(
 }
 
 async fn select_temp_to_tpex(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    open_date: &str,
+    pool: sqlx::PgPool,
+    open_date: String,
 ) -> Result<Vec<SecurityTemp>, Box<dyn std::error::Error>> {
+    let mut transaction = pool.begin().await?;
+
     match security_temp::dao::read_all_by_sql(
-        transaction,
+        &mut transaction,
         &format!(
             r#" SELECT row_id
                      , open_date
@@ -232,7 +246,7 @@ async fn select_temp_to_tpex(
 
 #[instrument]
 pub async fn get_all_task(
-    pool: &sqlx::PgPool,
+    pool: sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // 重試設定
@@ -240,7 +254,7 @@ pub async fn get_all_task(
         .max_delay(time::Duration::from_secs(10))
         .take(5);
 
-    let mut transaction = pool.begin().await?;
+    let mut transaction = pool.clone().begin().await?;
 
     let query_security_task = SecurityTask {
         row_id: None,
@@ -267,7 +281,7 @@ pub async fn get_all_task(
 
         let start_time = Local::now().time();
 
-        let mut transaction_loop = pool.begin().await?;
+        let mut transaction_loop = pool.clone().begin().await?;
 
         let open_date = security.open_date.clone().unwrap();
         let security_code = security.security_code.clone().unwrap();

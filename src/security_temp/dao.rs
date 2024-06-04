@@ -7,7 +7,7 @@ use super::model::SecurityTemp;
 #[instrument]
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: &SecurityTemp,
+    data: SecurityTemp,
 ) -> Result<(usize, Vec<SecurityTemp>), sqlx::Error> {
     let mut select_str = r#" 
         SELECT row_id

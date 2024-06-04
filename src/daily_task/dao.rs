@@ -7,7 +7,7 @@ use super::model::{DailyTask, DailyTaskInfo};
 #[instrument]
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: &DailyTask,
+    data: DailyTask,
 ) -> Result<(usize, Vec<DailyTask>), sqlx::Error> {
     let mut select_str = r#" 
         SELECT row_id

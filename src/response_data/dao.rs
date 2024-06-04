@@ -7,7 +7,7 @@ use super::model::ResponseData;
 #[instrument]
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: &ResponseData,
+    data: ResponseData,
 ) -> Result<(usize, Vec<ResponseData>), sqlx::Error> {
     let mut select_str = r#" 
         SELECT row_id

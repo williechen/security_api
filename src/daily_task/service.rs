@@ -13,19 +13,27 @@ use super::{
 };
 
 #[instrument]
-pub async fn insert_task_data(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    let mut transaction = pool.begin().await?;
-
-    let task_list = select_task(&mut transaction, Local::now().date_naive()).await?;
+pub async fn insert_task_data(pool: sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let task_list = select_task(pool.clone(), Local::now().date_naive()).await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &task_list);
-    loop_date_task_data(pool, &task_list).await?;
+    for data in task_list {
+        let mut transaction = pool.clone().begin().await?;
+        match loop_date_task_data(&mut transaction, data).await {
+            Ok(_) => transaction.commit().await?,
+            Err(e) => {
+                transaction.rollback().await?;
+                event!(target: "security_api", Level::ERROR, "daily_task.insert_task_data: {}", &e);
+                panic!("daily_task.insert_task_data Error {}", &e)
+            }
+        };
+    }
 
     Ok(())
 }
 
 #[instrument]
-pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    let mut transaction = pool.begin().await?;
+pub async fn exec_daily_task(pool: sqlx::PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let mut transaction = pool.clone().begin().await?;
 
     let mut index = 0;
     let task_info_list =
@@ -34,64 +42,65 @@ pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::err
         if index >= task_info_list.len() {
             break;
         }
+
         let task_info = &task_info_list[index];
         index = index + 1;
 
         if task_info.job_code.is_some() {
-            update_task_status(pool, &task_info, "OPEN").await;
+            update_task_status(pool.clone(), &task_info, "OPEN").await;
             // 執行任務
             match task_info.job_code.clone().unwrap().as_str() {
-                "get_web_security" => match get_security_all_code(&pool, &task_info).await {
+                "get_web_security" => match get_security_all_code(pool.clone(), task_info).await {
                     Ok(_) => {
-                        update_task_status(pool, &task_info, "EXIT").await;
+                        update_task_status(pool.clone(), task_info, "EXIT").await;
                         event!(target: "security_api", Level::INFO, "daily_task.get_web_security Done");
                     }
                     Err(e) => {
-                        update_task_status(pool, &task_info, "EXEC").await;
+                        update_task_status(pool.clone(), task_info, "EXEC").await;
                         event!(target: "security_api", Level::ERROR, "daily_task.get_web_security {}", &e);
                         panic!("daily_task.get_web_security Error {}", &e)
                     }
                 },
-                "res_to_temp" => match get_security_to_temp(pool, &task_info).await {
+                "res_to_temp" => match get_security_to_temp(pool.clone(), task_info).await {
                     Ok(_) => {
-                        update_task_status(pool, &task_info, "EXIT").await;
+                        update_task_status(pool.clone(), task_info, "EXIT").await;
                         event!(target: "security_api", Level::INFO, "daily_task.res_to_temp Done");
                     }
                     Err(e) => {
-                        update_task_status(pool, &task_info, "EXEC").await;
+                        update_task_status(pool.clone(), task_info, "EXEC").await;
                         event!(target: "security_api", Level::ERROR, "daily_task.res_to_temp {}", &e);
                         panic!("daily_task.res_to_temp Error {}", &e)
                     }
                 },
-                "temp_to_task" => match get_temp_to_task(pool, &task_info).await {
+                "temp_to_task" => match get_temp_to_task(pool.clone(), task_info).await {
                     Ok(_) => {
-                        update_task_status(pool, &task_info, "EXIT").await;
+                        update_task_status(pool.clone(), task_info, "EXIT").await;
                         event!(target: "security_api", Level::INFO, "daily_task.temp_to_task Done");
                     }
                     Err(e) => {
-                        update_task_status(pool, &task_info, "EXEC").await;
+                        update_task_status(pool.clone(), task_info, "EXEC").await;
                         event!(target: "security_api", Level::ERROR, "daily_task.temp_to_task {}", &e);
                         panic!("daily_task.temp_to_task Error {}", &e)
                     }
                 },
-                "delete_temp" => match delete_temp(pool, &task_info).await {
+                "delete_temp" => match delete_temp(pool.clone(), task_info).await {
                     Ok(_) => {
-                        update_task_status(pool, &task_info, "EXIT").await;
+                        update_task_status(pool.clone(), task_info, "EXIT").await;
                         event!(target: "security_api", Level::INFO, "daily_task.delete_temp Done");
                     }
                     Err(e) => {
-                        update_task_status(pool, &task_info, "EXEC").await;
+                        update_task_status(pool.clone(), task_info, "EXEC").await;
                         event!(target: "security_api", Level::ERROR, "daily_task.delete_temp {}", &e);
                         panic!("daily_task.delete_temp Error {}", &e)
                     }
                 },
-                "task_run" => match get_task_run(pool, &task_info).await {
+                "task_run" => match get_task_run(pool.clone(), task_info).await {
                     Ok(_) => {
-                        update_task_status(pool, &task_info, "EXIT").await;
+                        update_task_status(pool.clone(), task_info, "EXIT").await;
                         event!(target: "security_api", Level::INFO, "daily_task.task_run Done");
                     }
                     Err(e) => {
-                        update_task_status(pool, &task_info, "EXEC").await;
+                        update_task_status(pool.clone(), task_info, "EXEC").await;
                         event!(target: "security_api", Level::ERROR, "daily_task.task_run {}", &e);
                         panic!("daily_task.task_run Error {}", &e)
                     }
@@ -149,45 +158,27 @@ pub async fn exec_daily_task(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::err
 }
 
 async fn loop_date_task_data(
-    pool: &sqlx::PgPool,
-    data_list: &Vec<DailyTask>,
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    data: DailyTask,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    for data in data_list {
-        let mut transaction = pool.begin().await?;
+    let query_daily_task = DailyTask {
+        row_id: None,
+        open_date: data.open_date.clone(),
+        job_code: data.job_code.clone(),
+        exec_status: None,
+    };
 
-        let query_daily_task = DailyTask {
-            row_id: None,
-            open_date: data.open_date.clone(),
-            job_code: data.job_code.clone(),
-            exec_status: None,
-        };
-
-        let task_list = dao::read_all(&mut transaction, &query_daily_task).await?;
-        if task_list.0 <= 0 {
-            match dao::create(&mut transaction, data.clone()).await {
-                Ok(_) => transaction.commit().await?,
-                Err(e) => {
-                    transaction.rollback().await?;
-                    event!(target: "security_api", Level::ERROR, "daily_task.loop_date_task_data: {}", &e);
-                    panic!("daily_task.loop_date_task_data Error {}", &e)
-                }
-            };
-        } else {
-            match dao::update(&mut transaction, data.clone()).await {
-                Ok(_) => transaction.commit().await?,
-                Err(e) => {
-                    transaction.rollback().await?;
-                    event!(target: "security_api", Level::ERROR, "daily_task.loop_date_task_data: {}", &e);
-                    panic!("daily_task.loop_date_task_data Error {}", &e)
-                }
-            };
-        }
+    let task_list = dao::read_all(transaction, query_daily_task).await?;
+    if task_list.0 <= 0 {
+        dao::create(transaction, data.clone()).await?;
+    } else {
+        dao::update(transaction, data.clone()).await?;
     }
 
     Ok(())
 }
 
-async fn update_task_status(pool: &sqlx::PgPool, task_info: &DailyTaskInfo, status: &str) {
+async fn update_task_status(pool: sqlx::PgPool, task_info: &DailyTaskInfo, status: &str) {
     let mut transaction = pool.begin().await.unwrap();
 
     let daily_task = DailyTask {
@@ -201,18 +192,20 @@ async fn update_task_status(pool: &sqlx::PgPool, task_info: &DailyTaskInfo, stat
         Ok(_) => transaction.commit().await.unwrap(),
         Err(e) => {
             transaction.rollback().await.unwrap();
-            event!(target: "security_api", Level::ERROR, "daily_task.update_task_status: {}", &e);
-            panic!("daily_task.update_task_status Error {}", &e)
+            event!(target: "security_api", Level::ERROR, "daily_task.insert_task_data: {}", &e);
+            panic!("daily_task.insert_task_data Error {}", &e)
         }
-    };
+    }
 }
 
 async fn select_task(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    pool: sqlx::PgPool,
     date: NaiveDate,
 ) -> Result<Vec<DailyTask>, Box<dyn std::error::Error>> {
+    let mut transaction = pool.begin().await?;
+
     match dao::read_all_by_sql(
-        transaction,
+        &mut transaction,
         &format!(
             r#"
             SELECT '' AS row_id
@@ -248,7 +241,7 @@ async fn select_task(
 }
 
 async fn get_security_all_code(
-    pool: &sqlx::PgPool,
+    pool: sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call daily_task.get_security_all_code");
@@ -262,7 +255,7 @@ async fn get_security_all_code(
         data_content: None,
     };
 
-    let data_list = response_data::dao::read_all(&mut transaction, &query_response_data).await?;
+    let data_list = response_data::dao::read_all(&mut transaction, query_response_data).await?;
     if data_list.0 <= 0 {
         let content = response_data::service::get_web_security_data().await?;
 
@@ -287,7 +280,7 @@ async fn get_security_all_code(
 }
 
 async fn get_security_to_temp(
-    pool: &sqlx::PgPool,
+    pool: sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call daily_task.get_security_to_temp");
@@ -301,20 +294,21 @@ async fn get_security_to_temp(
         data_content: None,
     };
 
-    let data_list = response_data::dao::read_all(&mut transaction, &query_response_data).await?;
+    let data_list = response_data::dao::read_all(&mut transaction, query_response_data).await?;
     if data_list.0 > 0 {
-        if let Some(data) = data_list.1.get(0) {
-            if let Some(data_content) = &data.data_content {
-                security_temp::service::insert_temp_data(pool, data_content).await?
-            }
-        }
+        let first_data = data_list.1.get(0);
+        let response_data = first_data.clone().unwrap();
+        let data_content = response_data.data_content.clone().unwrap();
+
+        security_temp::service::insert_temp_data(pool.clone(), data_content, task_info.clone())
+            .await?
     }
 
     Ok(())
 }
 
 async fn get_temp_to_task(
-    pool: &sqlx::PgPool,
+    pool: sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call daily_task.get_temp_to_task");
@@ -323,7 +317,7 @@ async fn get_temp_to_task(
 }
 
 async fn delete_temp(
-    pool: &sqlx::PgPool,
+    pool: sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut transaction = pool.begin().await?;
@@ -339,7 +333,7 @@ async fn delete_temp(
 }
 
 async fn get_task_run(
-    pool: &sqlx::PgPool,
+    pool: sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call daily_task.get_task_run");
