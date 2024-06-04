@@ -1,4 +1,4 @@
-use chrono::{Datelike, Local, NaiveDate};
+use chrono::{Datelike, Local, NaiveDate, Timelike};
 use rand::{thread_rng, Rng};
 use serde_json::Value;
 use tokio::time;
@@ -25,7 +25,7 @@ pub async fn insert_task_data(
 
     for data in twse_list {
         let mut transaction = pool.begin().await?;
-        match loop_date_temp_data(&mut transaction, data, task_info.clone(), item_index).await {
+        match loop_data_temp_data(&mut transaction, data, task_info.clone(), item_index).await {
             Ok(_) => transaction.commit().await?,
             Err(e) => {
                 transaction.rollback().await?;
@@ -42,7 +42,7 @@ pub async fn insert_task_data(
 
     for data in tpex_list {
         let mut transaction = pool.begin().await?;
-        match loop_date_temp_data(&mut transaction, data, task_info.clone(), item_index).await {
+        match loop_data_temp_data(&mut transaction, data, task_info.clone(), item_index).await {
             Ok(_) => transaction.commit().await?,
             Err(e) => {
                 transaction.rollback().await?;
@@ -56,7 +56,7 @@ pub async fn insert_task_data(
     Ok(())
 }
 
-async fn loop_date_temp_data(
+async fn loop_data_temp_data(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: SecurityTemp,
     task_info: DailyTaskInfo,
@@ -249,11 +249,6 @@ pub async fn get_all_task(
     pool: sqlx::PgPool,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // 重試設定
-    let retry_strategy = ExponentialBackoff::from_millis(2000)
-        .max_delay(time::Duration::from_secs(10))
-        .take(5);
-
     let mut transaction = pool.clone().begin().await?;
 
     let query_security_task = SecurityTask {
@@ -270,105 +265,21 @@ pub async fn get_all_task(
         sort_no: None,
     };
 
-    let mut index = 0;
     let task_datas = dao::read_all(&mut transaction, &query_security_task).await?;
-    loop {
-        if index >= task_datas.0 {
-            break;
-        }
-        let security = &task_datas.1[index];
-        index = index + 1;
+    if task_datas.0 > 0 {
+        for data in task_datas.1 {
+            let mut transaction = pool.clone().begin().await?;
 
-        let start_time = Local::now().time();
+            let start_time = Local::now().time();
 
-        let mut transaction_loop = pool.clone().begin().await?;
-
-        let open_date = security.open_date.clone().unwrap();
-        let security_code = security.security_code.clone().unwrap();
-
-        let open_month = NaiveDate::parse_from_str(&open_date, "%Y%m%d")?;
-        let year_str = format!("{:04}", open_month.year());
-        let month_str = format!("{:02}", open_month.month());
-        let day_str = format!("{:02}", open_month.day());
-
-        let res_date_one = response_data::dao::read_by_max_day(
-            &mut transaction,
-            &security_code,
-            &year_str,
-            &month_str,
-            &day_str,
-        )
-        .await?;
-        if res_date_one.is_none() {
-            match security.market_type.clone().unwrap().as_str() {
-                "上市" => {
-                    let data = Retry::spawn(retry_strategy.clone(), || async {
-                        event!(target: "security_api", Level::INFO, "try 上市 {} {}", &security_code, &open_date);
-                        response_data::service::get_twse_avg_json(&security).await
-                    })
-                    .await?;
-
-                    let json_value: Value = serde_json::from_str(&data)?;
-                    let data_status = match json_value.get("stat") {
-                        Some(t) => "OK" == t.as_str().unwrap_or(""),
-                        None => false,
-                    };
-
-                    match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
-                        Ok(_) => transaction_loop.commit().await?,
-                        Err(e) => {
-                            transaction_loop.rollback().await?;
-                            event!(target: "security_api", Level::ERROR, "security_task.get_all_task: {}", &e);
-                            panic!("security_task.get_all_task Error {}", &e)
-                        }
-                    };
+            match loop_data_security_task(&mut transaction, data).await {
+                Ok(_) => transaction.commit().await?,
+                Err(e) => {
+                    transaction.rollback().await?;
+                    event!(target: "security_api", Level::ERROR, "security_task.insert_task_data: {}", &e);
+                    panic!("security_task.insert_task_data Error {}", &e);
                 }
-                "上櫃" => {
-                    let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "security_api", Level::INFO, "try 上櫃 {} {}", &security_code, &open_date);
-                    response_data::service::get_tpex1_json(&security).await
-                })
-                .await?;
-
-                    let json_value: Value = serde_json::from_str(&data)?;
-                    let data_status = match json_value.get("iTotalRecords") {
-                        Some(t) => 0 < t.as_i64().unwrap_or(0),
-                        None => false,
-                    };
-
-                    match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
-                        Ok(_) => transaction_loop.commit().await?,
-                        Err(e) => {
-                            transaction_loop.rollback().await?;
-                            event!(target: "security_api", Level::ERROR, "security_task.get_all_task: {}", &e);
-                            panic!("security_task.get_all_task Error {}", &e)
-                        }
-                    };
-                }
-                "興櫃" => {
-                    let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "security_api", Level::INFO, "try 興櫃 {} {}", &security_code, &open_date);
-                    response_data::service::get_tpex2_html(&security).await
-                })
-                .await?;
-
-                    let json_value: Value = serde_json::from_str(&data)?;
-                    let data_status = match json_value.get("iTotalRecords") {
-                        Some(t) => 0 < t.as_i64().unwrap_or(0),
-                        None => false,
-                    };
-
-                    match add_res_data(&mut transaction_loop, &security, &data, data_status).await {
-                        Ok(_) => transaction_loop.commit().await?,
-                        Err(e) => {
-                            transaction_loop.rollback().await?;
-                            event!(target: "security_api", Level::ERROR, "security_task.get_all_task: {}", &e);
-                            panic!("security_task.get_all_task Error {}", &e)
-                        }
-                    };
-                }
-                _ => (),
-            };
+            }
 
             let end_time = Local::now().time();
             let seconds = 6 - (end_time - start_time).num_seconds();
@@ -379,23 +290,71 @@ pub async fn get_all_task(
                 4
             };
             time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
-        } else {
-            let mut security_task = security.clone();
-            security_task.is_enabled = Some(0);
-            security_task.exec_count = match security_task.exec_count {
-                Some(v) => Some(v + 1),
-                None => Some(0),
+        }
+    }
+
+    Ok(())
+}
+
+async fn loop_data_security_task(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    security: SecurityTask,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // 重試設定
+    let retry_strategy = ExponentialBackoff::from_millis(2000)
+        .max_delay(time::Duration::from_secs(10))
+        .take(5);
+
+    let open_date = security.open_date.clone().unwrap();
+    let security_code = security.security_code.clone().unwrap();
+
+    match security.market_type.clone().unwrap().as_str() {
+        "上市" => {
+            let data = Retry::spawn(retry_strategy.clone(), || async {
+                        event!(target: "security_api", Level::INFO, "try 上市 {} {}", &security_code, &open_date);
+                        response_data::service::get_twse_avg_json(&security).await
+                    })
+                    .await?;
+
+            let json_value: Value = serde_json::from_str(&data)?;
+            let data_status = match json_value.get("stat") {
+                Some(t) => "OK" == t.as_str().unwrap_or(""),
+                None => false,
             };
 
-            match dao::update(&mut transaction_loop, security_task.to_owned()).await {
-                Ok(_) => transaction_loop.commit().await?,
-                Err(e) => {
-                    transaction_loop.rollback().await?;
-                    event!(target: "security_api", Level::ERROR, "security_task.get_all_task: {}", &e);
-                    panic!("security_task.get_all_task Error {}", &e)
-                }
-            };
+            add_res_data(transaction, &security, &data, data_status).await?;
         }
+        "上櫃" => {
+            let data = Retry::spawn(retry_strategy.clone(), || async {
+                event!(target: "security_api", Level::INFO, "try 上櫃 {} {}", &security_code, &open_date);
+                response_data::service::get_tpex1_json(&security).await
+            })
+            .await?;
+
+            let json_value: Value = serde_json::from_str(&data)?;
+            let data_status = match json_value.get("iTotalRecords") {
+                Some(t) => 0 < t.as_i64().unwrap_or(0),
+                None => false,
+            };
+
+            add_res_data(transaction, &security, &data, data_status).await?;
+        }
+        "興櫃" => {
+            let data = Retry::spawn(retry_strategy.clone(), || async {
+                    event!(target: "security_api", Level::INFO, "try 興櫃 {} {}", &security_code, &open_date);
+                    response_data::service::get_tpex2_html(&security).await
+                })
+                .await?;
+
+            let json_value: Value = serde_json::from_str(&data)?;
+            let data_status = match json_value.get("iTotalRecords") {
+                Some(t) => 0 < t.as_i64().unwrap_or(0),
+                None => false,
+            };
+
+            add_res_data(transaction, &security, &data, data_status).await?;
+        }
+        _ => (),
     }
 
     Ok(())
@@ -403,13 +362,13 @@ pub async fn get_all_task(
 
 async fn add_res_data(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: &SecurityTask,
+    security: &SecurityTask,
     html: &String,
     data_status: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if data_status {
-        let security_code = data.security_code.clone().unwrap();
-        let open_date = data.open_date.clone().unwrap();
+        let security_code = security.security_code.clone().unwrap();
+        let open_date = security.open_date.clone().unwrap();
 
         let open_month = NaiveDate::parse_from_str(&open_date, "%Y%m%d")?;
         let year_str = format!("{:04}", open_month.year());
@@ -418,8 +377,8 @@ async fn add_res_data(
         let response_data = ResponseData {
             row_id: None,
             data_content: Some(html.to_string()),
-            open_date: data.open_date.clone(),
-            exec_code: data.security_code.clone(),
+            open_date: security.open_date.clone(),
+            exec_code: security.security_code.clone(),
         };
 
         let cnt = response_data::dao::update_by_max_day(
@@ -434,22 +393,22 @@ async fn add_res_data(
             response_data::dao::create(transaction, response_data.clone()).await?;
         }
 
-        let mut security_task = data.clone();
+        let mut security_task = security.clone();
         security_task.is_enabled = Some(0);
         security_task.exec_count = match security_task.exec_count {
             Some(v) => Some(v + 1),
             None => Some(0),
         };
 
-        dao::update(transaction, security_task.to_owned()).await?;
+        dao::update(transaction, security_task).await?;
     } else {
-        let mut security_task = data.clone();
+        let mut security_task = security.clone();
         security_task.exec_count = match security_task.exec_count {
             Some(v) => Some(v + 1),
             None => Some(0),
         };
 
-        dao::update(transaction, security_task.to_owned()).await?;
+        dao::update(transaction, security_task).await?;
     }
     Ok(())
 }

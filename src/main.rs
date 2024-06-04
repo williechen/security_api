@@ -33,10 +33,10 @@ async fn main() {
         }
     };
 
-    sqlx::migrate!()
-        .run(&db_pool)
-        .await
-        .expect("Cannot run migration");
+    //sqlx::migrate!()
+    //    .run(&db_pool)
+    //    .await
+    //    .expect("Cannot run migration");
 
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 {
