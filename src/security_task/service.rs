@@ -350,7 +350,14 @@ pub async fn get_all_task(
                         None => Some(0),
                     };
 
-                    dao::update(&mut transaction, security_task).await?;
+                    match dao::update(&mut transaction, security_task).await {
+                        Ok(_) => transaction.commit().await?,
+                        Err(e) => {
+                            transaction.rollback().await?;
+                            event!(target: "security_api", Level::ERROR, "security_task.insert_task_data: {}", &e);
+                            panic!("security_task.insert_task_data Error {}", &e);
+                        }
+                    }
                 }
             }
         }
