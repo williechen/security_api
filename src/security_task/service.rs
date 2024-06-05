@@ -277,26 +277,82 @@ pub async fn get_all_task(
             let mut conn = pool.acquire().await?;
             let mut transaction = conn.begin().await?;
 
-            let start_time = Local::now().time();
+            let security_code = data.security_code.clone().unwrap();
+            let open_date = data.open_date.clone().unwrap();
+            let od = NaiveDate::parse_from_str(&open_date, "%Y%m%d")?;
+            let nod = od.and_hms_opt(15, 30, 0).unwrap();
 
-            match loop_data_security_task(&mut transaction, data).await {
-                Ok(_) => transaction.commit().await?,
-                Err(e) => {
-                    transaction.rollback().await?;
-                    event!(target: "security_api", Level::ERROR, "security_task.insert_task_data: {}", &e);
-                    panic!("security_task.insert_task_data Error {}", &e);
+            let nd = Local::now().date_naive();
+            let ndt = Local::now().naive_local();
+
+            // 今天且下午三點半
+            if nd == od && nod < ndt {
+                let start_time = Local::now().time();
+
+                match loop_data_security_task(&mut transaction, data).await {
+                    Ok(_) => transaction.commit().await?,
+                    Err(e) => {
+                        transaction.rollback().await?;
+                        event!(target: "security_api", Level::ERROR, "security_task.insert_task_data: {}", &e);
+                        panic!("security_task.insert_task_data Error {}", &e);
+                    }
+                }
+
+                let end_time = Local::now().time();
+                let seconds = 6 - (end_time - start_time).num_seconds();
+
+                let sleep_num = if seconds > 1 {
+                    thread_rng().gen_range(2..=seconds)
+                } else {
+                    4
+                };
+                time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
+
+            // 小於今天的日期
+            } else if nd > od {
+                let year_str = format!("{:04}", od.year());
+                let month_str = format!("{:02}", od.month());
+                let day_str = format!("{:02}", od.day());
+
+                let res_data = response_data::dao::read_by_max_day(
+                    &mut transaction,
+                    &security_code,
+                    &year_str,
+                    &month_str,
+                    &day_str,
+                )
+                .await?;
+                if res_data.is_none() {
+                    let start_time = Local::now().time();
+
+                    match loop_data_security_task(&mut transaction, data).await {
+                        Ok(_) => transaction.commit().await?,
+                        Err(e) => {
+                            transaction.rollback().await?;
+                            event!(target: "security_api", Level::ERROR, "security_task.insert_task_data: {}", &e);
+                            panic!("security_task.insert_task_data Error {}", &e);
+                        }
+                    }
+
+                    let end_time = Local::now().time();
+                    let seconds = 6 - (end_time - start_time).num_seconds();
+
+                    let sleep_num = if seconds > 1 {
+                        thread_rng().gen_range(2..=seconds)
+                    } else {
+                        4
+                    };
+                    time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
+                } else {
+                    let mut security_task = data.clone();
+                    security_task.exec_count = match security_task.exec_count {
+                        Some(v) => Some(v + 1),
+                        None => Some(0),
+                    };
+
+                    dao::update(&mut transaction, security_task).await?;
                 }
             }
-
-            let end_time = Local::now().time();
-            let seconds = 6 - (end_time - start_time).num_seconds();
-
-            let sleep_num = if seconds > 1 {
-                thread_rng().gen_range(2..=seconds)
-            } else {
-                4
-            };
-            time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
         }
     }
 
@@ -381,7 +437,7 @@ async fn add_res_data(
         let year_str = format!("{:04}", open_month.year());
         let month_str = format!("{:02}", open_month.month());
 
-        let response_data = ResponseData {
+        let res_data = ResponseData {
             row_id: None,
             data_content: Some(html.to_string()),
             open_date: security.open_date.clone(),
@@ -390,14 +446,14 @@ async fn add_res_data(
 
         let cnt = response_data::dao::update_by_max_day(
             transaction,
-            response_data.clone(),
+            res_data.clone(),
             &security_code,
             &year_str,
             &month_str,
         )
         .await?;
         if cnt <= 0 {
-            response_data::dao::create(transaction, response_data.clone()).await?;
+            response_data::dao::create(transaction, res_data.clone()).await?;
         }
 
         let mut security_task = security.clone();
