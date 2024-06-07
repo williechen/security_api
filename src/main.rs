@@ -19,6 +19,7 @@ async fn main() {
         .with_env_filter(log_filter)
         .with_writer(console_non_blocking)
         .with_writer(file_non_blocking)
+        .with_span_events(FmtSpan::CLOSE)
         .init();
 
     let db_pool = match PgPoolOptions::new()
@@ -33,10 +34,10 @@ async fn main() {
         }
     };
 
-    //sqlx::migrate!()
-    //    .run(&db_pool)
-    //    .await
-    //    .expect("Cannot run migration");
+    sqlx::migrate!()
+        .run(&db_pool)
+        .await
+        .expect("Cannot run migration");
 
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 {
