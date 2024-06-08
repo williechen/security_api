@@ -2,6 +2,7 @@ use std::env;
 
 use sqlx::postgres::PgPoolOptions;
 use tracing::{event, Level};
+use tracing_subscriber::fmt::format::FmtSpan;
 
 #[tokio::main]
 async fn main() {
@@ -17,9 +18,9 @@ async fn main() {
     tracing_subscriber::fmt()
         .json()
         .with_env_filter(log_filter)
+        .with_span_events(FmtSpan::CLOSE)
         .with_writer(console_non_blocking)
         .with_writer(file_non_blocking)
-        .with_span_events(FmtSpan::CLOSE)
         .init();
 
     let db_pool = match PgPoolOptions::new()
