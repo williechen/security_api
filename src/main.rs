@@ -20,11 +20,11 @@ async fn main() {
         .json()
         .with_env_filter(log_filter)
         .with_writer(console_non_blocking)
-        //.with_writer(file_non_blocking)
+        .with_writer(file_non_blocking)
         .init();
 
     let db_pool = match PgPoolOptions::new()
-        .max_connections(50)
+        .max_connections(5)
         .connect(db_url)
         .await
     {
