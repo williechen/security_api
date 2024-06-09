@@ -34,6 +34,27 @@ pub async fn insert_task_data(pool: sqlx::PgPool) -> Result<(), Box<dyn std::err
     Ok(())
 }
 
+async fn loop_data_task_data(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    data: DailyTask,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let query_daily_task = DailyTask {
+        row_id: None,
+        open_date: data.open_date.clone(),
+        job_code: data.job_code.clone(),
+        exec_status: None,
+    };
+
+    let task_list = dao::read_all(transaction, query_daily_task).await?;
+    if task_list.0 <= 0 {
+        dao::create(transaction, data.clone()).await?;
+    } else {
+        dao::update(transaction, data.clone()).await?;
+    }
+
+    Ok(())
+}
+
 async fn select_task(
     conn: &mut PoolConnection<Postgres>,
     date: NaiveDate,
@@ -45,7 +66,6 @@ async fn select_task(
         &format!(
             r#"
             SELECT '' AS row_id
-                 , '{0}' AS open_date
                  , CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) AS open_date
                  , ts.job_code 
                  , 'WAIT' AS exec_status
@@ -57,11 +77,10 @@ async fn select_task(
                   FROM daily_task dt
                  WHERE dt.open_date = CONCAT(cd.ce_year, cd.ce_month, cd.ce_day)
                    AND dt.job_code = ts.job_code
-                   AND dt.exec_status = 'EXIT'
               )
                 AND CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) <= '{0}'
                 AND cd.date_status = 'O'
-             ORDER BY cd.ce_month desc, cd.ce_day desc, cd.ce_year desc, ts.sort_no  
+             ORDER BY 2 desc, ts.sort_no  
             "#,
             date.format("%Y%m%d").to_string()
         ),
@@ -195,26 +214,6 @@ pub async fn exec_daily_task(pool: sqlx::PgPool) -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
-async fn loop_data_task_data(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: DailyTask,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let query_daily_task = DailyTask {
-        row_id: None,
-        open_date: data.open_date.clone(),
-        job_code: data.job_code.clone(),
-        exec_status: None,
-    };
-
-    let task_list = dao::read_all(transaction, query_daily_task).await?;
-    if task_list.0 <= 0 {
-        dao::create(transaction, data.clone()).await?;
-    } else {
-        dao::update(transaction, data.clone()).await?;
-    }
-
-    Ok(())
-}
 
 async fn update_task_status(pool: sqlx::PgPool, task_info: &DailyTaskInfo, status: &str) {
     let mut conn = pool.acquire().await.unwrap();

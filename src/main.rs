@@ -7,7 +7,7 @@ use tracing_subscriber::fmt::format::FmtSpan;
 #[tokio::main]
 async fn main() {
     let log_filter =
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "security_api=info,sqlx=info".to_owned());
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "security_api=info,sqlx=error".to_owned());
 
     // console log
     let (console_non_blocking, _guard) = tracing_appender::non_blocking(std::io::stdout());
