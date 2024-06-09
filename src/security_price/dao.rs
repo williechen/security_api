@@ -1,10 +1,36 @@
 use chrono::Local;
-use sqlx::{postgres::PgRow, Row};
-use tracing::{event, instrument, Level};
+use sqlx::{
+    postgres::{PgPoolOptions, PgRow},
+    PgPool, Row,
+};
+use tracing::{event, Level};
 
 use super::model::SecurityPrice;
 
-#[instrument]
+#[derive(Debug, Clone)]
+pub struct SecurityPriceDao {
+    pub connection: PgPool,
+}
+
+impl SecurityPriceDao {
+    pub async fn new(db_url: &str) -> Self {
+        let db_pool = match PgPoolOptions::new()
+            .max_connections(5)
+            .connect(db_url)
+            .await
+        {
+            Ok(pool) => pool,
+            Err(e) => {
+                event!(target: "security_api", Level::ERROR, "init db_pool {}", &e);
+                panic!("Couldn't establish DB connection: {}", &e)
+            }
+        };
+        SecurityPriceDao {
+            connection: db_pool,
+        }
+    }
+}
+
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: &SecurityPrice,
@@ -88,7 +114,6 @@ fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
     format!(" {} {} {} ${} ", plus, field, conditional, index)
 }
 
-#[instrument]
 pub async fn read_all_by_sql(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     sql: &str,
@@ -118,7 +143,6 @@ pub async fn read_all_by_sql(
     }
 }
 
-#[instrument]
 pub async fn read(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     row_id: &str,
@@ -166,7 +190,6 @@ pub async fn read(
     }
 }
 
-#[instrument]
 pub async fn create(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: SecurityPrice,
@@ -210,7 +233,6 @@ pub async fn create(
     }
 }
 
-#[instrument]
 pub async fn update(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: SecurityPrice,
@@ -255,7 +277,6 @@ pub async fn update(
     }
 }
 
-#[instrument]
 pub async fn delete(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: SecurityPrice,

@@ -1,31 +1,48 @@
 use std::collections::HashMap;
 
 use scraper::{Html, Selector};
-use sqlx::Acquire;
-use tracing::{event, instrument, Level};
+use sqlx::{Postgres, Transaction};
+use tracing::{event, Level};
 
 use crate::daily_task::model::DailyTaskInfo;
 
-use super::{dao, model::SecurityTemp};
+use super::{
+    dao::{self, SecurityTempDao},
+    model::SecurityTemp,
+};
 
-#[instrument]
 pub async fn insert_temp_data(
-    pool: sqlx::PgPool,
+    db_url: &str,
+    data_content: String,
+    task_info: DailyTaskInfo,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let pool = SecurityTempDao::new(db_url).await;
+    let mut transaction = pool.connection.begin().await?;
+
+    match loop_data_temp(&mut transaction, data_content, task_info).await {
+        Ok(_) => transaction.commit().await?,
+        Err(e) => {
+            transaction.rollback().await?;
+            event!(target: "security_api", Level::ERROR, "security_temp.insert_temp_data: {}", &e);
+            panic!("security_temp.insert_temp_data Error {}", &e)
+        }
+    };
+
+    Ok(())
+}
+
+async fn loop_data_temp(
+    transaction: &mut Transaction<'static, Postgres>,
     data_content: String,
     task_info: DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let rows = parse_table_data(data_content)?;
     for row in rows {
-        let mut conn = pool.acquire().await?;
-        let mut transaction = conn.begin().await?;
-
         let open_date = task_info.open_date.clone().unwrap();
-
         let mut query_security_temp = SecurityTemp::new();
         query_security_temp.open_date = Some(open_date.clone());
         query_security_temp.security_code = row.get("2").cloned();
-
-        let data_list = dao::read_all(&mut transaction, query_security_temp).await?;
+        let data_list = dao::read_all(transaction, query_security_temp).await?;
         if data_list.0 <= 0 {
             let security_temp = SecurityTemp {
                 row_id: None,
@@ -40,18 +57,9 @@ pub async fn insert_temp_data(
                 cfi_code: row.get("8").cloned(),
                 remark: row.get("9").cloned(),
             };
-
-            match dao::create(&mut transaction, security_temp).await {
-                Ok(_) => transaction.commit().await?,
-                Err(e) => {
-                    transaction.rollback().await?;
-                    event!(target: "security_api", Level::ERROR, "security_temp.insert_temp_data: {}", &e);
-                    panic!("security_temp.insert_temp_data Error {}", &e)
-                }
-            };
+            dao::create(transaction, security_temp).await?;
         }
     }
-
     Ok(())
 }
 

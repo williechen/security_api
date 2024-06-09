@@ -1,23 +1,23 @@
-use chrono::{Datelike, Local, NaiveDate, Timelike};
+use chrono::{Datelike, Local, NaiveDate};
 use rand::{thread_rng, Rng};
 use serde_json::Value;
-use sqlx::Acquire;
 use tokio::time;
 use tokio_retry::{strategy::ExponentialBackoff, Retry};
-use tracing::{event, instrument, Level};
+use tracing::{event, Level};
 
 use super::{dao, model::SecurityTask};
 use crate::{
     daily_task::model::DailyTaskInfo,
     response_data::{self, model::ResponseData},
+    security_task::dao::SecurityTaskDao,
     security_temp::{self, model::SecurityTemp},
 };
 
-#[instrument]
 pub async fn insert_task_data(
-    pool: sqlx::PgPool,
+    db_url: &str,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let pool = SecurityTaskDao::new(db_url).await;
     let open_date = task_info.open_date.clone().unwrap();
 
     let twse_list = select_temp_to_twse(pool.clone(), open_date.clone()).await?;
@@ -25,8 +25,8 @@ pub async fn insert_task_data(
     let mut item_index = 1;
 
     for data in twse_list {
-        let mut conn = pool.acquire().await?;
-        let mut transaction = conn.begin().await?;
+        let pool = SecurityTaskDao::new(db_url).await;
+        let mut transaction = pool.connection.begin().await?;
         match loop_data_temp_data(&mut transaction, data, task_info.clone(), item_index).await {
             Ok(_) => transaction.commit().await?,
             Err(e) => {
@@ -43,8 +43,8 @@ pub async fn insert_task_data(
     let mut item_index = 2;
 
     for data in tpex_list {
-        let mut conn = pool.acquire().await?;
-        let mut transaction = conn.begin().await?;
+        let pool = SecurityTaskDao::new(db_url).await;
+        let mut transaction = pool.connection.begin().await?;
         match loop_data_temp_data(&mut transaction, data, task_info.clone(), item_index).await {
             Ok(_) => transaction.commit().await?,
             Err(e) => {
@@ -166,11 +166,10 @@ async fn loop_data_temp_data(
 }
 
 async fn select_temp_to_twse(
-    pool: sqlx::PgPool,
+    pool: SecurityTaskDao,
     open_date: String,
 ) -> Result<Vec<SecurityTemp>, Box<dyn std::error::Error>> {
-    let mut conn = pool.acquire().await?;
-    let mut transaction = conn.begin().await?;
+    let mut transaction = pool.connection.begin().await?;
 
     match security_temp::dao::read_all_by_sql(
         &mut transaction,
@@ -208,11 +207,10 @@ async fn select_temp_to_twse(
 }
 
 async fn select_temp_to_tpex(
-    pool: sqlx::PgPool,
+    pool: SecurityTaskDao,
     open_date: String,
 ) -> Result<Vec<SecurityTemp>, Box<dyn std::error::Error>> {
-    let mut conn = pool.acquire().await?;
-    let mut transaction = conn.begin().await?;
+    let mut transaction = pool.connection.begin().await?;
 
     match security_temp::dao::read_all_by_sql(
         &mut transaction,
@@ -249,13 +247,12 @@ async fn select_temp_to_tpex(
     }
 }
 
-#[instrument]
 pub async fn get_all_task(
-    pool: sqlx::PgPool,
+    db_url: &str,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut conn = pool.acquire().await?;
-    let mut transaction = conn.begin().await?;
+    let pool = SecurityTaskDao::new(db_url).await;
+    let mut transaction = pool.connection.begin().await?;
 
     let query_security_task = SecurityTask {
         row_id: None,
@@ -274,8 +271,8 @@ pub async fn get_all_task(
     let task_datas = dao::read_all(&mut transaction, &query_security_task).await?;
     if task_datas.0 > 0 {
         for data in task_datas.1 {
-            let mut conn = pool.acquire().await?;
-            let mut transaction = conn.begin().await?;
+            let pool = SecurityTaskDao::new(db_url).await;
+            let mut transaction = pool.connection.begin().await?;
 
             let security_code = data.security_code.clone().unwrap();
             let open_date = data.open_date.clone().unwrap();

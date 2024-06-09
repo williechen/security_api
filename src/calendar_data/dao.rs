@@ -1,10 +1,36 @@
 use chrono::Local;
-use sqlx::{postgres::PgRow, Row};
-use tracing::{event, instrument, Level};
+use sqlx::{
+    postgres::{PgPoolOptions, PgRow},
+    PgPool, Row,
+};
+use tracing::{event, Level};
 
 use super::model::CalendarData;
 
-#[instrument]
+#[derive(Debug, Clone)]
+pub struct CalendarDataDao {
+    pub connection: PgPool,
+}
+
+impl CalendarDataDao {
+    pub async fn new(db_url: &str) -> Self {
+        let db_pool = match PgPoolOptions::new()
+            .max_connections(5)
+            .connect(db_url)
+            .await
+        {
+            Ok(pool) => pool,
+            Err(e) => {
+                event!(target: "security_api", Level::ERROR, "init db_pool {}", &e);
+                panic!("Couldn't establish DB connection: {}", &e)
+            }
+        };
+        CalendarDataDao {
+            connection: db_pool,
+        }
+    }
+}
+
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: &CalendarData,
@@ -162,7 +188,6 @@ pub async fn read(
     }
 }
 
-#[instrument]
 pub async fn create(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: CalendarData,
