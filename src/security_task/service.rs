@@ -342,6 +342,7 @@ pub async fn get_all_task(
                     time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
                 } else {
                     let mut security_task = data.clone();
+                    security_task.is_enabled = Some(0);
                     security_task.exec_count = match security_task.exec_count {
                         Some(v) => Some(v + 1),
                         None => Some(0),
