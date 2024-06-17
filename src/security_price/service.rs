@@ -12,25 +12,11 @@ use crate::{
 
 use super::{dao, model::SecurityTemp};
 
-pub async fn delete_temp(db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.begin().await?;
-    match dao::truncate(&mut *transaction).await {
-        Ok(_) => transaction.commit().await?,
-        Err(e) => {
-            transaction.rollback().await?;
-            event!(target: "security_api", Level::ERROR, "daily_task.delete_temp: {}", e);
-            panic!("daily_task.delete_temp Error {}", &e)
-        }
-    };
-    Ok(())
-}
-
-pub async fn get_security_to_temp(
+pub async fn get_security_to_price(
     db_url: &str,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "call daily_task.get_security_to_temp");
+    event!(target: "security_api", Level::INFO, "call daily_task.get_security_to_price");
     let pool = Repository::new(db_url).await;
     let mut transaction = pool.connection.acquire().await?;
 
@@ -48,7 +34,7 @@ pub async fn get_security_to_temp(
         let data_content = response_data.data_content.clone().unwrap();
 
         let mut transaction = pool.connection.begin().await?;
-        match insert_temp_data(&mut *transaction, data_content, task_info.clone()).await {
+        match insert_price_data(&mut *transaction, data_content, task_info.clone()).await {
             Ok(_) => transaction.commit().await?,
             Err(_) => transaction.rollback().await?,
         }
@@ -57,7 +43,7 @@ pub async fn get_security_to_temp(
     Ok(())
 }
 
-pub async fn insert_temp_data(
+pub async fn insert_price_data(
     transaction: &mut PgConnection,
     data_content: String,
     task_info: DailyTaskInfo,

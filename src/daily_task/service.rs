@@ -3,11 +3,7 @@ use sqlx::PgConnection;
 use tokio::time;
 use tracing::{event, Level};
 
-use crate::{
-    repository::Repository,
-    response_data::{self, model::ResponseData},
-    security_task, security_temp,
-};
+use crate::{repository::Repository, response_data, security_task, security_temp};
 
 use super::{
     dao,
@@ -86,40 +82,46 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
             update_task_status(&mut *transaction, &task_info, "OPEN").await;
             // 執行任務
             match task_info.job_code.clone().unwrap().as_str() {
-                "get_web_security" => match get_security_all_code(db_url, &task_info).await {
-                    Ok(_) => {
-                        update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                        event!(target: "security_api", Level::INFO, "daily_task.get_web_security Done");
+                "get_web_security" => {
+                    match response_data::service::get_security_all_code(db_url, &task_info).await {
+                        Ok(_) => {
+                            update_task_status(&mut *transaction, &task_info, "EXIT").await;
+                            event!(target: "security_api", Level::INFO, "daily_task.get_web_security Done");
+                        }
+                        Err(e) => {
+                            update_task_status(&mut *transaction, &task_info, "EXEC").await;
+                            event!(target: "security_api", Level::ERROR, "daily_task.get_web_security {}", &e);
+                            panic!("daily_task.get_web_security Error {}", &e)
+                        }
                     }
-                    Err(e) => {
-                        update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                        event!(target: "security_api", Level::ERROR, "daily_task.get_web_security {}", &e);
-                        panic!("daily_task.get_web_security Error {}", &e)
+                }
+                "res_to_temp" => {
+                    match security_temp::service::get_security_to_temp(db_url, &task_info).await {
+                        Ok(_) => {
+                            update_task_status(&mut *transaction, &task_info, "EXIT").await;
+                            event!(target: "security_api", Level::INFO, "daily_task.res_to_temp Done");
+                        }
+                        Err(e) => {
+                            update_task_status(&mut *transaction, &task_info, "EXEC").await;
+                            event!(target: "security_api", Level::ERROR, "daily_task.res_to_temp {}", &e);
+                            panic!("daily_task.res_to_temp Error {}", &e)
+                        }
                     }
-                },
-                "res_to_temp" => match get_security_to_temp(db_url, &task_info).await {
-                    Ok(_) => {
-                        update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                        event!(target: "security_api", Level::INFO, "daily_task.res_to_temp Done");
+                }
+                "temp_to_task" => {
+                    match security_task::service::insert_task_data(db_url, &task_info).await {
+                        Ok(_) => {
+                            update_task_status(&mut *transaction, &task_info, "EXIT").await;
+                            event!(target: "security_api", Level::INFO, "daily_task.temp_to_task Done");
+                        }
+                        Err(e) => {
+                            update_task_status(&mut *transaction, &task_info, "EXEC").await;
+                            event!(target: "security_api", Level::ERROR, "daily_task.temp_to_task {}", &e);
+                            panic!("daily_task.temp_to_task Error {}", &e)
+                        }
                     }
-                    Err(e) => {
-                        update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                        event!(target: "security_api", Level::ERROR, "daily_task.res_to_temp {}", &e);
-                        panic!("daily_task.res_to_temp Error {}", &e)
-                    }
-                },
-                "temp_to_task" => match get_temp_to_task(db_url, &task_info).await {
-                    Ok(_) => {
-                        update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                        event!(target: "security_api", Level::INFO, "daily_task.temp_to_task Done");
-                    }
-                    Err(e) => {
-                        update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                        event!(target: "security_api", Level::ERROR, "daily_task.temp_to_task {}", &e);
-                        panic!("daily_task.temp_to_task Error {}", &e)
-                    }
-                },
-                "delete_temp" => match delete_temp(db_url, &task_info).await {
+                }
+                "delete_temp" => match security_temp::service::delete_temp(db_url).await {
                     Ok(_) => {
                         update_task_status(&mut *transaction, &task_info, "EXIT").await;
                         event!(target: "security_api", Level::INFO, "daily_task.delete_temp Done");
@@ -130,17 +132,19 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                         panic!("daily_task.delete_temp Error {}", &e)
                     }
                 },
-                "task_run" => match get_task_run(db_url, &task_info).await {
-                    Ok(_) => {
-                        update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                        event!(target: "security_api", Level::INFO, "daily_task.task_run Done");
+                "task_run" => {
+                    match security_task::service::get_all_task(db_url, &task_info).await {
+                        Ok(_) => {
+                            update_task_status(&mut *transaction, &task_info, "EXIT").await;
+                            event!(target: "security_api", Level::INFO, "daily_task.task_run Done");
+                        }
+                        Err(e) => {
+                            update_task_status(&mut *transaction, &task_info, "EXEC").await;
+                            event!(target: "security_api", Level::ERROR, "daily_task.task_run {}", &e);
+                            panic!("daily_task.task_run Error {}", &e)
+                        }
                     }
-                    Err(e) => {
-                        update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                        event!(target: "security_api", Level::ERROR, "daily_task.task_run {}", &e);
-                        panic!("daily_task.task_run Error {}", &e)
-                    }
-                },
+                }
                 _ => {
                     event!(target: "security_api", Level::INFO, "daily_task.othen_job: {}", task_info.job_code.clone().unwrap())
                 }
@@ -205,98 +209,4 @@ async fn update_task_status(
         exec_status: Some(status.to_string()),
     };
     dao::update(transaction, daily_task).await.unwrap();
-}
-
-async fn get_security_all_code(
-    db_url: &str,
-    task_info: &DailyTaskInfo,
-) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "call daily_task.get_security_all_code");
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.acquire().await?;
-
-    let query_response_data = ResponseData {
-        row_id: None,
-        open_date: task_info.open_date.clone(),
-        exec_code: Some("security".to_string()),
-        data_content: None,
-    };
-
-    let data_list = response_data::dao::read_all(&mut *transaction, query_response_data).await?;
-    if data_list.0 <= 0 {
-        let content = response_data::service::get_web_security_data().await?;
-
-        let response_data = ResponseData {
-            row_id: None,
-            open_date: task_info.open_date.clone(),
-            exec_code: Some("security".to_string()),
-            data_content: Some(content),
-        };
-
-        response_data::dao::create(&mut *transaction, response_data).await?;
-    }
-
-    Ok(())
-}
-
-async fn get_security_to_temp(
-    db_url: &str,
-    task_info: &DailyTaskInfo,
-) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "call daily_task.get_security_to_temp");
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.acquire().await?;
-
-    let query_response_data = ResponseData {
-        row_id: None,
-        open_date: task_info.open_date.clone(),
-        exec_code: Some("security".to_string()),
-        data_content: None,
-    };
-
-    let data_list = response_data::dao::read_all(&mut *transaction, query_response_data).await?;
-    if data_list.0 > 0 {
-        let first_data = data_list.1.get(0);
-        let response_data = first_data.clone().unwrap();
-        let data_content = response_data.data_content.clone().unwrap();
-
-        security_temp::service::insert_temp_data(db_url, data_content, task_info.clone()).await?
-    }
-
-    Ok(())
-}
-
-async fn get_temp_to_task(
-    db_url: &str,
-    task_info: &DailyTaskInfo,
-) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "call daily_task.get_temp_to_task");
-    security_task::service::insert_task_data(db_url, task_info).await?;
-    Ok(())
-}
-
-async fn delete_temp(
-    db_url: &str,
-    task_info: &DailyTaskInfo,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.begin().await?;
-    match security_temp::dao::truncate(&mut *transaction).await {
-        Ok(_) => transaction.commit().await?,
-        Err(e) => {
-            transaction.rollback().await?;
-            event!(target: "security_api", Level::ERROR, "daily_task.delete_temp: {}", e);
-            panic!("daily_task.delete_temp Error {}", &e)
-        }
-    };
-    Ok(())
-}
-
-async fn get_task_run(
-    db_url: &str,
-    task_info: &DailyTaskInfo,
-) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "call daily_task.get_task_run");
-    security_task::service::get_all_task(db_url, task_info).await?;
-    Ok(())
 }

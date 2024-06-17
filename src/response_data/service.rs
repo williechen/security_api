@@ -4,9 +4,41 @@ use scraper::{Html, Selector};
 use serde_json::json;
 use tracing::{event, Level};
 
-use crate::security_task::model::SecurityTask;
+use crate::{daily_task::model::DailyTaskInfo, repository::Repository, response_data::{self, model::ResponseData}, security_task::model::SecurityTask};
 
-pub async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
+pub async fn get_security_all_code(
+    db_url: &str,
+    task_info: &DailyTaskInfo,
+) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "call daily_task.get_security_all_code");
+    let pool = Repository::new(db_url).await;
+    let mut transaction = pool.connection.acquire().await?;
+
+    let query_response_data = ResponseData {
+        row_id: None,
+        open_date: task_info.open_date.clone(),
+        exec_code: Some("security".to_string()),
+        data_content: None,
+    };
+
+    let data_list = response_data::dao::read_all(&mut *transaction, query_response_data).await?;
+    if data_list.0 <= 0 {
+        let content = get_web_security_data().await?;
+
+        let response_data = ResponseData {
+            row_id: None,
+            open_date: task_info.open_date.clone(),
+            exec_code: Some("security".to_string()),
+            data_content: Some(content),
+        };
+
+        response_data::dao::create(&mut *transaction, response_data).await?;
+    }
+
+    Ok(())
+}
+
+async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 
     let res = client
