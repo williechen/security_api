@@ -1,6 +1,6 @@
 use std::env;
 
-use sqlx::postgres::PgPoolOptions;
+use security_api::repository::Repository;
 use tracing::{event, Level};
 
 #[tokio::main]
@@ -8,7 +8,7 @@ async fn main() {
     let log_filter =
         std::env::var("RUST_LOG").unwrap_or_else(|_| "security_api=info,sqlx=info".to_owned());
 
-    let db_url = "postgres://willie:Gn220304@localhost:5432/security_test";
+    let db_url = "postgres://willie:Gn220304@localhost:5432/security_api";
 
     // console log
     let (console_non_blocking, _guard) = tracing_appender::non_blocking(std::io::stdout());
@@ -23,20 +23,10 @@ async fn main() {
         .with_writer(file_non_blocking)
         .init();
 
-    let db_pool = match PgPoolOptions::new()
-        .max_connections(5)
-        .connect(db_url)
-        .await
-    {
-        Ok(pool) => pool,
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "init db_pool {}", &e);
-            panic!("Couldn't establish DB connection: {}", &e)
-        }
-    };
+    let db_pool = Repository::new(db_url).await;
 
     sqlx::migrate!()
-        .run(&db_pool)
+        .run(&db_pool.connection)
         .await
         .expect("Cannot run migration");
 

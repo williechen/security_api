@@ -3,12 +3,12 @@ use tracing::{event, Level};
 
 mod calendar_data;
 mod daily_task;
+pub mod repository;
 mod response_data;
 mod security_price;
 mod security_task;
 mod security_temp;
 mod task_setting;
-pub mod repository;
 
 pub async fn add_next_year(db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call add_next_year");
