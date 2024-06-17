@@ -1,35 +1,8 @@
 use chrono::Local;
-use sqlx::{
-    postgres::{PgPoolOptions, PgRow},
-    PgPool, Row,
-};
+use sqlx::{postgres::PgRow, Row};
 use tracing::{event, Level};
 
 use super::model::TaskSetting;
-
-#[derive(Debug, Clone)]
-pub struct TaskSettingDao {
-    pub connection: PgPool,
-}
-
-impl TaskSettingDao {
-    pub async fn new(db_url: &str) -> Self {
-        let db_pool = match PgPoolOptions::new()
-            .max_connections(5)
-            .connect(db_url)
-            .await
-        {
-            Ok(pool) => pool,
-            Err(e) => {
-                event!(target: "security_api", Level::ERROR, "init db_pool {}", &e);
-                panic!("Couldn't establish DB connection: {}", &e)
-            }
-        };
-        TaskSettingDao {
-            connection: db_pool,
-        }
-    }
-}
 
 pub async fn read_all(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,

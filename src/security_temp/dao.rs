@@ -1,38 +1,11 @@
 use chrono::Local;
-use sqlx::{
-    postgres::{PgPoolOptions, PgRow},
-    PgPool, Row,
-};
+use sqlx::{postgres::PgRow, PgConnection, Row};
 use tracing::{event, Level};
 
 use super::model::SecurityTemp;
 
-#[derive(Debug, Clone)]
-pub struct SecurityTempDao {
-    pub connection: PgPool,
-}
-
-impl SecurityTempDao {
-    pub async fn new(db_url: &str) -> Self {
-        let db_pool = match PgPoolOptions::new()
-            .max_connections(5)
-            .connect(db_url)
-            .await
-        {
-            Ok(pool) => pool,
-            Err(e) => {
-                event!(target: "security_api", Level::ERROR, "init db_pool {}", &e);
-                panic!("Couldn't establish DB connection: {}", &e)
-            }
-        };
-        SecurityTempDao {
-            connection: db_pool,
-        }
-    }
-}
-
 pub async fn read_all(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     data: SecurityTemp,
 ) -> Result<(usize, Vec<SecurityTemp>), sqlx::Error> {
     let mut select_str = r#" 
@@ -108,7 +81,7 @@ pub async fn read_all(
             cfi_code: row.get("cfi_code"),
             remark: row.get("remark"),
         })
-        .fetch_all(&mut **transaction)
+        .fetch_all(transaction)
         .await
     {
         Ok(rows) => Ok((rows.len(), rows)),
@@ -133,7 +106,7 @@ fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
 }
 
 pub async fn read_all_by_sql(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     sql: &str,
 ) -> Result<(usize, Vec<SecurityTemp>), sqlx::Error> {
     match sqlx::query(sql)
@@ -150,7 +123,7 @@ pub async fn read_all_by_sql(
             cfi_code: row.get("cfi_code"),
             remark: row.get("remark"),
         })
-        .fetch_all(&mut **transaction)
+        .fetch_all(transaction)
         .await
     {
         Ok(rows) => Ok((rows.len(), rows)),
@@ -162,7 +135,7 @@ pub async fn read_all_by_sql(
 }
 
 pub async fn read(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     row_id: &str,
 ) -> Result<Option<SecurityTemp>, sqlx::Error> {
     match sqlx::query(
@@ -197,7 +170,7 @@ pub async fn read(
         cfi_code: row.get("cfi_code"),
         remark: row.get("remark"),
     })
-    .fetch_one(&mut **transaction)
+    .fetch_one(transaction)
     .await
     {
         Ok(row) => Ok(Some(row)),
@@ -209,7 +182,7 @@ pub async fn read(
 }
 
 pub async fn create(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     data: SecurityTemp,
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
@@ -240,7 +213,7 @@ pub async fn create(
     .bind(data.remark)
     .bind(Local::now().naive_local())
     .bind(Local::now().naive_local())
-    .execute(&mut **transaction)
+    .execute(transaction)
     .await
     {
         Ok(row) => Ok(row.rows_affected()),
@@ -252,7 +225,7 @@ pub async fn create(
 }
 
 pub async fn update(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     data: SecurityTemp,
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
@@ -283,7 +256,7 @@ pub async fn update(
     .bind(data.remark)
     .bind(Local::now().naive_local())
     .bind(data.row_id)
-    .execute(&mut **transaction)
+    .execute(transaction)
     .await
     {
         Ok(row) => Ok(row.rows_affected()),
@@ -295,12 +268,12 @@ pub async fn update(
 }
 
 pub async fn delete(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     data: SecurityTemp,
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(r#" DELETE FROM security_temp WHERE row_id = $1 "#)
         .bind(data.row_id)
-        .execute(&mut **transaction)
+        .execute(transaction)
         .await
     {
         Ok(row) => Ok(row.rows_affected()),
@@ -311,11 +284,9 @@ pub async fn delete(
     }
 }
 
-pub async fn truncate(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-) -> Result<u64, sqlx::Error> {
+pub async fn truncate(transaction: &mut PgConnection) -> Result<u64, sqlx::Error> {
     match sqlx::query(r#" DELETE FROM security_temp WHERE 1=1 "#)
-        .execute(&mut **transaction)
+        .execute(transaction)
         .await
     {
         Ok(row) => Ok(row.rows_affected()),

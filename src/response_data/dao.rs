@@ -1,38 +1,11 @@
 use chrono::Local;
-use sqlx::{
-    postgres::{PgPoolOptions, PgRow},
-    PgPool, Row,
-};
+use sqlx::{postgres::PgRow, PgConnection, Row};
 use tracing::{event, Level};
 
 use super::model::ResponseData;
 
-#[derive(Debug, Clone)]
-pub struct ResponseDataDao {
-    pub connection: PgPool,
-}
-
-impl ResponseDataDao {
-    pub async fn new(db_url: &str) -> Self {
-        let db_pool = match PgPoolOptions::new()
-            .max_connections(5)
-            .connect(db_url)
-            .await
-        {
-            Ok(pool) => pool,
-            Err(e) => {
-                event!(target: "security_api", Level::ERROR, "init db_pool {}", &e);
-                panic!("Couldn't establish DB connection: {}", &e)
-            }
-        };
-        ResponseDataDao {
-            connection: db_pool,
-        }
-    }
-}
-
 pub async fn read_all(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     data: ResponseData,
 ) -> Result<(usize, Vec<ResponseData>), sqlx::Error> {
     let mut select_str = r#" 
@@ -76,7 +49,7 @@ pub async fn read_all(
             exec_code: row.get("exec_code"),
             data_content: row.get("data_content"),
         })
-        .fetch_all(&mut **transaction)
+        .fetch_all(transaction)
         .await
     {
         Ok(rows) => Ok((rows.len(), rows)),
@@ -101,7 +74,7 @@ fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
 }
 
 pub async fn read_all_by_sql(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     sql: &str,
 ) -> Result<(usize, Vec<ResponseData>), sqlx::Error> {
     match sqlx::query(sql)
@@ -111,7 +84,7 @@ pub async fn read_all_by_sql(
             exec_code: row.get("exec_code"),
             data_content: row.get("data_content"),
         })
-        .fetch_all(&mut **transaction)
+        .fetch_all(transaction)
         .await
     {
         Ok(rows) => Ok((rows.len(), rows)),
@@ -123,7 +96,7 @@ pub async fn read_all_by_sql(
 }
 
 pub async fn read(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     row_id: &str,
 ) -> Result<Option<ResponseData>, sqlx::Error> {
     match sqlx::query(
@@ -144,7 +117,7 @@ pub async fn read(
         exec_code: row.get("exec_code"),
         data_content: row.get("data_content"),
     })
-    .fetch_one(&mut **transaction)
+    .fetch_one(transaction)
     .await
     {
         Ok(row) => Ok(Some(row)),
@@ -156,7 +129,7 @@ pub async fn read(
 }
 
 pub async fn create(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     data: ResponseData,
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
@@ -173,7 +146,7 @@ pub async fn create(
     .bind(data.data_content)
     .bind(Local::now().naive_local())
     .bind(Local::now().naive_local())
-    .execute(&mut **transaction)
+    .execute(transaction)
     .await
     {
         Ok(row) => Ok(row.rows_affected()),
@@ -185,7 +158,7 @@ pub async fn create(
 }
 
 pub async fn update(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     data: ResponseData,
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
@@ -202,7 +175,7 @@ pub async fn update(
     .bind(data.data_content)
     .bind(Local::now().naive_local())
     .bind(data.row_id)
-    .execute(&mut **transaction)
+    .execute(transaction)
     .await
     {
         Ok(row) => Ok(row.rows_affected()),
@@ -214,12 +187,12 @@ pub async fn update(
 }
 
 pub async fn delete(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     data: ResponseData,
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(r#" DELETE FROM response_data WHERE row_id = $1 "#)
         .bind(data.row_id)
-        .execute(&mut **transaction)
+        .execute(transaction)
         .await
     {
         Ok(row) => Ok(row.rows_affected()),
@@ -231,7 +204,7 @@ pub async fn delete(
 }
 
 pub async fn read_by_max_day(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     security_code: &str,
     year_str: &str,
     month_str: &str,
@@ -264,7 +237,7 @@ pub async fn read_by_max_day(
         exec_code: row.get("exec_code"),
         data_content: row.get("data_content"),
     })
-    .fetch_all(&mut **transaction)
+    .fetch_all(transaction)
     .await
     {
         Ok(row) => {
@@ -282,7 +255,7 @@ pub async fn read_by_max_day(
 }
 
 pub async fn update_by_max_day(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     data: ResponseData,
     security_code: &str,
     year_str: &str,
@@ -310,7 +283,7 @@ pub async fn update_by_max_day(
     .bind(security_code)
     .bind(year_str)
     .bind(month_str)
-    .execute(&mut **transaction)
+    .execute(transaction)
     .await
     {
         Ok(row) => Ok(row.rows_affected()),

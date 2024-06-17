@@ -1,30 +1,14 @@
 use chrono::{Datelike, Local, NaiveDate};
-use sqlx::{Postgres, Transaction};
-use tracing::{event, Level};
+use sqlx::PgConnection;
 
-use super::{
-    dao::{self, CalendarDataDao},
-    model::CalendarData,
-};
+use crate::repository::Repository;
+
+use super::{dao, model::CalendarData};
 
 pub async fn init_calendar_data(db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let pool = CalendarDataDao::new(db_url).await;
-    let mut transaction = pool.connection.begin().await?;
+    let pool = Repository::new(db_url).await;
+    let mut connection = pool.connection.acquire().await?;
 
-    match loop_data_calendar_init(&mut transaction).await {
-        Ok(_) => transaction.commit().await?,
-        Err(e) => {
-            transaction.rollback().await?;
-            event!(target: "security_api", Level::ERROR, "calendar_data.insert_calendar_data: {}", &e);
-            panic!("calendar_data.insert_calendar_data Error {}", &e)
-        }
-    };
-    Ok(())
-}
-
-async fn loop_data_calendar_init(
-    transaction: &mut Transaction<'static, Postgres>,
-) -> Result<(), Box<dyn std::error::Error>> {
     let max_date = Local::now().date_naive();
     let min_date = NaiveDate::from_ymd_opt(1962, 2, 9).unwrap();
     let max_date_str = max_date.format("%Y%m%d").to_string();
@@ -36,7 +20,7 @@ async fn loop_data_calendar_init(
             for d in 1..=last_day {
                 let this_date_str = format!("{:04}{:02}{:02}", y, m, d);
                 if (max_date_str > this_date_str) && (min_date_str <= this_date_str) {
-                    loop_date_calendar(transaction, y, m, d, last_day).await?;
+                    loop_date_calendar(&mut connection, y, m, d, last_day).await?;
                 }
             }
         }
@@ -49,23 +33,9 @@ pub async fn insert_calendar_data(
     db_url: &str,
     open_next_year: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let pool = CalendarDataDao::new(db_url).await;
-    let mut transaction = pool.connection.begin().await?;
-    match loop_data_calendar_year(&mut transaction, open_next_year).await {
-        Ok(_) => transaction.commit().await?,
-        Err(e) => {
-            transaction.rollback().await?;
-            event!(target: "security_api", Level::ERROR, "calendar_data.insert_calendar_data: {}", &e);
-            panic!("calendar_data.insert_calendar_data Error {}", &e)
-        }
-    };
-    Ok(())
-}
+    let pool = Repository::new(db_url).await;
+    let mut connection = pool.connection.acquire().await?;
 
-async fn loop_data_calendar_year(
-    transaction: &mut Transaction<'static, Postgres>,
-    open_next_year: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
     let now = Local::now().date_naive();
     let year = if open_next_year {
         now.year() + 1
@@ -84,12 +54,13 @@ async fn loop_data_calendar_year(
                 date_status: None,
                 group_task: None,
             };
-            let cal_list = dao::read_all(transaction, &query_cal).await?;
+            let cal_list = dao::read_all(&mut *connection, &query_cal).await?;
             if cal_list.0 <= 0 {
-                loop_date_calendar(transaction, year, m, d, last_day).await?;
+                loop_date_calendar(&mut *connection, year, m, d, last_day).await?;
             }
         }
     }
+
     Ok(())
 }
 
@@ -106,7 +77,7 @@ fn last_day_in_month(year: i32, month: u32) -> NaiveDate {
 }
 
 async fn loop_date_calendar(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     year: i32,
     month: u32,
     day: u32,

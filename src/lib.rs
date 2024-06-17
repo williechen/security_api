@@ -8,6 +8,7 @@ mod security_price;
 mod security_task;
 mod security_temp;
 mod task_setting;
+pub mod repository;
 
 pub async fn add_next_year(db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level::INFO, "call add_next_year");

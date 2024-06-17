@@ -1,38 +1,11 @@
 use chrono::{Local, NaiveDate};
-use sqlx::{
-    postgres::{PgPoolOptions, PgRow},
-    PgPool, Row,
-};
+use sqlx::{postgres::PgRow, PgConnection, Row};
 use tracing::{event, Level};
 
 use super::model::{DailyTask, DailyTaskInfo};
 
-#[derive(Debug, Clone)]
-pub struct DailyTaskDao {
-    pub connection: PgPool,
-}
-
-impl DailyTaskDao {
-    pub async fn new(db_url: &str) -> Self {
-        let db_pool = match PgPoolOptions::new()
-            .max_connections(5)
-            .connect(db_url)
-            .await
-        {
-            Ok(pool) => pool,
-            Err(e) => {
-                event!(target: "security_api", Level::ERROR, "init db_pool {}", &e);
-                panic!("Couldn't establish DB connection: {}", &e)
-            }
-        };
-        DailyTaskDao {
-            connection: db_pool,
-        }
-    }
-}
-
 pub async fn read_all(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     data: DailyTask,
 ) -> Result<(usize, Vec<DailyTask>), sqlx::Error> {
     let mut select_str = r#" 
@@ -76,7 +49,7 @@ pub async fn read_all(
             job_code: row.get("job_code"),
             exec_status: row.get("exec_status"),
         })
-        .fetch_all(&mut **transaction)
+        .fetch_all(transaction)
         .await
     {
         Ok(rows) => Ok((rows.len(), rows)),
@@ -101,7 +74,7 @@ fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
 }
 
 pub async fn read_all_by_sql(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     sql: &str,
 ) -> Result<(usize, Vec<DailyTask>), sqlx::Error> {
     match sqlx::query(sql)
@@ -111,7 +84,7 @@ pub async fn read_all_by_sql(
             job_code: row.get("job_code"),
             exec_status: row.get("exec_status"),
         })
-        .fetch_all(&mut **transaction)
+        .fetch_all(transaction)
         .await
     {
         Ok(rows) => Ok((rows.len(), rows)),
@@ -123,7 +96,7 @@ pub async fn read_all_by_sql(
 }
 
 pub async fn read(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     row_id: &str,
 ) -> Result<Option<DailyTask>, sqlx::Error> {
     match sqlx::query(
@@ -144,7 +117,7 @@ pub async fn read(
         job_code: row.get("job_code"),
         exec_status: row.get("exec_status"),
     })
-    .fetch_one(&mut **transaction)
+    .fetch_one(transaction)
     .await
     {
         Ok(row) => Ok(Some(row)),
@@ -155,10 +128,7 @@ pub async fn read(
     }
 }
 
-pub async fn create(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: DailyTask,
-) -> Result<u64, sqlx::Error> {
+pub async fn create(transaction: &mut PgConnection, data: DailyTask) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" 
         INSERT INTO daily_task(open_date
@@ -173,7 +143,7 @@ pub async fn create(
     .bind(data.exec_status)
     .bind(Local::now().naive_local())
     .bind(Local::now().naive_local())
-    .execute(&mut **transaction)
+    .execute(transaction)
     .await
     {
         Ok(row) => Ok(row.rows_affected()),
@@ -184,10 +154,7 @@ pub async fn create(
     }
 }
 
-pub async fn update(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: DailyTask,
-) -> Result<u64, sqlx::Error> {
+pub async fn update(transaction: &mut PgConnection, data: DailyTask) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r#" UPDATE daily_task
             SET open_date = $1
@@ -202,7 +169,7 @@ pub async fn update(
     .bind(data.exec_status)
     .bind(Local::now().naive_local())
     .bind(data.row_id)
-    .execute(&mut **transaction)
+    .execute(transaction)
     .await
     {
         Ok(row) => Ok(row.rows_affected()),
@@ -213,13 +180,10 @@ pub async fn update(
     }
 }
 
-pub async fn delete(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: DailyTask,
-) -> Result<u64, sqlx::Error> {
+pub async fn delete(transaction: &mut PgConnection, data: DailyTask) -> Result<u64, sqlx::Error> {
     match sqlx::query(r#" DELETE FROM daily_task WHERE row_id = $1 "#)
         .bind(data.row_id)
-        .execute(&mut **transaction)
+        .execute(transaction)
         .await
     {
         Ok(row) => Ok(row.rows_affected()),
@@ -231,7 +195,7 @@ pub async fn delete(
 }
 
 pub async fn read_all_by_daily(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    transaction: &mut PgConnection,
     date: NaiveDate,
 ) -> Result<Vec<DailyTaskInfo>, sqlx::Error> {
     match sqlx::query(
@@ -266,7 +230,7 @@ pub async fn read_all_by_daily(
         wait_type: row.get("wait_type"),
         wait_number: row.get("wait_number"),
     })
-    .fetch_all(&mut **transaction)
+    .fetch_all(transaction)
     .await
     {
         Ok(row) => Ok(row),

@@ -1,64 +1,54 @@
 use std::collections::HashMap;
 
 use scraper::{Html, Selector};
-use sqlx::{Postgres, Transaction};
-use tracing::{event, Level};
+use sqlx::PgConnection;
 
-use crate::daily_task::model::DailyTaskInfo;
+use crate::{daily_task::model::DailyTaskInfo, repository::Repository};
 
-use super::{
-    dao::{self, SecurityTempDao},
-    model::SecurityTemp,
-};
+use super::{dao, model::SecurityTemp};
 
 pub async fn insert_temp_data(
     db_url: &str,
     data_content: String,
     task_info: DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let pool = SecurityTempDao::new(db_url).await;
-    let mut transaction = pool.connection.begin().await?;
+    let pool = Repository::new(db_url).await;
+    let mut transaction = pool.connection.acquire().await?;
 
-    match loop_data_temp(&mut transaction, data_content, task_info).await {
-        Ok(_) => transaction.commit().await?,
-        Err(e) => {
-            transaction.rollback().await?;
-            event!(target: "security_api", Level::ERROR, "security_temp.insert_temp_data: {}", &e);
-            panic!("security_temp.insert_temp_data Error {}", &e)
-        }
-    };
-
+    let rows = parse_table_data(data_content)?;
+    for row in rows {
+        loop_data_temp(&mut *transaction, row, &task_info).await?;
+    }
     Ok(())
 }
 
 async fn loop_data_temp(
-    transaction: &mut Transaction<'static, Postgres>,
-    data_content: String,
-    task_info: DailyTaskInfo,
+    transaction: &mut PgConnection,
+    content: HashMap<String, String>,
+    task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let rows = parse_table_data(data_content)?;
-    for row in rows {
-        let open_date = task_info.open_date.clone().unwrap();
-        let mut query_security_temp = SecurityTemp::new();
-        query_security_temp.open_date = Some(open_date.clone());
-        query_security_temp.security_code = row.get("2").cloned();
-        let data_list = dao::read_all(transaction, query_security_temp).await?;
-        if data_list.0 <= 0 {
-            let security_temp = SecurityTemp {
-                row_id: None,
-                open_date: Some(open_date.clone()),
-                international_code: row.get("1").cloned(),
-                security_code: row.get("2").cloned(),
-                security_name: row.get("3").cloned(),
-                market_type: row.get("4").cloned(),
-                security_type: row.get("5").cloned(),
-                industry_type: row.get("6").cloned(),
-                issue_date: row.get("7").cloned(),
-                cfi_code: row.get("8").cloned(),
-                remark: row.get("9").cloned(),
-            };
-            dao::create(transaction, security_temp).await?;
-        }
+    let open_date = task_info.open_date.clone().unwrap();
+    
+    let mut query_security_temp = SecurityTemp::new();
+    query_security_temp.open_date = Some(open_date.clone());
+    query_security_temp.security_code = content.get("2").cloned();
+
+    let data_list = dao::read_all(transaction, query_security_temp).await?;
+    if data_list.0 <= 0 {
+        let security_temp = SecurityTemp {
+            row_id: None,
+            open_date: Some(open_date.clone()),
+            international_code: content.get("1").cloned(),
+            security_code: content.get("2").cloned(),
+            security_name: content.get("3").cloned(),
+            market_type: content.get("4").cloned(),
+            security_type: content.get("5").cloned(),
+            industry_type: content.get("6").cloned(),
+            issue_date: content.get("7").cloned(),
+            cfi_code: content.get("8").cloned(),
+            remark: content.get("9").cloned(),
+        };
+        dao::create(transaction, security_temp).await?;
     }
     Ok(())
 }
