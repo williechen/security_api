@@ -30,15 +30,8 @@ pub async fn insert_task_data(
     let mut item_index = 1;
 
     for data in twse_list {
-        let mut transaction = pool.connection.begin().await?;
-        match loop_data_temp_data(&mut *transaction, data, task_info.clone(), item_index).await {
-            Ok(_) => transaction.commit().await?,
-            Err(e) => {
-                transaction.rollback().await?;
-                event!(target: "security_api", Level::ERROR, "security_task.insert_task_data: {}", &e);
-                panic!("security_task.insert_task_data Error {}", &e);
-            }
-        }
+        let mut transaction = pool.connection.acquire().await?;
+        loop_data_temp_data(&mut *transaction, data, task_info.clone(), item_index).await?;
         item_index = item_index + 2;
     }
 
@@ -49,15 +42,8 @@ pub async fn insert_task_data(
     let mut item_index = 2;
 
     for data in tpex_list {
-        let mut transaction = pool.connection.begin().await?;
-        match loop_data_temp_data(&mut *transaction, data, task_info.clone(), item_index).await {
-            Ok(_) => transaction.commit().await?,
-            Err(e) => {
-                transaction.rollback().await?;
-                event!(target: "security_api", Level::ERROR, "security_task.insert_task_data: {}", &e);
-                panic!("security_task.insert_task_data Error {}", &e);
-            }
-        }
+        let mut transaction = pool.connection.acquire().await?;
+        loop_data_temp_data(&mut *transaction, data, task_info.clone(), item_index).await?;
         item_index = item_index + 2;
     }
 
