@@ -20,9 +20,17 @@ pub async fn init_calendar_data(db_url: &str) -> Result<(), Box<dyn std::error::
             for d in 1..=last_day {
                 let this_date_str = format!("{:04}{:02}{:02}", y, m, d);
                 if (max_date_str > this_date_str) && (min_date_str <= this_date_str) {
-                    loop_date_calendar(&mut connection, y, m, d, last_day).await?;
+                    loop_date_calendar(&mut connection, y, m, d).await?;
                 }
             }
+
+            let first_date = dao::read_by_work_day_first(
+                &mut *connection,
+                format!("{:04}", y).as_str(),
+                format!("{:02}", m).as_str(),
+            )
+            .await?;
+            update_first_date(&mut *connection, &first_date).await;
         }
     }
 
@@ -56,9 +64,17 @@ pub async fn insert_calendar_data(
             };
             let cal_list = dao::read_all(&mut *connection, &query_cal).await?;
             if cal_list.0 <= 0 {
-                loop_date_calendar(&mut *connection, year, m, d, last_day).await?;
+                loop_date_calendar(&mut *connection, year, m, d).await?;
             }
         }
+
+        let first_date = dao::read_by_work_day_first(
+            &mut *connection,
+            format!("{:04}", year).as_str(),
+            format!("{:02}", m).as_str(),
+        )
+        .await?;
+        update_first_date(&mut *connection, &first_date).await;
     }
 
     Ok(())
@@ -81,7 +97,6 @@ async fn loop_date_calendar(
     year: i32,
     month: u32,
     day: u32,
-    last_day: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // 當前日期
     let now = Local::now().date_naive();
@@ -103,7 +118,6 @@ async fn loop_date_calendar(
         };
 
         dao::create(transaction, calendar_data).await?;
-
     // 如果是初始
     } else if this_date < now {
         let calendar_data = CalendarData {
@@ -114,20 +128,6 @@ async fn loop_date_calendar(
             ce_day: Some(format!("{:02}", day)),
             date_status: Some("O".to_string()),
             group_task: Some("INIT".to_string()),
-        };
-
-        dao::create(transaction, calendar_data).await?;
-
-    // 如果是最後一日
-    } else if day == last_day {
-        let calendar_data = CalendarData {
-            row_id: None,
-            ce_year: Some(format!("{:04}", year)),
-            tw_year: Some(format!("{:03}", year - 1911)),
-            ce_month: Some(format!("{:02}", month)),
-            ce_day: Some(format!("{:02}", day)),
-            date_status: Some("O".to_string()),
-            group_task: Some("SECURITY".to_string()),
         };
 
         dao::create(transaction, calendar_data).await?;
@@ -146,4 +146,33 @@ async fn loop_date_calendar(
     }
 
     Ok(())
+}
+
+async fn update_first_date(transaction: &mut PgConnection, first_date: &Option<CalendarData>) {
+    // 當前日期
+    let now = Local::now().date_naive();
+    // 指定日期
+
+    if first_date.is_some() {
+        let mut new_first_date = first_date.clone().unwrap();
+
+        let this_date = NaiveDate::parse_from_str(
+            &format!(
+                "{}{}{}",
+                new_first_date.ce_year.clone().unwrap(),
+                new_first_date.ce_month.clone().unwrap(),
+                new_first_date.ce_day.clone().unwrap()
+            ),
+            "%Y%m%d",
+        )
+        .unwrap();
+
+        if now <= this_date {
+            new_first_date.group_task = Some("FIRST".to_string());
+        } else {
+            new_first_date.group_task = Some("FIRST_INIT".to_string());
+        }
+
+        dao::update(transaction, new_first_date).await.unwrap();
+    }
 }
