@@ -34,3 +34,9 @@ pub async fn run_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Erro
     daily_task::service::exec_daily_task(db_url).await?;
     Ok(())
 }
+
+pub async fn run_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "call run_price_task");
+    daily_task::service::exec_price_task(db_url).await?;
+    Ok(())
+}

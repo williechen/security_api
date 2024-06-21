@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use sqlx::types::BigDecimal;
 
 #[derive(Debug, Clone)]
@@ -80,4 +81,58 @@ impl std::fmt::Display for SecurityPrice {
             price_lowest_avg
         )
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ResposePrice {
+    pub open_date: Option<String>,
+    pub security_code: Option<String>,
+    pub security_name: Option<String>,
+    pub market_type: Option<String>,
+    pub data_content: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityPriceTwse {
+    pub stat: String,
+    pub date: String,
+    pub title: String,
+    pub fields: Vec<String>,
+    pub data: Vec<Vec<String>>,
+    pub notes: Vec<String>,
+    pub hints: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityPriceTpex1 {
+    #[serde(alias = "stkNo")]
+    pub stk_no: String,
+    #[serde(alias = "stkName")]
+    pub stk_name: String,
+    #[serde(alias = "showListPriceNote")]
+    pub show_list_price_note: bool,
+    #[serde(alias = "showListPriceLink")]
+    pub show_list_price_link: bool,
+    #[serde(alias = "reportDate")]
+    pub report_date: String,
+    #[serde(alias = "iTotalRecords")]
+    pub i_total_records: i32,
+    #[serde(alias = "aaData")]
+    pub aa_data: Vec<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityPriceTpex2 {
+    #[serde(alias = "stkno")]
+    pub stk_no: String,
+    #[serde(alias = "stkname")]
+    pub stk_name: String,
+    #[serde(alias = "iTotalRecords")]
+    pub i_total_records: i32,
+    #[serde(alias = "aaData")]
+    pub aa_data: Vec<Vec<String>>,
+    pub fields: Vec<Vec<String>>,
+    pub lang: String,
+    pub year: String,
+    pub month: String,
 }

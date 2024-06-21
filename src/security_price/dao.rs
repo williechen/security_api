@@ -2,7 +2,9 @@ use chrono::Local;
 use sqlx::{postgres::PgRow, PgConnection, Row};
 use tracing::{event, Level};
 
-use super::model::SecurityPrice;
+use crate::security_task;
+
+use super::model::{ResposePrice, SecurityPrice};
 
 pub async fn read_all(
     transaction: &mut PgConnection,
@@ -262,6 +264,157 @@ pub async fn delete(
         Ok(row) => Ok(row.rows_affected()),
         Err(e) => {
             event!(target: "security_api", Level::ERROR, "security_price.delete: {}", &e);
+            Err(e)
+        }
+    }
+}
+
+pub async fn read_all_by_res(
+    transaction: &mut PgConnection,
+    ce_year: &str,
+    ce_month: &str,
+    ce_day: &str,
+) -> Result<Vec<ResposePrice>, sqlx::Error> {
+    match sqlx::query(
+        r#"
+        SELECT rd.data_content
+             , st.open_date
+             , st.security_code
+             , st.security_name
+             , st.market_type
+          FROM response_data rd
+          JOIN security_task st
+            ON rd.exec_code = st.security_code
+           AND rd.open_date = st.open_date
+          JOIN calendar_data cd
+            ON CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) = rd.open_date
+         WHERE cd.ce_year = $1
+           AND cd.ce_month = $2
+           AND cd.ce_day >= $3 
+         ORDER BY st.open_date, st.security_code
+         "#,
+    )
+    .bind(ce_year)
+    .bind(ce_month)
+    .bind(ce_day)
+    .map(|row: PgRow| ResposePrice {
+        open_date: row.get("open_date"),
+        security_code: row.get("security_code"),
+        security_name: row.get("security_name"),
+        market_type: row.get("market_type"),
+        data_content: row.get("data_content"),
+    })
+    .fetch_all(transaction)
+    .await
+    {
+        Ok(row) => Ok(row),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "security_price.read_all_by_res: {}", &e);
+            Err(e)
+        }
+    }
+}
+
+pub async fn read_all_by_code(
+    transaction: &mut PgConnection,
+    open_date: &str,
+    security_code: &str,
+) -> Result<Vec<SecurityPrice>, sqlx::Error> {
+    match sqlx::query(
+        r#"
+        SELECT sp.row_id
+             , sp.open_date
+             , sp.security_code
+             , sp.security_name
+             , sp.price_date
+             , sp.price_close
+             , sp.price_avg
+             , sp.price_hight
+             , sp.price_hight_avg
+             , sp.price_lowest
+             , sp.price_lowest_avg
+             , sp.created_date
+             , sp.updated_date
+          FROM security_price sp
+          JOIN calendar_data cd
+            ON CONCAT(cd.tw_year, '/', cd.ce_month, '/', cd.ce_day) = sp.price_date
+         WHERE CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) <= $1
+           AND sp.security_code = $2
+         ORDER BY sp.open_date, sp.security_code
+        "#,
+    )
+    .bind(open_date)
+    .bind(security_code)
+    .map(|row: PgRow| SecurityPrice {
+        row_id: row.get("row_id"),
+        open_date: row.get("open_date"),
+        security_code: row.get("security_code"),
+        security_name: row.get("security_name"),
+        price_date: row.get("price_date"),
+        price_close: row.get("price_close"),
+        price_avg: row.get("price_avg"),
+        price_hight: row.get("price_hight"),
+        price_hight_avg: row.get("price_hight_avg"),
+        price_lowest: row.get("price_lowest"),
+        price_lowest_avg: row.get("price_lowest_avg"),
+    })
+    .fetch_all(transaction)
+    .await
+    {
+        Ok(row) => Ok(row),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "security_price.read_all_by_code: {}", &e);
+            Err(e)
+        }
+    }
+}
+
+pub async fn read_all_by_date(
+    transaction: &mut PgConnection,
+    open_date: &str,
+) -> Result<Vec<SecurityPrice>, sqlx::Error> {
+    match sqlx::query(
+        r#"
+        SELECT sp.row_id
+             , sp.open_date
+             , sp.security_code
+             , sp.security_name
+             , sp.price_date
+             , sp.price_close
+             , sp.price_avg
+             , sp.price_hight
+             , sp.price_hight_avg
+             , sp.price_lowest
+             , sp.price_lowest_avg
+             , sp.created_date
+             , sp.updated_date
+          FROM security_price sp
+          JOIN calendar_data cd
+            ON CONCAT(cd.tw_year, '/', cd.ce_month, '/', cd.ce_day) = sp.price_date
+         WHERE CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) <= $1
+         ORDER BY sp.open_date, sp.security_code
+        "#,
+    )
+    .bind(open_date)
+    .map(|row: PgRow| SecurityPrice {
+        row_id: row.get("row_id"),
+        open_date: row.get("open_date"),
+        security_code: row.get("security_code"),
+        security_name: row.get("security_name"),
+        price_date: row.get("price_date"),
+        price_close: row.get("price_close"),
+        price_avg: row.get("price_avg"),
+        price_hight: row.get("price_hight"),
+        price_hight_avg: row.get("price_hight_avg"),
+        price_lowest: row.get("price_lowest"),
+        price_lowest_avg: row.get("price_lowest_avg"),
+    })
+    .fetch_all(transaction)
+    .await
+    {
+        Ok(row) => Ok(row),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "security_price.read: {}", &e);
             Err(e)
         }
     }
