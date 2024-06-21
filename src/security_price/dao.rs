@@ -212,7 +212,6 @@ pub async fn update(
     transaction: &mut PgConnection,
     data: SecurityPrice,
 ) -> Result<u64, sqlx::Error> {
-    event!(target: "security_api", Level::INFO, "security_price.update: {}", &data);
     match sqlx::query(
         r#" 
         UPDATE security_price
