@@ -212,6 +212,7 @@ pub async fn update(
     transaction: &mut PgConnection,
     data: SecurityPrice,
 ) -> Result<u64, sqlx::Error> {
+    event!(target: "security_api", Level::INFO, "security_price.update: {}", &data);
     match sqlx::query(
         r#" 
         UPDATE security_price
@@ -391,7 +392,7 @@ pub async fn read_all_by_date(
           FROM security_price sp
           JOIN calendar_data cd
             ON CONCAT(cd.tw_year, '/', cd.ce_month, '/', cd.ce_day) = sp.price_date
-         WHERE CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) <= $1
+         WHERE CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) = $1
          ORDER BY sp.open_date, sp.security_code
         "#,
     )
