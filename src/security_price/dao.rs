@@ -1,8 +1,8 @@
+use std::str::FromStr;
+
 use chrono::Local;
 use sqlx::{postgres::PgRow, PgConnection, Row};
 use tracing::{event, Level};
-
-use crate::security_task;
 
 use super::model::{ResposePrice, SecurityPrice};
 
@@ -58,12 +58,12 @@ pub async fn read_all(
             security_code: row.get("security_code"),
             security_name: row.get("security_name"),
             price_date: row.get("price_date"),
-            price_close: row.get("price_close"),
-            price_avg: row.get("price_avg"),
-            price_hight: row.get("price_hight"),
-            price_hight_avg: row.get("price_hight_avg"),
-            price_lowest: row.get("price_lowest"),
-            price_lowest_avg: row.get("price_lowest_avg"),
+            price_close: to_big_decimal(row.get("price_close")),
+            price_avg: to_big_decimal(row.get("price_avg")),
+            price_hight: to_big_decimal(row.get("price_hight")),
+            price_hight_avg: to_big_decimal(row.get("price_hight_avg")),
+            price_lowest: to_big_decimal(row.get("price_lowest")),
+            price_lowest_avg: to_big_decimal(row.get("price_lowest_avg")),
         })
         .fetch_all(transaction)
         .await
@@ -100,12 +100,12 @@ pub async fn read_all_by_sql(
             security_code: row.get("security_code"),
             security_name: row.get("security_name"),
             price_date: row.get("price_date"),
-            price_close: row.get("price_close"),
-            price_avg: row.get("price_avg"),
-            price_hight: row.get("price_hight"),
-            price_hight_avg: row.get("price_hight_avg"),
-            price_lowest: row.get("price_lowest"),
-            price_lowest_avg: row.get("price_lowest_avg"),
+            price_close: to_big_decimal(row.get("price_close")),
+            price_avg: to_big_decimal(row.get("price_avg")),
+            price_hight: to_big_decimal(row.get("price_hight")),
+            price_hight_avg: to_big_decimal(row.get("price_hight_avg")),
+            price_lowest: to_big_decimal(row.get("price_lowest")),
+            price_lowest_avg: to_big_decimal(row.get("price_lowest_avg")),
         })
         .fetch_all(transaction)
         .await
@@ -147,12 +147,12 @@ pub async fn read(
         security_code: row.get("security_code"),
         security_name: row.get("security_name"),
         price_date: row.get("price_date"),
-        price_close: row.get("price_close"),
-        price_avg: row.get("price_avg"),
-        price_hight: row.get("price_hight"),
-        price_hight_avg: row.get("price_hight_avg"),
-        price_lowest: row.get("price_lowest"),
-        price_lowest_avg: row.get("price_lowest_avg"),
+        price_close: to_big_decimal(row.get("price_close")),
+        price_avg: to_big_decimal(row.get("price_avg")),
+        price_hight: to_big_decimal(row.get("price_hight")),
+        price_hight_avg: to_big_decimal(row.get("price_hight_avg")),
+        price_lowest: to_big_decimal(row.get("price_lowest")),
+        price_lowest_avg: to_big_decimal(row.get("price_lowest_avg")),
     })
     .fetch_one(transaction)
     .await
@@ -189,12 +189,12 @@ pub async fn create(
     .bind(data.security_code)
     .bind(data.security_name)
     .bind(data.price_date)
-    .bind(data.price_close)
-    .bind(data.price_avg)
-    .bind(data.price_hight)
-    .bind(data.price_hight_avg)
-    .bind(data.price_lowest)
-    .bind(data.price_lowest_avg)
+    .bind(to_sql_big_decimal(data.price_close))
+    .bind(to_sql_big_decimal(data.price_avg))
+    .bind(to_sql_big_decimal(data.price_hight))
+    .bind(to_sql_big_decimal(data.price_hight_avg))
+    .bind(to_sql_big_decimal(data.price_lowest))
+    .bind(to_sql_big_decimal(data.price_lowest_avg))
     .bind(Local::now().naive_local())
     .bind(Local::now().naive_local())
     .execute(transaction)
@@ -233,12 +233,12 @@ pub async fn update(
     .bind(data.security_code)
     .bind(data.security_name)
     .bind(data.price_date)
-    .bind(data.price_close)
-    .bind(data.price_avg)
-    .bind(data.price_hight)
-    .bind(data.price_hight_avg)
-    .bind(data.price_lowest)
-    .bind(data.price_lowest_avg)
+    .bind(to_sql_big_decimal(data.price_close))
+    .bind(to_sql_big_decimal(data.price_avg))
+    .bind(to_sql_big_decimal(data.price_hight))
+    .bind(to_sql_big_decimal(data.price_hight_avg))
+    .bind(to_sql_big_decimal(data.price_lowest))
+    .bind(to_sql_big_decimal(data.price_lowest_avg))
     .bind(Local::now().naive_local())
     .bind(data.row_id)
     .execute(transaction)
@@ -351,12 +351,12 @@ pub async fn read_all_by_code(
         security_code: row.get("security_code"),
         security_name: row.get("security_name"),
         price_date: row.get("price_date"),
-        price_close: row.get("price_close"),
-        price_avg: row.get("price_avg"),
-        price_hight: row.get("price_hight"),
-        price_hight_avg: row.get("price_hight_avg"),
-        price_lowest: row.get("price_lowest"),
-        price_lowest_avg: row.get("price_lowest_avg"),
+        price_close: to_big_decimal(row.get("price_close")),
+        price_avg: to_big_decimal(row.get("price_avg")),
+        price_hight: to_big_decimal(row.get("price_hight")),
+        price_hight_avg: to_big_decimal(row.get("price_hight_avg")),
+        price_lowest: to_big_decimal(row.get("price_lowest")),
+        price_lowest_avg: to_big_decimal(row.get("price_lowest_avg")),
     })
     .fetch_all(transaction)
     .await
@@ -402,12 +402,12 @@ pub async fn read_all_by_date(
         security_code: row.get("security_code"),
         security_name: row.get("security_name"),
         price_date: row.get("price_date"),
-        price_close: row.get("price_close"),
-        price_avg: row.get("price_avg"),
-        price_hight: row.get("price_hight"),
-        price_hight_avg: row.get("price_hight_avg"),
-        price_lowest: row.get("price_lowest"),
-        price_lowest_avg: row.get("price_lowest_avg"),
+        price_close: to_big_decimal(row.get("price_close")),
+        price_avg: to_big_decimal(row.get("price_avg")),
+        price_hight: to_big_decimal(row.get("price_hight")),
+        price_hight_avg: to_big_decimal(row.get("price_hight_avg")),
+        price_lowest: to_big_decimal(row.get("price_lowest")),
+        price_lowest_avg: to_big_decimal(row.get("price_lowest_avg")),
     })
     .fetch_all(transaction)
     .await
@@ -418,4 +418,12 @@ pub async fn read_all_by_date(
             Err(e)
         }
     }
+}
+
+fn to_sql_big_decimal(val: Option<bigdecimal::BigDecimal>) -> sqlx::types::BigDecimal {
+    sqlx::types::BigDecimal::from_str(&val.unwrap().to_string()).unwrap()
+}
+
+fn to_big_decimal(val: sqlx::types::BigDecimal) -> Option<bigdecimal::BigDecimal> {
+    Some(bigdecimal::BigDecimal::from_str(&val.to_string()).unwrap())
 }

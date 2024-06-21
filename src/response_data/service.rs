@@ -4,7 +4,12 @@ use scraper::{Html, Selector};
 use serde_json::json;
 use tracing::{event, Level};
 
-use crate::{daily_task::model::DailyTaskInfo, repository::Repository, response_data::{self, model::ResponseData}, security_task::model::SecurityTask};
+use crate::{
+    daily_task::model::DailyTaskInfo,
+    repository::Repository,
+    response_data::{self, model::ResponseData},
+    security_task::model::SecurityTask,
+};
 
 pub async fn get_security_all_code(
     db_url: &str,

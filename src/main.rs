@@ -8,7 +8,7 @@ async fn main() {
     let log_filter =
         std::env::var("RUST_LOG").unwrap_or_else(|_| "security_api=info,sqlx=info".to_owned());
 
-    let db_url = "postgres://willie:Gn220304@localhost:5432/security_api";
+    let db_url = "postgres://willie:Gn220304@localhost:5432/security_test";
 
     // console log
     let (console_non_blocking, _guard) = tracing_appender::non_blocking(std::io::stdout());

@@ -1,5 +1,5 @@
+use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
-use sqlx::types::BigDecimal;
 
 #[derive(Debug, Clone)]
 pub struct SecurityPrice {

@@ -1,10 +1,9 @@
-use std::{
-    ops::{Add, Div},
-    str::FromStr,
-};
+use std::ops::{Add, Div};
+use std::str::FromStr;
 
+use bigdecimal::{BigDecimal, RoundingMode, Zero};
 use regex::Regex;
-use sqlx::{types::BigDecimal, PgConnection};
+use sqlx::PgConnection;
 use tracing::{event, Level};
 
 use crate::{daily_task::model::DailyTaskInfo, repository::Repository, security_price::dao};
@@ -65,11 +64,11 @@ async fn loop_data_res(
                             security_name: data.security_name.clone(),
                             price_date: Some(row[0].clone()),
                             price_close: Some(price_code),
-                            price_avg: Some(BigDecimal::default()),
-                            price_hight: Some(BigDecimal::default()),
-                            price_hight_avg: Some(BigDecimal::default()),
-                            price_lowest: Some(BigDecimal::default()),
-                            price_lowest_avg: Some(BigDecimal::default()),
+                            price_avg: Some(BigDecimal::zero()),
+                            price_hight: Some(BigDecimal::zero()),
+                            price_hight_avg: Some(BigDecimal::zero()),
+                            price_lowest: Some(BigDecimal::zero()),
+                            price_lowest_avg: Some(BigDecimal::zero()),
                         };
                         dao::create(transaction, price).await?;
                     }
@@ -168,20 +167,21 @@ async fn loop_data_calculator(
         sum_count = sum_count.add(BigDecimal::from(1));
         sum_price = sum_price.add(price.price_close.clone().unwrap());
     }
+    
     // 總平均數
-    let price_avg = sum_price.div(sum_count).with_scale(4);
+    let price_avg = to_big_decimal_round(sum_price.div(sum_count));
 
     let mut max_price_closes = Vec::new();
     let mut sum_max_count = BigDecimal::from(0);
     let mut sum_max_price = BigDecimal::from(0);
 
     let mut min_price_closes = Vec::new();
-    let mut sum_min_count = BigDecimal::from(0);
+    let mut sum_min_count = bigdecimal::BigDecimal::from(0);
     let mut sum_min_price = BigDecimal::from(0);
 
     let res_prices = dao::read_all_by_code(&mut *transaction, &open_date, &security_code).await?;
     for price in res_prices {
-        let price_close = price.price_close.clone().unwrap().with_scale(4);
+        let price_close = to_big_decimal_round(price.price_close.clone().unwrap());
         if price_close > price_avg {
             max_price_closes.push(price_close.clone());
             sum_max_count = sum_max_count.add(BigDecimal::from(1));
@@ -190,30 +190,35 @@ async fn loop_data_calculator(
             min_price_closes.push(price_close.clone());
             sum_min_count = sum_min_count.add(BigDecimal::from(1));
             sum_min_price = sum_min_price.add(price_close.clone());
-        } else {
-            max_price_closes.push(price_close.clone());
-            min_price_closes.push(price_close.clone());
         }
     }
 
-    let max_price = max_price_closes.iter().max();
-    let min_price = min_price_closes.iter().min();
-
     let mut new_price = data.clone();
     new_price.price_avg = Some(price_avg);
-    new_price.price_hight = Some(max_price.unwrap().with_scale(4));
-    new_price.price_hight_avg = if sum_max_price == BigDecimal::default() {
-        Some(max_price.unwrap().with_scale(4))
+
+    if max_price_closes.len() > 0 {
+        let max_price = max_price_closes.iter().max();
+        new_price.price_hight = Some(to_big_decimal_round(max_price.unwrap().clone()));
+        new_price.price_hight_avg = Some(to_big_decimal_round(sum_max_price.div(sum_max_count)));
     } else {
-        Some(sum_max_price.div(sum_max_count).with_scale(4))
-    };
-    new_price.price_lowest = Some(min_price.unwrap().with_scale(4));
-    new_price.price_lowest_avg = if sum_min_price == BigDecimal::default() {
-        Some(min_price.unwrap().with_scale(4))
+        new_price.price_hight = Some(to_big_decimal_round(data.price_close.clone().unwrap()));
+        new_price.price_hight_avg = Some(to_big_decimal_round(data.price_close.clone().unwrap()));
+    }
+
+    if min_price_closes.len() > 0 {
+        let min_price = min_price_closes.iter().min();
+        new_price.price_lowest = Some(to_big_decimal_round(min_price.unwrap().clone()));
+        new_price.price_lowest_avg = Some(to_big_decimal_round(sum_min_price.div(sum_min_count)));
     } else {
-        Some(sum_min_price.div(sum_min_count).with_scale(4))
-    };
+        new_price.price_lowest = Some(to_big_decimal_round(data.price_close.clone().unwrap()));
+        new_price.price_lowest_avg = Some(to_big_decimal_round(data.price_close.clone().unwrap()));
+    }
+
     dao::update(transaction, new_price).await?;
 
     Ok(())
+}
+
+fn to_big_decimal_round(val: bigdecimal::BigDecimal) -> bigdecimal::BigDecimal {
+    val.with_scale_round(4, RoundingMode::HalfUp)
 }
