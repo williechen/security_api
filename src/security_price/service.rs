@@ -220,5 +220,5 @@ async fn loop_data_calculator(
 }
 
 fn to_big_decimal_round(val: bigdecimal::BigDecimal) -> bigdecimal::BigDecimal {
-    val.with_scale_round(4, RoundingMode::HalfUp)
+    val.with_scale_round(4, RoundingMode::Up)
 }
