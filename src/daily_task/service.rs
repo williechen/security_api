@@ -147,7 +147,7 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                     }
                 }
                 _ => {
-                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {}", task_info.job_code.clone().unwrap())
+                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {}, {}", task_info.job_code.clone().unwrap(), task_info.open_date.clone().unwrap())
                 }
             };
         }
@@ -238,7 +238,7 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                     }
                 }
                 _ => {
-                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {}", task_info.job_code.clone().unwrap())
+                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {}, {}", task_info.job_code.clone().unwrap(), task_info.open_date.clone().unwrap())
                 }
             };
         }
