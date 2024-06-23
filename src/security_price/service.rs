@@ -54,7 +54,7 @@ async fn loop_data_res(
         "上市" => {
             let obj_data = serde_json::from_str::<SecurityPriceTwse>(&data_content)?;
             for row in obj_data.data {
-                if "月平均收盤價" != &row[0] && re.is_match(&row[1]) {
+                if re.is_match(&row[1]) {
                     let price_code = BigDecimal::from_str(&row[1])?;
                     if price_code > BigDecimal::default() {
                         let price = SecurityPrice {
