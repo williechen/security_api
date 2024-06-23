@@ -30,6 +30,7 @@ pub async fn get_security_to_price(
     )
     .await?;
     for price in res_prices {
+        event!(target: "security_api", Level::DEBUG, "ResposePrice: {:?}", &price);
         let pool = Repository::new(db_url).await;
         let mut transaction = pool.connection.begin().await?;
         match loop_data_res(&mut *transaction, price).await {
@@ -141,6 +142,7 @@ pub async fn get_calculator_to_price(
 
     let res_prices = dao::read_all_by_date(&mut *transaction, &open_date).await?;
     for price in res_prices {
+        event!(target: "security_api", Level::DEBUG, "SecurityPrice: {:?}", &price);
         let pool = Repository::new(db_url).await;
         let mut transaction = pool.connection.begin().await?;
         match loop_data_calculator(&mut *transaction, &open_date, price).await {
@@ -167,7 +169,7 @@ async fn loop_data_calculator(
         sum_count = sum_count.add(BigDecimal::from(1));
         sum_price = sum_price.add(price.price_close.clone().unwrap());
     }
-    
+
     // 總平均數
     let price_avg = to_big_decimal_round(sum_price.div(sum_count));
 

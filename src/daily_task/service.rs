@@ -15,8 +15,8 @@ pub async fn insert_task_data(db_url: &str) -> Result<(), Box<dyn std::error::Er
     let mut transaction = pool.connection.acquire().await?;
 
     let task_list = select_task(&mut *transaction, Local::now().date_naive()).await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &task_list);
     for data in task_list {
+        event!(target: "security_api", Level::DEBUG, "DailyTask: {}", &data);
         let query_daily_task = DailyTask {
             row_id: None,
             open_date: data.open_date.clone(),
@@ -79,6 +79,7 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
         dao::read_all_by_daily(&mut *transaction, Local::now().date_naive()).await?;
     for task_info in task_info_list {
         if task_info.job_code.is_some() {
+            event!(target: "security_api", Level::DEBUG, "DailyTaskInfo: {:?}", &task_info);
             update_task_status(&mut *transaction, &task_info, "OPEN").await;
             // 執行任務
             match task_info.job_code.clone().unwrap().as_str() {
@@ -146,7 +147,7 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                     }
                 }
                 _ => {
-                    event!(target: "security_api", Level::INFO, "daily_task.othen_job: {}", task_info.job_code.clone().unwrap())
+                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {}", task_info.job_code.clone().unwrap())
                 }
             };
         }
@@ -205,6 +206,7 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
         dao::read_all_by_daily1(&mut *transaction, Local::now().date_naive()).await?;
     for task_info in task_info_list {
         if task_info.job_code.is_some() {
+            event!(target: "security_api", Level::DEBUG, "DailyTaskInfo {:?}", &task_info);
             update_task_status(&mut *transaction, &task_info, "OPEN").await;
             // 執行任務
             match task_info.job_code.clone().unwrap().as_str() {
@@ -212,12 +214,12 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                     match security_price::service::get_security_to_price(db_url, &task_info).await {
                         Ok(_) => {
                             update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                            event!(target: "security_api", Level::INFO, "daily_task.get_web_security Done");
+                            event!(target: "security_api", Level::INFO, "daily_task.res_price Done");
                         }
                         Err(e) => {
                             update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                            event!(target: "security_api", Level::ERROR, "daily_task.get_web_security {}", &e);
-                            panic!("daily_task.get_web_security Error {}", &e)
+                            event!(target: "security_api", Level::ERROR, "daily_task.res_price {}", &e);
+                            panic!("daily_task.res_price Error {}", &e)
                         }
                     }
                 }
@@ -226,17 +228,17 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                     {
                         Ok(_) => {
                             update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                            event!(target: "security_api", Level::INFO, "daily_task.get_web_security Done");
+                            event!(target: "security_api", Level::INFO, "daily_task.price_value Done");
                         }
                         Err(e) => {
                             update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                            event!(target: "security_api", Level::ERROR, "daily_task.get_web_security {}", &e);
-                            panic!("daily_task.get_web_security Error {}", &e)
+                            event!(target: "security_api", Level::ERROR, "daily_task.price_value {}", &e);
+                            panic!("daily_task.price_value Error {}", &e)
                         }
                     }
                 }
                 _ => {
-                    event!(target: "security_api", Level::INFO, "daily_task.othen_job: {}", task_info.job_code.clone().unwrap())
+                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {}", task_info.job_code.clone().unwrap())
                 }
             };
         }

@@ -18,6 +18,7 @@ pub async fn insert_task_data(
     db_url: &str,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "call daily_task.temp_to_task");
     let pool = Repository::new(db_url).await;
     let mut transaction = pool.connection.acquire().await?;
 
@@ -30,6 +31,7 @@ pub async fn insert_task_data(
     let mut item_index = 1;
 
     for data in twse_list {
+        event!(target: "security_api", Level::DEBUG, "SecurityTemp: {}", &data);
         let mut transaction = pool.connection.acquire().await?;
         loop_data_temp_data(&mut *transaction, data, task_info.clone(), item_index).await?;
         item_index = item_index + 2;
@@ -42,6 +44,7 @@ pub async fn insert_task_data(
     let mut item_index = 2;
 
     for data in tpex_list {
+        event!(target: "security_api", Level::DEBUG, "SecurityTemp: {}", &data);
         let mut transaction = pool.connection.acquire().await?;
         loop_data_temp_data(&mut *transaction, data, task_info.clone(), item_index).await?;
         item_index = item_index + 2;
@@ -240,6 +243,8 @@ pub async fn get_all_task(
     db_url: &str,
     task_info: &DailyTaskInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "call daily_task.task_run");
+
     let pool = Repository::new(db_url).await;
     let mut transaction = pool.connection.acquire().await?;
 
@@ -260,6 +265,7 @@ pub async fn get_all_task(
     let task_datas = dao::read_all(&mut *transaction, &query_security_task).await?;
     if task_datas.0 > 0 {
         for data in task_datas.1 {
+            event!(target: "security_api", Level::DEBUG, "SecurityTask: {}", &data);
             let security_code = data.security_code.clone().unwrap();
             let open_date = data.open_date.clone().unwrap();
             let od = NaiveDate::parse_from_str(&open_date, "%Y%m%d")?;

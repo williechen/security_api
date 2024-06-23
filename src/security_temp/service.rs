@@ -13,6 +13,7 @@ use crate::{
 use super::{dao, model::SecurityTemp};
 
 pub async fn delete_temp(db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "call daily_task.delete_temp");
     let pool = Repository::new(db_url).await;
     let mut transaction = pool.connection.begin().await?;
     match dao::truncate(&mut *transaction).await {
@@ -64,6 +65,7 @@ pub async fn insert_temp_data(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let rows = parse_table_data(data_content)?;
     for row in rows {
+        event!(target: "security_api", Level::DEBUG, "ROW: {:?}", &row);
         loop_data_temp(&mut *transaction, row, &task_info).await?;
     }
 
