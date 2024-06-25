@@ -1,7 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 use chrono::{Datelike, Local};
-use tracing::{event, Level};
 
 mod calendar_data;
 mod daily_task;

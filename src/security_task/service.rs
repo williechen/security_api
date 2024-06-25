@@ -296,8 +296,10 @@ pub async fn get_all_task(
                         };
                         time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
                     }
-                    Err(_) => {
+                    Err(e) => {
                         transaction.rollback().await?;
+                        event!(target: "security_api", Level::ERROR, "daily_task.get_all_task {}", &e);
+                        continue;
                     }
                 }
 
@@ -334,8 +336,10 @@ pub async fn get_all_task(
                             time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap()))
                                 .await;
                         }
-                        Err(_) => {
+                        Err(e) => {
                             transaction.rollback().await?;
+                            event!(target: "security_api", Level::ERROR, "daily_task.get_all_task {}", &e);
+                            continue;
                         }
                     }
                 } else {
