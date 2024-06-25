@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 #[derive(Debug, Clone)]
 pub struct CalendarData {
     pub row_id: Option<String>,

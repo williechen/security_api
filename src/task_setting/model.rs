@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 #[derive(Debug, Clone)]
 pub struct TaskSetting {
     pub row_id: Option<String>,

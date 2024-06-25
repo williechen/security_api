@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
@@ -50,7 +52,7 @@ async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
         .get("https://isin.twse.com.tw/isin/class_main.jsp")
         .send()
         .await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &res.headers());
+    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
 
     let big5_text = res.bytes().await?;
     let utf8_text = encoding_rs::BIG5.decode(&big5_text);
@@ -86,7 +88,7 @@ pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::e
         .query(&[("_", &task.security_seed)])
         .send()
         .await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &res.headers());
+    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
 
     let json = res.text().await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &json);
@@ -105,7 +107,7 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
         .query(&[("_", &task.security_seed)])
         .send()
         .await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &res.headers());
+    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
 
     let json = res.text().await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &json);
@@ -123,7 +125,7 @@ pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::
         .query(&[("_", &task.security_seed)])
         .send()
         .await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &res.headers());
+    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
 
     let json = res.text().await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &json);
@@ -180,7 +182,7 @@ pub async fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::
         .form(&params)
         .send()
         .await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &res.headers());
+    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
 
     let text = res.text().await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &text);

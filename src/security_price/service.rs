@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 use std::ops::{Add, Div};
 use std::str::FromStr;
 

@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 use chrono::Local;
 use sqlx::{postgres::PgRow, Row};
 use tracing::{event, Level};

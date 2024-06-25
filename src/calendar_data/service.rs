@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 use chrono::{Datelike, Local, NaiveDate};
 use sqlx::PgConnection;
 

@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 

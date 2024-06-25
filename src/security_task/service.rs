@@ -1,3 +1,4 @@
+#![warn(clippy::all, clippy::pedantic)]
 
 use chrono::{Datelike, Local, NaiveDate};
 use rand::{thread_rng, Rng};
@@ -28,7 +29,6 @@ pub async fn insert_task_data(
 
     let twse_list =
         select_temp_to_twse(&mut *transaction, open_date.clone(), ce_date.clone()).await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", twse_list);
     let mut item_index = 1;
 
     for data in twse_list {
@@ -41,7 +41,6 @@ pub async fn insert_task_data(
     let mut transaction = pool.connection.acquire().await?;
     let tpex_list =
         select_temp_to_tpex(&mut *transaction, open_date.clone(), ce_date.clone()).await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", tpex_list);
     let mut item_index = 2;
 
     for data in tpex_list {
@@ -367,10 +366,10 @@ async fn loop_data_security_task(
     match ref_market_type {
         "上市" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
-                        event!(target: "security_api", Level::INFO, "try 上市 {} {}", &security_code, &open_date);
-                        response_data::service::get_twse_avg_json(&security).await
-                    })
-                    .await?;
+                event!(target: "security_api", Level::INFO, "send {0} {1} {2}", &security_code, ref_market_type, &open_date);
+                response_data::service::get_twse_avg_json(&security).await
+            })
+            .await?;
 
             let json_value: Value = serde_json::from_str(&data)?;
             match json_value.get("stat") {
@@ -387,7 +386,7 @@ async fn loop_data_security_task(
         }
         "上櫃" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
-                event!(target: "security_api", Level::INFO, "try 上櫃 {} {}", &security_code, &open_date);
+                event!(target: "security_api", Level::INFO, "send {0} {1} {2}", &security_code, ref_market_type, &open_date);
                 response_data::service::get_tpex1_json(&security).await
             })
             .await?;
@@ -407,7 +406,7 @@ async fn loop_data_security_task(
         }
         "興櫃" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
-                    event!(target: "security_api", Level::INFO, "try 興櫃 {} {}", &security_code, &open_date);
+                event!(target: "security_api", Level::INFO, "send {0} {1} {2}", &security_code, ref_market_type, &open_date);
                     response_data::service::get_tpex2_html(&security).await
                 })
                 .await?;

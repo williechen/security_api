@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tracing::{event, Level};
 

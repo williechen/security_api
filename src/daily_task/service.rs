@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 use chrono::{Local, NaiveDate};
 use sqlx::PgConnection;
 use tokio::time;
@@ -81,8 +83,14 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
         if task_info.job_code.is_some() {
             event!(target: "security_api", Level::DEBUG, "DailyTaskInfo: {:?}", &task_info);
             update_task_status(&mut *transaction, &task_info, "OPEN").await;
+
+            let job_code = task_info.job_code.clone().unwrap();
+            let open_date = task_info.open_date.clone().unwrap();
+
+            let ref_job_code = job_code.as_str();
+
             // 執行任務
-            match task_info.job_code.clone().unwrap().as_str() {
+            match ref_job_code {
                 "get_web_security" => {
                     match response_data::service::get_security_all_code(db_url, &task_info).await {
                         Ok(_) => {
@@ -147,7 +155,7 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                     }
                 }
                 _ => {
-                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {}, {}", task_info.job_code.clone().unwrap(), task_info.open_date.clone().unwrap())
+                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {0} {1}", &job_code, &open_date)
                 }
             };
         }
@@ -208,8 +216,14 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
         if task_info.job_code.is_some() {
             event!(target: "security_api", Level::DEBUG, "DailyTaskInfo {:?}", &task_info);
             update_task_status(&mut *transaction, &task_info, "OPEN").await;
+
+            let job_code = task_info.job_code.clone().unwrap();
+            let open_date = task_info.open_date.clone().unwrap();
+
+            let ref_job_code = job_code.as_str();
+
             // 執行任務
-            match task_info.job_code.clone().unwrap().as_str() {
+            match ref_job_code {
                 "res_price" => {
                     match security_price::service::get_security_to_price(db_url, &task_info).await {
                         Ok(_) => {
@@ -238,7 +252,7 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                     }
                 }
                 _ => {
-                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {}, {}", task_info.job_code.clone().unwrap(), task_info.open_date.clone().unwrap())
+                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {0} {1}", &job_code, &open_date)
                 }
             };
         }

@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 use std::str::FromStr;
 
 use chrono::Local;

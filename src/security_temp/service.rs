@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 use std::collections::HashMap;
 
 use scraper::{Html, Selector};
