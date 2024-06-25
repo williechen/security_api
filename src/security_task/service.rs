@@ -1,3 +1,4 @@
+
 use chrono::{Datelike, Local, NaiveDate};
 use rand::{thread_rng, Rng};
 use serde_json::Value;
@@ -59,7 +60,10 @@ async fn loop_data_temp_data(
     task_info: DailyTaskInfo,
     item_index: i32,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let query_security_task = match data.market_type.clone().unwrap().as_str() {
+    let market_type = data.market_type.clone().unwrap_or("".to_string());
+    let ref_market_type = market_type.as_str();
+
+    let query_security_task = match ref_market_type {
         "上市" => SecurityTask {
             row_id: None,
             open_date: task_info.open_date.clone(),
@@ -108,7 +112,7 @@ async fn loop_data_temp_data(
         let security_seed = format!("{:013}", seed);
         let sort_no = item_index;
 
-        let security_task = match data.market_type.clone().unwrap().as_str() {
+        let security_task = match ref_market_type {
             "上市" => SecurityTask {
                 row_id: None,
                 open_date: task_info.open_date.clone(),
@@ -286,7 +290,7 @@ pub async fn get_all_task(
                         let end_time = Local::now().time();
                         let seconds = 6 - (end_time - start_time).num_seconds();
 
-                        let sleep_num = if seconds > 1 {
+                        let sleep_num = if seconds > 2 {
                             thread_rng().gen_range(2..=seconds)
                         } else {
                             4
@@ -323,7 +327,7 @@ pub async fn get_all_task(
                             let end_time = Local::now().time();
                             let seconds = 6 - (end_time - start_time).num_seconds();
 
-                            let sleep_num = if seconds > 1 {
+                            let sleep_num = if seconds > 2 {
                                 thread_rng().gen_range(2..=seconds)
                             } else {
                                 4
@@ -357,7 +361,10 @@ async fn loop_data_security_task(
     let open_date = security.open_date.clone().unwrap();
     let security_code = security.security_code.clone().unwrap();
 
-    match security.market_type.clone().unwrap().as_str() {
+    let market_type = security.market_type.clone().unwrap_or("".to_string());
+    let ref_market_type = market_type.as_str();
+
+    match ref_market_type {
         "上市" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
                         event!(target: "security_api", Level::INFO, "try 上市 {} {}", &security_code, &open_date);
