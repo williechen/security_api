@@ -198,9 +198,11 @@ pub async fn delete(transaction: &mut PgConnection, data: DailyTask) -> Result<u
 
 pub async fn read_all_by_daily(
     transaction: &mut PgConnection,
-    date: NaiveDate,
+    ce_year: &str,
+    ce_month: &str,
+    orderby: &str,
 ) -> Result<Vec<DailyTaskInfo>, sqlx::Error> {
-    match sqlx::query(
+    match sqlx::query(&format!(
         r#"
         SELECT dt.row_id
              , dt.job_code
@@ -216,19 +218,15 @@ pub async fn read_all_by_daily(
           JOIN task_setting ts
             ON dt.job_code = ts.job_code
            AND cd.group_task = ts.group_code
-         WHERE dt.open_date <= $1 
+         WHERE cd.ce_year = $1
+           AND cd.ce_month = $2
            AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
-           AND NOT EXISTS (
-               SELECT 1 
-                 FROM listen_flow lf
-                WHERE lf.flow_code = 'security'
-                  AND lf.flow_param1 = dt.open_date
-           )
-         ORDER BY dt.open_date desc, ts.sort_no
-         LIMIT 1
+         ORDER BY {}, ts.sort_no
          "#,
-    )
-    .bind(date.format("%Y%m%d").to_string())
+        orderby
+    ))
+    .bind(ce_year)
+    .bind(ce_month)
     .map(|row: PgRow| DailyTaskInfo {
         row_id: row.get("row_id"),
         job_code: row.get("job_code"),
@@ -250,49 +248,31 @@ pub async fn read_all_by_daily(
     }
 }
 
-pub async fn read_all_by_daily1(
+pub async fn read_by_eXec(
     transaction: &mut PgConnection,
-    date: NaiveDate,
-) -> Result<Vec<DailyTaskInfo>, sqlx::Error> {
-    match sqlx::query(
+    flow_code: &str,
+    orderby: &str,
+) -> Result<Vec<String>, sqlx::Error> {
+    match sqlx::query(&format!(
         r#"
-        SELECT dt.row_id
-             , dt.job_code
-             , dt.open_date
-             , CONCAT(cd.ce_year, '/', cd.ce_month, '/', cd.ce_day) AS ce_date
-             , CONCAT(cd.tw_year, '/', cd.ce_month) AS tw_date
-             , ts.wait_type
-             , ts.wait_number
-             , dt.exec_status
+        SELECT distinct dt.open_date
           FROM daily_task dt
           JOIN calendar_data cd
             ON dt.open_date = CONCAT(cd.ce_year, cd.ce_month, cd.ce_day)
-          JOIN task_setting ts
-            ON dt.job_code = ts.job_code
-           AND cd.group_task = ts.group_code
-         WHERE dt.open_date <= $1 
-           AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
+         WHERE dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
            AND NOT EXISTS (
                SELECT 1 
                  FROM listen_flow lf
-                WHERE lf.flow_code = 'price'
-                  AND lf.flow_param1 = dt.open_date
-           )
-         ORDER BY dt.open_date, ts.sort_no
-         
+                WHERE lf.flow_code = $1
+                  AND lf.flow_param1 = cd.ce_year
+                  AND lf.flow_param2 = cd.ce_month
+            )
+         ORDER BY {}
          "#,
-    )
-    .bind(date.format("%Y%m%d").to_string())
-    .map(|row: PgRow| DailyTaskInfo {
-        row_id: row.get("row_id"),
-        job_code: row.get("job_code"),
-        exec_status: row.get("exec_status"),
-        open_date: row.get("open_date"),
-        ce_date: row.get("ce_date"),
-        tw_date: row.get("tw_date"),
-        wait_type: row.get("wait_type"),
-        wait_number: row.get("wait_number"),
-    })
+        orderby
+    ))
+    .bind(flow_code)
+    .map(|row: PgRow| row.get("open_date"))
     .fetch_all(transaction)
     .await
     {

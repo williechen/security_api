@@ -8,7 +8,7 @@ use super::model::ListenFlow;
 pub async fn read_all(
     transaction: &mut PgConnection,
     data: &ListenFlow,
-) -> Result<i32, sqlx::Error> {
+) -> Result<i64, sqlx::Error> {
     let mut select_str = r#" 
         SELECT count(flow_code) AS cnt
           FROM listen_flow

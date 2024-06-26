@@ -80,137 +80,155 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
     let pool = Repository::new(db_url).await;
     let mut transaction = pool.connection.acquire().await?;
 
-    let mut task_info_list =
-        dao::read_all_by_daily(&mut *transaction, Local::now().date_naive()).await?;
-    while task_info_list.len() > 0 {
-        let task_info = &task_info_list[0];
-        if task_info.job_code.is_some() {
-            event!(target: "security_api", Level::DEBUG, "DailyTaskInfo: {:?}", &task_info);
-            update_task_status(&mut *transaction, &task_info, "OPEN").await;
+    let mut exec_open_date =
+        dao::read_by_eXec(&mut *transaction, "security", "dt.open_date desc").await?;
+    while exec_open_date.len() > 0 {
+        let open_date = &exec_open_date[0];
 
-            let job_code = task_info.job_code.clone().unwrap();
-            let open_date = task_info.open_date.clone().unwrap();
+        let task_info_list = dao::read_all_by_daily(
+            &mut *transaction,
+            &open_date[0..4],
+            &open_date[4..6],
+            "dt.open_date desc",
+        )
+        .await?;
+        for task_info in task_info_list {
+            if task_info.job_code.is_some() {
+                event!(target: "security_api", Level::DEBUG, "DailyTaskInfo: {:?}", &task_info);
+                update_task_status(&mut *transaction, &task_info, "OPEN").await;
 
-            let ref_job_code = job_code.as_str();
+                let job_code = task_info.job_code.clone().unwrap();
+                let open_date = task_info.open_date.clone().unwrap();
 
-            listen_flow::service::insert_flow_data1(db_url, "security", &open_date).await;
-            // 執行任務
-            match ref_job_code {
-                "get_web_security" => {
-                    match response_data::service::get_security_all_code(db_url, &task_info).await {
+                let ref_job_code = job_code.as_str();
+
+                listen_flow::service::insert_flow_data2(
+                    db_url,
+                    "security",
+                    &open_date[0..4],
+                    &open_date[4..6],
+                )
+                .await;
+                // 執行任務
+                match ref_job_code {
+                    "get_web_security" => {
+                        match response_data::service::get_security_all_code(db_url, &task_info)
+                            .await
+                        {
+                            Ok(_) => {
+                                update_task_status(&mut *transaction, &task_info, "EXIT").await;
+                                event!(target: "security_api", Level::INFO, "daily_task.get_web_security Done");
+                            }
+                            Err(e) => {
+                                update_task_status(&mut *transaction, &task_info, "EXEC").await;
+                                event!(target: "security_api", Level::ERROR, "daily_task.get_web_security {}", &e);
+                                panic!("daily_task.get_web_security Error {}", &e)
+                            }
+                        }
+                    }
+                    "res_to_temp" => {
+                        match security_temp::service::get_security_to_temp(db_url, &task_info).await
+                        {
+                            Ok(_) => {
+                                update_task_status(&mut *transaction, &task_info, "EXIT").await;
+                                event!(target: "security_api", Level::INFO, "daily_task.res_to_temp Done");
+                            }
+                            Err(e) => {
+                                update_task_status(&mut *transaction, &task_info, "EXEC").await;
+                                event!(target: "security_api", Level::ERROR, "daily_task.res_to_temp {}", &e);
+                                panic!("daily_task.res_to_temp Error {}", &e)
+                            }
+                        }
+                    }
+                    "temp_to_task" => {
+                        match security_task::service::insert_task_data(db_url, &task_info).await {
+                            Ok(_) => {
+                                update_task_status(&mut *transaction, &task_info, "EXIT").await;
+                                event!(target: "security_api", Level::INFO, "daily_task.temp_to_task Done");
+                            }
+                            Err(e) => {
+                                update_task_status(&mut *transaction, &task_info, "EXEC").await;
+                                event!(target: "security_api", Level::ERROR, "daily_task.temp_to_task {}", &e);
+                                panic!("daily_task.temp_to_task Error {}", &e)
+                            }
+                        }
+                    }
+                    "delete_temp" => match security_temp::service::delete_temp(db_url).await {
                         Ok(_) => {
                             update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                            event!(target: "security_api", Level::INFO, "daily_task.get_web_security Done");
+                            event!(target: "security_api", Level::INFO, "daily_task.delete_temp Done");
                         }
                         Err(e) => {
                             update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                            event!(target: "security_api", Level::ERROR, "daily_task.get_web_security {}", &e);
-                            panic!("daily_task.get_web_security Error {}", &e)
+                            event!(target: "security_api", Level::ERROR, "daily_task.delete_temp {}", &e);
+                            panic!("daily_task.delete_temp Error {}", &e)
+                        }
+                    },
+                    "task_run" => {
+                        match security_task::service::get_all_task(db_url, &task_info).await {
+                            Ok(_) => {
+                                update_task_status(&mut *transaction, &task_info, "EXIT").await;
+                                event!(target: "security_api", Level::INFO, "daily_task.task_run Done");
+                            }
+                            Err(e) => {
+                                update_task_status(&mut *transaction, &task_info, "EXEC").await;
+                                event!(target: "security_api", Level::ERROR, "daily_task.task_run {}", &e);
+                                panic!("daily_task.task_run Error {}", &e)
+                            }
                         }
                     }
-                }
-                "res_to_temp" => {
-                    match security_temp::service::get_security_to_temp(db_url, &task_info).await {
-                        Ok(_) => {
-                            update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                            event!(target: "security_api", Level::INFO, "daily_task.res_to_temp Done");
-                        }
-                        Err(e) => {
-                            update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                            event!(target: "security_api", Level::ERROR, "daily_task.res_to_temp {}", &e);
-                            panic!("daily_task.res_to_temp Error {}", &e)
-                        }
+                    _ => {
+                        event!(target: "security_api", Level::INFO, "daily_task.other_job: {0} {1}", &job_code, &open_date)
                     }
-                }
-                "temp_to_task" => {
-                    match security_task::service::insert_task_data(db_url, &task_info).await {
-                        Ok(_) => {
-                            update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                            event!(target: "security_api", Level::INFO, "daily_task.temp_to_task Done");
-                        }
-                        Err(e) => {
-                            update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                            event!(target: "security_api", Level::ERROR, "daily_task.temp_to_task {}", &e);
-                            panic!("daily_task.temp_to_task Error {}", &e)
-                        }
+                };
+            }
+            // 等待數量
+            let wait_number = task_info.wait_number.unwrap_or(0);
+
+            // 等待單位
+            if task_info.wait_type.is_some() {
+                match task_info.wait_type.clone().unwrap().as_str() {
+                    "DM" => {
+                        time::sleep(time::Duration::from_secs(
+                            (60 * 60 * 24 * 30 * wait_number).try_into().unwrap(),
+                        ))
+                        .await
                     }
-                }
-                "delete_temp" => match security_temp::service::delete_temp(db_url).await {
-                    Ok(_) => {
-                        update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                        event!(target: "security_api", Level::INFO, "daily_task.delete_temp Done");
+                    "DW" => {
+                        time::sleep(time::Duration::from_secs(
+                            (60 * 60 * 24 * 7 * wait_number).try_into().unwrap(),
+                        ))
+                        .await
                     }
-                    Err(e) => {
-                        update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                        event!(target: "security_api", Level::ERROR, "daily_task.delete_temp {}", &e);
-                        panic!("daily_task.delete_temp Error {}", &e)
+                    "DD" => {
+                        time::sleep(time::Duration::from_secs(
+                            (60 * 60 * 24 * wait_number).try_into().unwrap(),
+                        ))
+                        .await
                     }
-                },
-                "task_run" => {
-                    match security_task::service::get_all_task(db_url, &task_info).await {
-                        Ok(_) => {
-                            update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                            event!(target: "security_api", Level::INFO, "daily_task.task_run Done");
-                        }
-                        Err(e) => {
-                            update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                            event!(target: "security_api", Level::ERROR, "daily_task.task_run {}", &e);
-                            panic!("daily_task.task_run Error {}", &e)
-                        }
+                    "TH" => {
+                        time::sleep(time::Duration::from_secs(
+                            (60 * 60 * wait_number).try_into().unwrap(),
+                        ))
+                        .await
                     }
-                }
-                _ => {
-                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {0} {1}", &job_code, &open_date)
-                }
-            };
+                    "TM" => {
+                        time::sleep(time::Duration::from_secs(
+                            (60 * wait_number).try_into().unwrap(),
+                        ))
+                        .await
+                    }
+                    "TS" => {
+                        time::sleep(time::Duration::from_secs(wait_number.try_into().unwrap()))
+                            .await
+                    }
+                    _ => time::sleep(time::Duration::from_secs(0)).await,
+                };
+            }
         }
-        // 等待數量
-        let wait_number = task_info.wait_number.unwrap_or(0);
-
-        // 等待單位
-        if task_info.wait_type.is_some() {
-            match task_info.wait_type.clone().unwrap().as_str() {
-                "DM" => {
-                    time::sleep(time::Duration::from_secs(
-                        (60 * 60 * 24 * 30 * wait_number).try_into().unwrap(),
-                    ))
-                    .await
-                }
-                "DW" => {
-                    time::sleep(time::Duration::from_secs(
-                        (60 * 60 * 24 * 7 * wait_number).try_into().unwrap(),
-                    ))
-                    .await
-                }
-                "DD" => {
-                    time::sleep(time::Duration::from_secs(
-                        (60 * 60 * 24 * wait_number).try_into().unwrap(),
-                    ))
-                    .await
-                }
-                "TH" => {
-                    time::sleep(time::Duration::from_secs(
-                        (60 * 60 * wait_number).try_into().unwrap(),
-                    ))
-                    .await
-                }
-                "TM" => {
-                    time::sleep(time::Duration::from_secs(
-                        (60 * wait_number).try_into().unwrap(),
-                    ))
-                    .await
-                }
-                "TS" => {
-                    time::sleep(time::Duration::from_secs(wait_number.try_into().unwrap())).await
-                }
-                _ => time::sleep(time::Duration::from_secs(0)).await,
-            };
-        }
-
-        task_info_list =
-            dao::read_all_by_daily(&mut *transaction, Local::now().date_naive()).await?;
+        exec_open_date =
+            dao::read_by_eXec(&mut *transaction, "security", "dt.open_date desc").await?;
     }
-
     Ok(())
 }
 
@@ -218,101 +236,117 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
     let pool = Repository::new(db_url).await;
     let mut transaction = pool.connection.acquire().await?;
 
-    let mut task_info_list =
-        dao::read_all_by_daily1(&mut *transaction, Local::now().date_naive()).await?;
-    while task_info_list.len() > 0 {
-        let task_info = &task_info_list[0];
-        if task_info.job_code.is_some() {
-            event!(target: "security_api", Level::DEBUG, "DailyTaskInfo {:?}", &task_info);
-            update_task_status(&mut *transaction, &task_info, "OPEN").await;
+    let mut exec_open_date = dao::read_by_eXec(&mut *transaction, "price", "dt.open_date").await?;
+    while exec_open_date.len() > 0 {
+        let open_date = &exec_open_date[0];
 
-            let job_code = task_info.job_code.clone().unwrap();
-            let open_date = task_info.open_date.clone().unwrap();
+        let task_info_list = dao::read_all_by_daily(
+            &mut *transaction,
+            &open_date[0..4],
+            &open_date[4..6],
+            "dt.open_date",
+        )
+        .await?;
+        for task_info in task_info_list {
+            if task_info.job_code.is_some() {
+                event!(target: "security_api", Level::DEBUG, "DailyTaskInfo {:?}", &task_info);
+                update_task_status(&mut *transaction, &task_info, "OPEN").await;
 
-            let ref_job_code = job_code.as_str();
+                let job_code = task_info.job_code.clone().unwrap();
+                let open_date = task_info.open_date.clone().unwrap();
 
-            listen_flow::service::insert_flow_data1(db_url, "price", &open_date).await;
-            // 執行任務
-            match ref_job_code {
-                "res_price" => {
-                    match security_price::service::get_security_to_price(db_url, &task_info).await {
-                        Ok(_) => {
-                            update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                            event!(target: "security_api", Level::INFO, "daily_task.res_price Done");
-                        }
-                        Err(e) => {
-                            update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                            event!(target: "security_api", Level::ERROR, "daily_task.res_price {}", &e);
-                            panic!("daily_task.res_price Error {}", &e)
+                let ref_job_code = job_code.as_str();
+
+                listen_flow::service::insert_flow_data2(
+                    db_url,
+                    "security",
+                    &open_date[0..4],
+                    &open_date[4..6],
+                )
+                .await;
+                // 執行任務
+                match ref_job_code {
+                    "res_price" => {
+                        match security_price::service::get_security_to_price(db_url, &task_info)
+                            .await
+                        {
+                            Ok(_) => {
+                                update_task_status(&mut *transaction, &task_info, "EXIT").await;
+                                event!(target: "security_api", Level::INFO, "daily_task.res_price Done");
+                            }
+                            Err(e) => {
+                                update_task_status(&mut *transaction, &task_info, "EXEC").await;
+                                event!(target: "security_api", Level::ERROR, "daily_task.res_price {}", &e);
+                                panic!("daily_task.res_price Error {}", &e)
+                            }
                         }
                     }
-                }
-                "price_value" => {
-                    match security_price::service::get_calculator_to_price(db_url, &task_info).await
-                    {
-                        Ok(_) => {
-                            update_task_status(&mut *transaction, &task_info, "EXIT").await;
-                            event!(target: "security_api", Level::INFO, "daily_task.price_value Done");
-                        }
-                        Err(e) => {
-                            update_task_status(&mut *transaction, &task_info, "EXEC").await;
-                            event!(target: "security_api", Level::ERROR, "daily_task.price_value {}", &e);
-                            panic!("daily_task.price_value Error {}", &e)
+                    "price_value" => {
+                        match security_price::service::get_calculator_to_price(db_url, &task_info)
+                            .await
+                        {
+                            Ok(_) => {
+                                update_task_status(&mut *transaction, &task_info, "EXIT").await;
+                                event!(target: "security_api", Level::INFO, "daily_task.price_value Done");
+                            }
+                            Err(e) => {
+                                update_task_status(&mut *transaction, &task_info, "EXEC").await;
+                                event!(target: "security_api", Level::ERROR, "daily_task.price_value {}", &e);
+                                panic!("daily_task.price_value Error {}", &e)
+                            }
                         }
                     }
-                }
-                _ => {
-                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {0} {1}", &job_code, &open_date)
-                }
-            };
-        }
-        // 等待數量
-        let wait_number = task_info.wait_number.unwrap_or(0);
+                    _ => {
+                        event!(target: "security_api", Level::INFO, "price_task.other_job: {0} {1}", &job_code, &open_date)
+                    }
+                };
+            }
+            // 等待數量
+            let wait_number = task_info.wait_number.unwrap_or(0);
 
-        // 等待單位
-        if task_info.wait_type.is_some() {
-            match task_info.wait_type.clone().unwrap().as_str() {
-                "DM" => {
-                    time::sleep(time::Duration::from_secs(
-                        (60 * 60 * 24 * 30 * wait_number).try_into().unwrap(),
-                    ))
-                    .await
-                }
-                "DW" => {
-                    time::sleep(time::Duration::from_secs(
-                        (60 * 60 * 24 * 7 * wait_number).try_into().unwrap(),
-                    ))
-                    .await
-                }
-                "DD" => {
-                    time::sleep(time::Duration::from_secs(
-                        (60 * 60 * 24 * wait_number).try_into().unwrap(),
-                    ))
-                    .await
-                }
-                "TH" => {
-                    time::sleep(time::Duration::from_secs(
-                        (60 * 60 * wait_number).try_into().unwrap(),
-                    ))
-                    .await
-                }
-                "TM" => {
-                    time::sleep(time::Duration::from_secs(
-                        (60 * wait_number).try_into().unwrap(),
-                    ))
-                    .await
-                }
-                "TS" => {
-                    time::sleep(time::Duration::from_secs(wait_number.try_into().unwrap())).await
-                }
-                _ => time::sleep(time::Duration::from_secs(0)).await,
-            };
+            // 等待單位
+            if task_info.wait_type.is_some() {
+                match task_info.wait_type.clone().unwrap().as_str() {
+                    "DM" => {
+                        time::sleep(time::Duration::from_secs(
+                            (60 * 60 * 24 * 30 * wait_number).try_into().unwrap(),
+                        ))
+                        .await
+                    }
+                    "DW" => {
+                        time::sleep(time::Duration::from_secs(
+                            (60 * 60 * 24 * 7 * wait_number).try_into().unwrap(),
+                        ))
+                        .await
+                    }
+                    "DD" => {
+                        time::sleep(time::Duration::from_secs(
+                            (60 * 60 * 24 * wait_number).try_into().unwrap(),
+                        ))
+                        .await
+                    }
+                    "TH" => {
+                        time::sleep(time::Duration::from_secs(
+                            (60 * 60 * wait_number).try_into().unwrap(),
+                        ))
+                        .await
+                    }
+                    "TM" => {
+                        time::sleep(time::Duration::from_secs(
+                            (60 * wait_number).try_into().unwrap(),
+                        ))
+                        .await
+                    }
+                    "TS" => {
+                        time::sleep(time::Duration::from_secs(wait_number.try_into().unwrap()))
+                            .await
+                    }
+                    _ => time::sleep(time::Duration::from_secs(0)).await,
+                };
+            }
         }
-
-        task_info_list =
-            dao::read_all_by_daily1(&mut *transaction, Local::now().date_naive()).await?;
+        exec_open_date = dao::read_by_eXec(&mut *transaction, "price", "dt.open_date").await?;
     }
-
     Ok(())
 }
 
