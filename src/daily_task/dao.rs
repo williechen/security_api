@@ -218,7 +218,14 @@ pub async fn read_all_by_daily(
            AND cd.group_task = ts.group_code
          WHERE dt.open_date <= $1 
            AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
+           AND NOT EXISTS (
+               SELECT 1 
+                 FROM listen_flow lf
+                WHERE lf.flow_code = 'security'
+                  AND lf.flow_param1 = dt.open_date
+           )
          ORDER BY dt.open_date desc, ts.sort_no
+         LIMIT 1
          "#,
     )
     .bind(date.format("%Y%m%d").to_string())
@@ -265,7 +272,14 @@ pub async fn read_all_by_daily1(
            AND cd.group_task = ts.group_code
          WHERE dt.open_date <= $1 
            AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
+           AND NOT EXISTS (
+               SELECT 1 
+                 FROM listen_flow lf
+                WHERE lf.flow_code = 'price'
+                  AND lf.flow_param1 = dt.open_date
+           )
          ORDER BY dt.open_date, ts.sort_no
+         
          "#,
     )
     .bind(date.format("%Y%m%d").to_string())

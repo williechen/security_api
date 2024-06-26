@@ -5,7 +5,10 @@ use sqlx::PgConnection;
 use tokio::time;
 use tracing::{event, Level};
 
-use crate::{repository::Repository, response_data, security_price, security_task, security_temp};
+use crate::{
+    listen_flow, repository::Repository, response_data, security_price, security_task,
+    security_temp,
+};
 
 use super::{
     dao,
@@ -77,9 +80,10 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
     let pool = Repository::new(db_url).await;
     let mut transaction = pool.connection.acquire().await?;
 
-    let task_info_list =
+    let mut task_info_list =
         dao::read_all_by_daily(&mut *transaction, Local::now().date_naive()).await?;
-    for task_info in task_info_list {
+    while task_info_list.len() > 0 {
+        let task_info = &task_info_list[0];
         if task_info.job_code.is_some() {
             event!(target: "security_api", Level::DEBUG, "DailyTaskInfo: {:?}", &task_info);
             update_task_status(&mut *transaction, &task_info, "OPEN").await;
@@ -89,6 +93,7 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
 
             let ref_job_code = job_code.as_str();
 
+            listen_flow::service::insert_flow_data1(db_url, "security", &open_date).await;
             // 執行任務
             match ref_job_code {
                 "get_web_security" => {
@@ -201,6 +206,9 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                 _ => time::sleep(time::Duration::from_secs(0)).await,
             };
         }
+
+        task_info_list =
+            dao::read_all_by_daily(&mut *transaction, Local::now().date_naive()).await?;
     }
 
     Ok(())
@@ -210,9 +218,10 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
     let pool = Repository::new(db_url).await;
     let mut transaction = pool.connection.acquire().await?;
 
-    let task_info_list =
+    let mut task_info_list =
         dao::read_all_by_daily1(&mut *transaction, Local::now().date_naive()).await?;
-    for task_info in task_info_list {
+    while task_info_list.len() > 0 {
+        let task_info = &task_info_list[0];
         if task_info.job_code.is_some() {
             event!(target: "security_api", Level::DEBUG, "DailyTaskInfo {:?}", &task_info);
             update_task_status(&mut *transaction, &task_info, "OPEN").await;
@@ -222,6 +231,7 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
 
             let ref_job_code = job_code.as_str();
 
+            listen_flow::service::insert_flow_data1(db_url, "price", &open_date).await;
             // 執行任務
             match ref_job_code {
                 "res_price" => {
@@ -298,6 +308,9 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                 _ => time::sleep(time::Duration::from_secs(0)).await,
             };
         }
+
+        task_info_list =
+            dao::read_all_by_daily1(&mut *transaction, Local::now().date_naive()).await?;
     }
 
     Ok(())

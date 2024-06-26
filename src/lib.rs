@@ -4,6 +4,7 @@ use chrono::{Datelike, Local};
 
 mod calendar_data;
 mod daily_task;
+pub mod listen_flow;
 pub mod repository;
 mod response_data;
 mod security_price;
@@ -28,11 +29,13 @@ pub async fn add_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Erro
 }
 
 pub async fn run_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    listen_flow::service::delete_flow_data(db_url, "security").await;
     daily_task::service::exec_daily_task(db_url).await?;
     Ok(())
 }
 
 pub async fn run_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    listen_flow::service::delete_flow_data(db_url, "price").await;
     daily_task::service::exec_price_task(db_url).await?;
     Ok(())
 }
