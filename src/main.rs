@@ -50,14 +50,14 @@ async fn main() {
                     panic!("add_daily_task Error {}", &e)
                 }
             },
-            "run_daily_task" => match security_api::run_daily_task(db_url).await {
+            "run_daily_task" => match security_api::run_daily_task(db_url, false).await {
                 Ok(_) => event!(target: "security_api", Level::INFO, "run_daily_task Done"),
                 Err(e) => {
                     event!(target: "security_api", Level::ERROR, "run_daily_task {}", &e);
                     panic!("run_daily_task Error {}", &e)
                 }
             },
-            "run_price_task" => match security_api::run_price_task(db_url).await {
+            "run_price_task" => match security_api::run_price_task(db_url, false).await {
                 Ok(_) => event!(target: "security_api", Level::INFO, "run_price_task Done"),
                 Err(e) => {
                     event!(target: "security_api", Level::ERROR, "run_price_task {}", &e);
@@ -72,14 +72,50 @@ async fn main() {
                         panic!("add_daily_task Error {}", &e)
                     }
                 };
-                match security_api::run_daily_task(db_url).await {
+                match security_api::run_daily_task(db_url, false).await {
                     Ok(_) => event!(target: "security_api", Level::INFO, "run_daily_task Done"),
                     Err(e) => {
                         event!(target: "security_api", Level::ERROR, "run_daily_task {}", &e);
                         panic!("run_daily_task Error {}", &e)
                     }
                 };
-                match security_api::run_price_task(db_url).await {
+                match security_api::run_price_task(db_url, false).await {
+                    Ok(_) => event!(target: "security_api", Level::INFO, "run_price_task Done"),
+                    Err(e) => {
+                        event!(target: "security_api", Level::ERROR, "run_price_task {}", &e);
+                        panic!("run_price_task Error {}", &e)
+                    }
+                };
+            }"rerun_daily_task" => match security_api::run_daily_task(db_url, true).await {
+                Ok(_) => event!(target: "security_api", Level::INFO, "run_daily_task Done"),
+                Err(e) => {
+                    event!(target: "security_api", Level::ERROR, "run_daily_task {}", &e);
+                    panic!("run_daily_task Error {}", &e)
+                }
+            },
+            "rerun_price_task" => match security_api::run_price_task(db_url, true).await {
+                Ok(_) => event!(target: "security_api", Level::INFO, "run_price_task Done"),
+                Err(e) => {
+                    event!(target: "security_api", Level::ERROR, "run_price_task {}", &e);
+                    panic!("run_price_task Error {}", &e)
+                }
+            },
+            "redaily_task" => {
+                match security_api::add_daily_task(db_url).await {
+                    Ok(_) => event!(target: "security_api", Level::INFO, "add_daily_task Done"),
+                    Err(e) => {
+                        event!(target: "security_api", Level::ERROR, "add_daily_task {}", &e);
+                        panic!("add_daily_task Error {}", &e)
+                    }
+                };
+                match security_api::run_daily_task(db_url, true).await {
+                    Ok(_) => event!(target: "security_api", Level::INFO, "run_daily_task Done"),
+                    Err(e) => {
+                        event!(target: "security_api", Level::ERROR, "run_daily_task {}", &e);
+                        panic!("run_daily_task Error {}", &e)
+                    }
+                };
+                match security_api::run_price_task(db_url, true).await {
                     Ok(_) => event!(target: "security_api", Level::INFO, "run_price_task Done"),
                     Err(e) => {
                         event!(target: "security_api", Level::ERROR, "run_price_task {}", &e);

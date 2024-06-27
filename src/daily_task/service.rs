@@ -81,7 +81,7 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
     let mut transaction = pool.connection.acquire().await?;
 
     let mut exec_open_date =
-        dao::read_by_eXec(&mut *transaction, "security", "dt.open_date desc").await?;
+        dao::read_by_exec(&mut *transaction, "security", "dt.open_date desc").await?;
     while exec_open_date.len() > 0 {
         let open_date = &exec_open_date[0];
 
@@ -227,7 +227,7 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
             }
         }
         exec_open_date =
-            dao::read_by_eXec(&mut *transaction, "security", "dt.open_date desc").await?;
+            dao::read_by_exec(&mut *transaction, "security", "dt.open_date desc").await?;
     }
     Ok(())
 }
@@ -236,7 +236,7 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
     let pool = Repository::new(db_url).await;
     let mut transaction = pool.connection.acquire().await?;
 
-    let mut exec_open_date = dao::read_by_eXec(&mut *transaction, "price", "dt.open_date").await?;
+    let mut exec_open_date = dao::read_by_exec(&mut *transaction, "price", "dt.open_date").await?;
     while exec_open_date.len() > 0 {
         let open_date = &exec_open_date[0];
 
@@ -345,7 +345,7 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                 };
             }
         }
-        exec_open_date = dao::read_by_eXec(&mut *transaction, "price", "dt.open_date").await?;
+        exec_open_date = dao::read_by_exec(&mut *transaction, "price", "dt.open_date").await?;
     }
     Ok(())
 }

@@ -248,7 +248,7 @@ pub async fn read_all_by_daily(
     }
 }
 
-pub async fn read_by_eXec(
+pub async fn read_by_exec(
     transaction: &mut PgConnection,
     flow_code: &str,
     orderby: &str,
