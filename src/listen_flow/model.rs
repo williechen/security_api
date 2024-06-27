@@ -8,6 +8,7 @@ pub struct ListenFlow {
     pub flow_param3: Option<String>,
     pub flow_param4: Option<String>,
     pub flow_param5: Option<String>,
+    pub pid: Option<i64>,
 }
 
 impl ListenFlow {
@@ -19,6 +20,7 @@ impl ListenFlow {
             flow_param3: None,
             flow_param4: None,
             flow_param5: None,
+            pid: None,
         }
     }
 }
@@ -31,6 +33,7 @@ impl std::fmt::Display for ListenFlow {
         let flow_param3 = self.flow_param3.clone().unwrap_or(String::from(""));
         let flow_param4 = self.flow_param4.clone().unwrap_or(String::from(""));
         let flow_param5 = self.flow_param5.clone().unwrap_or(String::from(""));
+        let pid = self.pid.unwrap();
 
         write!(
             f,
@@ -40,8 +43,9 @@ impl std::fmt::Display for ListenFlow {
             flow_param1: {3},
             flow_param1: {4},
             flow_param1: {5},
+            pid: {6}
             "#,
-            flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5
+            flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5, pid
         )
     }
 }

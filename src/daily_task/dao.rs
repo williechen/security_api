@@ -1,6 +1,5 @@
 #![warn(clippy::all, clippy::pedantic)]
-
-use chrono::{Local, NaiveDate};
+use chrono::Local;
 use sqlx::{postgres::PgRow, PgConnection, Row};
 use tracing::{event, Level};
 

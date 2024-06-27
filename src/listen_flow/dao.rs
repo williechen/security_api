@@ -8,9 +8,15 @@ use super::model::ListenFlow;
 pub async fn read_all(
     transaction: &mut PgConnection,
     data: &ListenFlow,
-) -> Result<i64, sqlx::Error> {
+) -> Result<Vec<ListenFlow>, sqlx::Error> {
     let mut select_str = r#" 
-        SELECT count(flow_code) AS cnt
+        SELECT flow_code
+             , flow_param1
+             , flow_param2
+             , flow_param3
+             , flow_param4
+             , flow_param5
+             , pid
           FROM listen_flow
     "#
     .to_string();
@@ -34,6 +40,9 @@ pub async fn read_all(
     if data.flow_param5.is_some() {
         select_str.push_str(&where_append("flow_param5", "=", &mut index));
     }
+    if data.pid.is_some() {
+        select_str.push_str(&where_append("pid", "=", &mut index));
+    }
 
     let mut query = sqlx::query(&select_str);
 
@@ -55,10 +64,21 @@ pub async fn read_all(
     if data.flow_param5.is_some() {
         query = query.bind(data.flow_param5.clone());
     }
+    if data.pid.is_some() {
+        query = query.bind(data.pid.clone());
+    }
 
     match query
-        .map(|row: PgRow| row.get("cnt"))
-        .fetch_one(transaction)
+        .map(|row: PgRow| ListenFlow {
+            flow_code: row.get("cnt"),
+            flow_param1: row.get("cnt"),
+            flow_param2: row.get("cnt"),
+            flow_param3: row.get("cnt"),
+            flow_param4: row.get("cnt"),
+            flow_param5: row.get("cnt"),
+            pid: row.get("cnt"),
+        })
+        .fetch_all(transaction)
         .await
     {
         Ok(rows) => Ok(rows),
@@ -91,7 +111,8 @@ pub async fn create(transaction: &mut PgConnection, data: ListenFlow) -> Result<
              , flow_param3
              , flow_param4
              , flow_param5
-        ) VALUES ($1, $2, $3, $4, $5, $6)  "#,
+             , pid
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)  "#,
     )
     .bind(data.flow_code)
     .bind(data.flow_param1)
@@ -99,6 +120,7 @@ pub async fn create(transaction: &mut PgConnection, data: ListenFlow) -> Result<
     .bind(data.flow_param3)
     .bind(data.flow_param4)
     .bind(data.flow_param5)
+    .bind(data.pid)
     .execute(transaction)
     .await
     {

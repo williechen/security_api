@@ -1,4 +1,5 @@
 #![warn(clippy::all, clippy::pedantic)]
+use std::process;
 
 use chrono::{Local, NaiveDate};
 use sqlx::PgConnection;
@@ -83,8 +84,7 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
     let mut exec_open_date =
         dao::read_by_exec(&mut *transaction, "security", "dt.open_date desc").await?;
     while exec_open_date.len() > 0 {
-        let e_open_date = &exec_open_date[0];
-        event!(target: "security_api", Level::INFO, "OPEN DATE: {}", &e_open_date);
+        let e_open_date = get_open_data(db_url, &exec_open_date[0], "security").await;
 
         let task_info_list = dao::read_all_by_daily(
             &mut *transaction,
@@ -103,13 +103,6 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
 
                 let ref_job_code = job_code.as_str();
 
-                listen_flow::service::insert_flow_data2(
-                    db_url,
-                    "security",
-                    &open_date[0..4],
-                    &open_date[4..6],
-                )
-                .await;
                 // 執行任務
                 match ref_job_code {
                     "get_web_security" => {
@@ -223,7 +216,7 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                         time::sleep(time::Duration::from_secs(wait_number.try_into().unwrap()))
                             .await
                     }
-                    _ => time::sleep(time::Duration::from_secs(0)).await,
+                    _ => time::sleep(time::Duration::from_secs(1)).await,
                 };
             }
         }
@@ -239,8 +232,7 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
 
     let mut exec_open_date = dao::read_by_exec(&mut *transaction, "price", "dt.open_date").await?;
     while exec_open_date.len() > 0 {
-        let e_open_date = &exec_open_date[0];
-        event!(target: "security_api", Level::INFO, "OPEN DATE: {}", &e_open_date);
+        let e_open_date = get_open_data(db_url, &exec_open_date[0], "price").await;
 
         let task_info_list = dao::read_all_by_daily(
             &mut *transaction,
@@ -259,13 +251,6 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
 
                 let ref_job_code = job_code.as_str();
 
-                listen_flow::service::insert_flow_data2(
-                    db_url,
-                    "security",
-                    &open_date[0..4],
-                    &open_date[4..6],
-                )
-                .await;
                 // 執行任務
                 match ref_job_code {
                     "res_price" => {
@@ -343,7 +328,7 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                         time::sleep(time::Duration::from_secs(wait_number.try_into().unwrap()))
                             .await
                     }
-                    _ => time::sleep(time::Duration::from_secs(0)).await,
+                    _ => time::sleep(time::Duration::from_secs(1)).await,
                 };
             }
         }
@@ -364,4 +349,35 @@ async fn update_task_status(
         exec_status: Some(status.to_string()),
     };
     dao::update(transaction, daily_task).await.unwrap();
+}
+
+async fn get_open_data(db_url: &str, open_date: &str, flow_code: &str) -> String {
+    let pid = process::id();
+    let year = &open_date[0..4];
+    let month = &open_date[4..6];
+
+    let results =
+        listen_flow::service::read_flow_data(db_url, pid.into(), flow_code, year, month).await;
+    if results.len() > 0 {
+        if Some(pid.into()) == results[0].pid {
+            open_date.to_string()
+        } else {
+            let pool = Repository::new(db_url).await;
+            let mut transaction = pool.connection.acquire().await.unwrap();
+            if "price" == flow_code {
+                let res = dao::read_by_exec(&mut *transaction, flow_code, "dt.open_date")
+                    .await
+                    .unwrap();
+                res[0].clone()
+            } else {
+                let res = dao::read_by_exec(&mut *transaction, flow_code, "dt.open_date desc")
+                    .await
+                    .unwrap();
+                res[0].clone()
+            }
+        }
+    } else {
+        listen_flow::service::insert_flow_data2(db_url, pid.into(), flow_code, year, month).await;
+        open_date.to_string()
+    }
 }
