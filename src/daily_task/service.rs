@@ -83,12 +83,13 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
     let mut exec_open_date =
         dao::read_by_exec(&mut *transaction, "security", "dt.open_date desc").await?;
     while exec_open_date.len() > 0 {
-        let open_date = &exec_open_date[0];
+        let e_open_date = &exec_open_date[0];
+        event!(target: "security_api", Level::INFO, "OPEN DATE: {}", &e_open_date);
 
         let task_info_list = dao::read_all_by_daily(
             &mut *transaction,
-            &open_date[0..4],
-            &open_date[4..6],
+            &e_open_date[0..4],
+            &e_open_date[4..6],
             "dt.open_date desc",
         )
         .await?;
@@ -238,12 +239,13 @@ pub async fn exec_price_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
 
     let mut exec_open_date = dao::read_by_exec(&mut *transaction, "price", "dt.open_date").await?;
     while exec_open_date.len() > 0 {
-        let open_date = &exec_open_date[0];
+        let e_open_date = &exec_open_date[0];
+        event!(target: "security_api", Level::INFO, "OPEN DATE: {}", &e_open_date);
 
         let task_info_list = dao::read_all_by_daily(
             &mut *transaction,
-            &open_date[0..4],
-            &open_date[4..6],
+            &e_open_date[0..4],
+            &e_open_date[4..6],
             "dt.open_date",
         )
         .await?;

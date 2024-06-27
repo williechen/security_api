@@ -287,10 +287,10 @@ pub async fn get_all_task(
                     Ok(_) => {
                         transaction.commit().await?;
                         let end_time = Local::now().time();
-                        let seconds = 6 - (end_time - start_time).num_seconds();
+                        let seconds = 8 - (end_time - start_time).num_seconds();
 
-                        let sleep_num = if seconds > 2 {
-                            thread_rng().gen_range(2..=seconds)
+                        let sleep_num = if seconds > 4 {
+                            thread_rng().gen_range(4..=seconds)
                         } else {
                             4
                         };
@@ -326,10 +326,10 @@ pub async fn get_all_task(
                         Ok(_) => {
                             transaction.commit().await?;
                             let end_time = Local::now().time();
-                            let seconds = 6 - (end_time - start_time).num_seconds();
+                            let seconds = 8 - (end_time - start_time).num_seconds();
 
-                            let sleep_num = if seconds > 2 {
-                                thread_rng().gen_range(2..=seconds)
+                            let sleep_num = if seconds > 4 {
+                                thread_rng().gen_range(4..=seconds)
                             } else {
                                 4
                             };
