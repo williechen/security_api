@@ -2,6 +2,7 @@
 use std::process;
 
 use chrono::{Local, NaiveDate};
+use rand::{thread_rng, Rng};
 use sqlx::PgConnection;
 use tokio::time;
 use tracing::{event, Level};
@@ -352,14 +353,14 @@ async fn update_task_status(
 }
 
 async fn get_open_data(db_url: &str, open_date: &str, flow_code: &str) -> String {
-    let pid = process::id();
+    let pid = process::id() as i32;
     let year = &open_date[0..4];
     let month = &open_date[4..6];
 
-    let results =
-        listen_flow::service::read_flow_data(db_url, pid.into(), flow_code, year, month).await;
+    time::sleep(time::Duration::from_secs(thread_rng().gen_range(1..=4))).await;
+    let results = listen_flow::service::read_flow_data(db_url, flow_code, year, month).await;
     if results.len() > 0 {
-        if Some(pid.into()) == results[0].pid {
+        if Some(pid) == results[0].pid {
             open_date.to_string()
         } else {
             let pool = Repository::new(db_url).await;
@@ -368,11 +369,19 @@ async fn get_open_data(db_url: &str, open_date: &str, flow_code: &str) -> String
                 let res = dao::read_by_exec(&mut *transaction, flow_code, "dt.open_date")
                     .await
                     .unwrap();
+                let year = &res[0][0..4];
+                let month = &res[0][4..6];
+                listen_flow::service::insert_flow_data2(db_url, pid.into(), flow_code, year, month)
+                    .await;
                 res[0].clone()
             } else {
                 let res = dao::read_by_exec(&mut *transaction, flow_code, "dt.open_date desc")
                     .await
                     .unwrap();
+                let year = &res[0][0..4];
+                let month = &res[0][4..6];
+                listen_flow::service::insert_flow_data2(db_url, pid.into(), flow_code, year, month)
+                    .await;
                 res[0].clone()
             }
         }

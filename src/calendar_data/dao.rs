@@ -304,50 +304,19 @@ pub async fn read_by_work_day_first(
     }
 }
 
-pub async fn read_by_work_day_last(
+pub async fn read_by_month(
     transaction: &mut PgConnection,
-    ce_year: &str,
-    ce_month: &str,
-) -> Result<Option<CalendarData>, sqlx::Error> {
+) -> Result<Vec<(String, String)>, sqlx::Error> {
     match sqlx::query(
         r#"
-        SELECT cd.row_id
-             , cd.ce_year
-             , cd.tw_year
+        SELECT DISTINCT cd.ce_year
              , cd.ce_month
-             , cd.ce_day
-             , cd.date_status
-             , cd.group_task
-             , cd.created_date
-             , cd.updated_date
           FROM calendar_data cd
-         WHERE cd.ce_year = $1
-           AND cd.ce_month = $2
-           AND cd.date_status = 'O'
-           AND NOT EXISTS (
-               SELECT 1 
-                 FROM calendar_data cd1 
-                WHERE cd1.ce_year = cd.ce_year
-                  AND cd1.ce_month = cd.ce_month
-                  AND cd.date_status = 'O'
-                  AND cd1.group_task IN ('LAST', 'LAST_INIT')
-           )
-         ORDER BY Concat(cd.ce_year, cd.ce_month, cd.ce_day) DESC
-         LIMIT 1
+         WHERE cd.date_status = 'O'
           "#,
     )
-    .bind(ce_year)
-    .bind(ce_month)
-    .map(|row: PgRow| CalendarData {
-        row_id: row.get("row_id"),
-        ce_year: row.get("ce_year"),
-        tw_year: row.get("tw_year"),
-        ce_month: row.get("ce_month"),
-        ce_day: row.get("ce_day"),
-        date_status: row.get("date_status"),
-        group_task: row.get("group_task"),
-    })
-    .fetch_optional(transaction)
+    .map(|row: PgRow| (row.get("ce_year"), row.get("ce_month")))
+    .fetch_all(transaction)
     .await
     {
         Ok(row) => Ok(row),

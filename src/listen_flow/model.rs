@@ -8,7 +8,7 @@ pub struct ListenFlow {
     pub flow_param3: Option<String>,
     pub flow_param4: Option<String>,
     pub flow_param5: Option<String>,
-    pub pid: Option<i64>,
+    pub pid: Option<i32>,
 }
 
 impl ListenFlow {

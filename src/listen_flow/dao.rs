@@ -44,6 +44,8 @@ pub async fn read_all(
         select_str.push_str(&where_append("pid", "=", &mut index));
     }
 
+    select_str.push_str("ORDER BY pid, created_date");
+
     let mut query = sqlx::query(&select_str);
 
     if data.flow_code.is_some() {
@@ -70,13 +72,13 @@ pub async fn read_all(
 
     match query
         .map(|row: PgRow| ListenFlow {
-            flow_code: row.get("cnt"),
-            flow_param1: row.get("cnt"),
-            flow_param2: row.get("cnt"),
-            flow_param3: row.get("cnt"),
-            flow_param4: row.get("cnt"),
-            flow_param5: row.get("cnt"),
-            pid: row.get("cnt"),
+            flow_code: row.get("flow_code"),
+            flow_param1: row.get("flow_param1"),
+            flow_param2: row.get("flow_param2"),
+            flow_param3: row.get("flow_param3"),
+            flow_param4: row.get("flow_param4"),
+            flow_param5: row.get("flow_param5"),
+            pid: row.get("pid"),
         })
         .fetch_all(transaction)
         .await
@@ -127,6 +129,34 @@ pub async fn create(transaction: &mut PgConnection, data: ListenFlow) -> Result<
         Ok(row) => Ok(row.rows_affected()),
         Err(e) => {
             event!(target: "security_api", Level::ERROR, "listen_flow.create: {}", &e);
+            Err(e)
+        }
+    }
+}
+
+pub async fn updateByPid(
+    transaction: &mut PgConnection,
+    data: ListenFlow,
+) -> Result<u64, sqlx::Error> {
+    match sqlx::query(
+        r#" 
+        UPDATE listen_flow
+           SET pid = $1
+         WHERE flow_code = $2
+           AND flow_param1 = $3
+           AND flow_param2 = $4
+        "#,
+    )
+    .bind(data.pid)
+    .bind(data.flow_code)
+    .bind(data.flow_param1)
+    .bind(data.flow_param2)
+    .execute(transaction)
+    .await
+    {
+        Ok(row) => Ok(row.rows_affected()),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "listen_flow.updateByPid: {}", &e);
             Err(e)
         }
     }
