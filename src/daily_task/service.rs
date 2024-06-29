@@ -357,7 +357,7 @@ async fn get_open_data(db_url: &str, open_date: &str, flow_code: &str) -> String
     let year = &open_date[0..4];
     let month = &open_date[4..6];
 
-    time::sleep(time::Duration::from_secs(thread_rng().gen_range(1..=4))).await;
+    time::sleep(time::Duration::from_secs(thread_rng().gen_range(2..=4))).await;
     let results = listen_flow::service::read_flow_data(db_url, flow_code, year, month).await;
     if results.len() > 0 {
         if Some(pid) == results[0].pid {

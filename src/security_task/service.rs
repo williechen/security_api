@@ -287,12 +287,12 @@ pub async fn get_all_task(
                     Ok(_) => {
                         transaction.commit().await?;
                         let end_time = Local::now().time();
-                        let seconds = 8 - (end_time - start_time).num_seconds();
+                        let seconds = 6 - (end_time - start_time).num_seconds();
 
-                        let sleep_num = if seconds > 4 {
-                            thread_rng().gen_range(4..=seconds)
+                        let sleep_num = if seconds > 3 {
+                            thread_rng().gen_range(3..=seconds)
                         } else {
-                            4
+                            3
                         };
                         time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
                     }
@@ -326,12 +326,12 @@ pub async fn get_all_task(
                         Ok(_) => {
                             transaction.commit().await?;
                             let end_time = Local::now().time();
-                            let seconds = 8 - (end_time - start_time).num_seconds();
+                            let seconds = 6 - (end_time - start_time).num_seconds();
 
-                            let sleep_num = if seconds > 4 {
-                                thread_rng().gen_range(4..=seconds)
+                            let sleep_num = if seconds > 3 {
+                                thread_rng().gen_range(3..=seconds)
                             } else {
-                                4
+                                3
                             };
                             time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap()))
                                 .await;

@@ -134,7 +134,7 @@ pub async fn create(transaction: &mut PgConnection, data: ListenFlow) -> Result<
     }
 }
 
-pub async fn updateByPid(
+pub async fn update_by_pid(
     transaction: &mut PgConnection,
     data: ListenFlow,
 ) -> Result<u64, sqlx::Error> {

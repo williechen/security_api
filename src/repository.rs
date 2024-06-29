@@ -11,7 +11,7 @@ pub struct Repository {
 impl Repository {
     pub async fn new(db_url: &str) -> Self {
         let db_pool = match PgPoolOptions::new()
-            .max_connections(25)
+            .max_connections(5)
             .connect(db_url)
             .await
         {
