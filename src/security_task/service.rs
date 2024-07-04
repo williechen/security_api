@@ -1,5 +1,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 
+use std::cmp::max;
+
 use chrono::{Datelike, Local, NaiveDate};
 use rand::{thread_rng, Rng};
 use serde_json::Value;
@@ -29,25 +31,39 @@ pub async fn insert_task_data(
 
     let twse_list =
         select_temp_to_twse(&mut *transaction, open_date.clone(), ce_date.clone()).await?;
-    let mut item_index = 1;
-
-    for data in twse_list {
-        event!(target: "security_api", Level::DEBUG, "SecurityTemp: {}", &data);
-        let mut transaction = pool.connection.acquire().await?;
-        loop_data_temp_data(&mut *transaction, data, task_info.clone(), item_index).await?;
-        item_index = item_index + 2;
-    }
-
-    let mut transaction = pool.connection.acquire().await?;
     let tpex_list =
         select_temp_to_tpex(&mut *transaction, open_date.clone(), ce_date.clone()).await?;
-    let mut item_index = 2;
 
-    for data in tpex_list {
-        event!(target: "security_api", Level::DEBUG, "SecurityTemp: {}", &data);
-        let mut transaction = pool.connection.acquire().await?;
-        loop_data_temp_data(&mut *transaction, data, task_info.clone(), item_index).await?;
-        item_index = item_index + 2;
+    let max_count = max(twse_list.len(), tpex_list.len());
+
+    let mut sort_num = 0;
+    for i in 0..max_count {
+        if i < twse_list.len() {
+            sort_num = sort_num + 1;
+
+            let twse_data = &twse_list[i];
+            let mut transaction = pool.connection.acquire().await?;
+            loop_data_temp_data(
+                &mut *transaction,
+                twse_data.clone(),
+                task_info.clone(),
+                sort_num,
+            )
+            .await?;
+        }
+        if i < tpex_list.len() {
+            sort_num = sort_num + 1;
+
+            let tpex_data = &tpex_list[i];
+            let mut transaction = pool.connection.acquire().await?;
+            loop_data_temp_data(
+                &mut *transaction,
+                tpex_data.clone(),
+                task_info.clone(),
+                sort_num,
+            )
+            .await?;
+        }
     }
 
     Ok(())
@@ -287,12 +303,12 @@ pub async fn get_all_task(
                     Ok(_) => {
                         transaction.commit().await?;
                         let end_time = Local::now().time();
-                        let seconds = 6 - (end_time - start_time).num_seconds();
+                        let seconds = 8 - (end_time - start_time).num_seconds();
 
-                        let sleep_num = if seconds > 3 {
-                            thread_rng().gen_range(3..=seconds)
+                        let sleep_num = if seconds > 4 {
+                            thread_rng().gen_range(4..=seconds)
                         } else {
-                            3
+                            4
                         };
                         time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap())).await;
                     }
@@ -326,12 +342,12 @@ pub async fn get_all_task(
                         Ok(_) => {
                             transaction.commit().await?;
                             let end_time = Local::now().time();
-                            let seconds = 6 - (end_time - start_time).num_seconds();
+                            let seconds = 8 - (end_time - start_time).num_seconds();
 
-                            let sleep_num = if seconds > 3 {
-                                thread_rng().gen_range(3..=seconds)
+                            let sleep_num = if seconds > 4 {
+                                thread_rng().gen_range(4..=seconds)
                             } else {
-                                3
+                                4
                             };
                             time::sleep(time::Duration::from_secs(sleep_num.try_into().unwrap()))
                                 .await;

@@ -86,7 +86,8 @@ async fn main() {
                         panic!("run_price_task Error {}", &e)
                     }
                 };
-            }"rerun_daily_task" => match security_api::run_daily_task(db_url, true).await {
+            }
+            "rerun_daily_task" => match security_api::run_daily_task(db_url, true).await {
                 Ok(_) => event!(target: "security_api", Level::INFO, "run_daily_task Done"),
                 Err(e) => {
                     event!(target: "security_api", Level::ERROR, "run_daily_task {}", &e);
