@@ -6,12 +6,16 @@ PostgresQL Setting
   wal_compression = on
 
 
-pg_dump security_api --data-only --encoding=UTF-8 --file=security_api_bak.sql --format=plain --exclude-table=_sqlx_migrations --exclude-table=security_temp --column-inserts --no-sync
+pg_dump security_api --data-only --encoding=UTF-8 --file=security_api_bak_.sql --format=plain --exclude-table=_sqlx_migrations --exclude-table=security_temp --column-inserts --no-sync
 
-psql -d security_api -f security_api_bak.sql
+pg_dump security_api --data-only --encoding=UTF-8 --file=security_api_bak_.sql --format=plain --exclude-table=_sqlx_migrations --exclude-table=security_temp --no-sync
+
+psql -d security_api -f security_api_bak_20240707_1.sql
 
 
 pg_dump security_api --encoding=UTF-8 --file=security_api_bak --format=directory --exclude-table=_sqlx_migrations --exclude-table=security_temp --column-inserts --no-sync --jobs=4
+
+pg_dump security_api --encoding=UTF-8 --file=security_api_bak --format=directory --exclude-table=_sqlx_migrations --exclude-table=security_temp --no-sync --jobs=4
 
 pg_restore security_api_bak --dbname=security_api --format=directory --jobs=4
 

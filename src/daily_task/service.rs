@@ -147,6 +147,8 @@ pub async fn exec_daily_task(db_url: &str) -> Result<(), Box<dyn std::error::Err
                                 panic!("daily_task.temp_to_task Error {}", &e)
                             }
                         }
+
+                        security_task::service_range::update_task_data(db_url, &task_info).await?;
                     }
                     "delete_temp" => match security_temp::service::delete_temp(db_url).await {
                         Ok(_) => {
