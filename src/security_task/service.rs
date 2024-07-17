@@ -386,7 +386,6 @@ async fn loop_data_security_task(
     match ref_market_type {
         "上市" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
-                event!(target: "security_api", Level::INFO, "send {0} {1} {2}", &security_code, ref_market_type, &open_date);
                 response_data::service::get_twse_avg_json(&security).await
             })
             .await?;
@@ -406,7 +405,6 @@ async fn loop_data_security_task(
         }
         "上櫃" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
-                event!(target: "security_api", Level::INFO, "send {0} {1} {2}", &security_code, ref_market_type, &open_date);
                 response_data::service::get_tpex1_json(&security).await
             })
             .await?;
@@ -426,7 +424,6 @@ async fn loop_data_security_task(
         }
         "興櫃" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
-                event!(target: "security_api", Level::INFO, "send {0} {1} {2}", &security_code, ref_market_type, &open_date);
                     response_data::service::get_tpex2_html(&security).await
                 })
                 .await?;

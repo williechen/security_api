@@ -1,5 +1,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 
+use std::time::Duration;
+
 use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
@@ -50,6 +52,7 @@ async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
 
     let res = client
         .get("https://isin.twse.com.tw/isin/class_main.jsp")
+        .timeout(Duration::from_secs(10))
         .send()
         .await?;
     event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
@@ -78,6 +81,8 @@ fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error:
 }
 
 pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+
     let client = Client::new();
 
     let res = client
@@ -86,6 +91,7 @@ pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::e
         .query(&[("stockNo", &task.security_code)])
         .query(&[("response", "json")])
         .query(&[("_", &task.security_seed)])
+        .timeout(Duration::from_secs(4))
         .send()
         .await?;
     event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
@@ -97,6 +103,8 @@ pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::e
 }
 
 pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+
     let client = Client::new();
 
     let res = client
@@ -105,6 +113,7 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
         .query(&[("stockNo", &task.security_code)])
         .query(&[("response", "json")])
         .query(&[("_", &task.security_seed)])
+        .timeout(Duration::from_secs(4))
         .send()
         .await?;
     event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
@@ -116,6 +125,8 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
 }
 
 pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+
     let client = Client::new();
 
     let res = client
@@ -123,6 +134,7 @@ pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::
         .query(&[("d", &task.security_date)])
         .query(&[("stkno", &task.security_code)])
         .query(&[("_", &task.security_seed)])
+        .timeout(Duration::from_secs(4))
         .send()
         .await?;
     event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
@@ -169,6 +181,8 @@ fn decode_unicode_escape(s: &str) -> String {
 }
 
 pub async fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+
     let params = [
         ("input_month", &task.security_date),
         ("input_emgstk_code", &task.security_code),
@@ -180,6 +194,7 @@ pub async fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::
     let res = client
         .post("https://www.tpex.org.tw/web/emergingstock/single_historical/result.php")
         .form(&params)
+        .timeout(Duration::from_secs(4))
         .send()
         .await?;
     event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
