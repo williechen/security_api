@@ -1,177 +1,76 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use sqlx::{postgres::PgRow, PgConnection, Row};
-use tracing::{event, Level};
+use bigdecimal::Zero;
+use diesel::{delete, insert_into, update, ExpressionMethods, QueryDsl, RunQueryDsl};
+use log::debug;
 
-use super::model::ListenFlow;
+use crate::schema::listen_flow::dsl::listen_flow as table;
+use crate::schema::listen_flow::{
+    flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5, pid,
+};
+use crate::{repository::Repository, schema::listen_flow::row_id};
 
-pub async fn read_all(
-    transaction: &mut PgConnection,
-    data: &ListenFlow,
-) -> Result<Vec<ListenFlow>, sqlx::Error> {
-    let mut select_str = r#" 
-        SELECT flow_code
-             , flow_param1
-             , flow_param2
-             , flow_param3
-             , flow_param4
-             , flow_param5
-             , pid
-          FROM listen_flow
-    "#
-    .to_string();
+use super::model::{ListenFlow, NewListenFlow};
 
-    let mut index = 0;
-    if data.flow_code.is_some() {
-        select_str.push_str(&where_append("flow_code", "=", &mut index));
+pub fn find_all(data: ListenFlow) -> Vec<ListenFlow> {
+    let dao = Repository::new();
+    let mut conn = dao.connection.get().unwrap();
+
+    let mut query = table.into_boxed();
+
+    query = query.filter(flow_code.eq(data.flow_code));
+    if !data.pid.is_zero() {
+        query = query.filter(pid.eq(data.pid));
     }
     if data.flow_param1.is_some() {
-        select_str.push_str(&where_append("flow_param1", "=", &mut index));
+        query = query.filter(flow_param1.eq(data.flow_param1));
     }
     if data.flow_param2.is_some() {
-        select_str.push_str(&where_append("flow_param2", "=", &mut index));
+        query = query.filter(flow_param2.eq(data.flow_param2));
     }
     if data.flow_param3.is_some() {
-        select_str.push_str(&where_append("flow_param3", "=", &mut index));
+        query = query.filter(flow_param3.eq(data.flow_param3));
     }
     if data.flow_param4.is_some() {
-        select_str.push_str(&where_append("flow_param4", "=", &mut index));
+        query = query.filter(flow_param4.eq(data.flow_param4));
     }
     if data.flow_param5.is_some() {
-        select_str.push_str(&where_append("flow_param5", "=", &mut index));
-    }
-    if data.pid.is_some() {
-        select_str.push_str(&where_append("pid", "=", &mut index));
+        query = query.filter(flow_param5.eq(data.flow_param5));
     }
 
-    select_str.push_str("ORDER BY pid, created_date");
+    debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    let mut query = sqlx::query(&select_str);
-
-    if data.flow_code.is_some() {
-        query = query.bind(data.flow_code.clone());
-    }
-    if data.flow_param1.is_some() {
-        query = query.bind(data.flow_param1.clone());
-    }
-    if data.flow_param2.is_some() {
-        query = query.bind(data.flow_param2.clone());
-    }
-    if data.flow_param3.is_some() {
-        query = query.bind(data.flow_param3.clone());
-    }
-    if data.flow_param4.is_some() {
-        query = query.bind(data.flow_param4.clone());
-    }
-    if data.flow_param5.is_some() {
-        query = query.bind(data.flow_param5.clone());
-    }
-    if data.pid.is_some() {
-        query = query.bind(data.pid.clone());
-    }
-
-    match query
-        .map(|row: PgRow| ListenFlow {
-            flow_code: row.get("flow_code"),
-            flow_param1: row.get("flow_param1"),
-            flow_param2: row.get("flow_param2"),
-            flow_param3: row.get("flow_param3"),
-            flow_param4: row.get("flow_param4"),
-            flow_param5: row.get("flow_param5"),
-            pid: row.get("pid"),
-        })
-        .fetch_all(transaction)
-        .await
-    {
-        Ok(rows) => Ok(rows),
+    match query.load::<ListenFlow>(&mut conn) {
+        Ok(rows) => rows,
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "daily_task.read_all: {}", &e);
-            Err(e)
+            debug!("read_by_exec {}", e);
+            Vec::new()
         }
     }
 }
 
-fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
-    let plus;
-    if *index <= 0 {
-        plus = " WHERE ";
-    } else {
-        plus = " AND ";
-    }
+pub fn create(data: NewListenFlow) -> Result<usize, diesel::result::Error> {
+    let dao = Repository::new();
+    let mut conn = dao.connection.get().unwrap();
 
-    *index = *index + 1;
-
-    format!(" {} {} {} ${} ", plus, field, conditional, index)
+    insert_into(table).values(data).execute(&mut conn)
 }
 
-pub async fn create(transaction: &mut PgConnection, data: ListenFlow) -> Result<u64, sqlx::Error> {
-    match sqlx::query(
-        r#" 
-        INSERT INTO listen_flow(flow_code
-             , flow_param1
-             , flow_param2
-             , flow_param3
-             , flow_param4
-             , flow_param5
-             , pid
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)  "#,
-    )
-    .bind(data.flow_code)
-    .bind(data.flow_param1)
-    .bind(data.flow_param2)
-    .bind(data.flow_param3)
-    .bind(data.flow_param4)
-    .bind(data.flow_param5)
-    .bind(data.pid)
-    .execute(transaction)
-    .await
-    {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "listen_flow.create: {}", &e);
-            Err(e)
-        }
-    }
+pub fn modify(data: ListenFlow) -> Result<usize, diesel::result::Error> {
+    let dao = Repository::new();
+    let mut conn = dao.connection.get().unwrap();
+
+    update(table)
+        .filter(row_id.eq(data.row_id.clone()))
+        .set(data)
+        .execute(&mut conn)
 }
 
-pub async fn update_by_pid(
-    transaction: &mut PgConnection,
-    data: ListenFlow,
-) -> Result<u64, sqlx::Error> {
-    match sqlx::query(
-        r#" 
-        UPDATE listen_flow
-           SET pid = $1
-         WHERE flow_code = $2
-           AND flow_param1 = $3
-           AND flow_param2 = $4
-        "#,
-    )
-    .bind(data.pid)
-    .bind(data.flow_code)
-    .bind(data.flow_param1)
-    .bind(data.flow_param2)
-    .execute(transaction)
-    .await
-    {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "listen_flow.updateByPid: {}", &e);
-            Err(e)
-        }
-    }
-}
+pub fn remove_all(q_flow_code: &str) -> Result<usize, diesel::result::Error> {
+    let dao = Repository::new();
+    let mut conn = dao.connection.get().unwrap();
 
-pub async fn delete(transaction: &mut PgConnection, flow_code: &str) -> Result<u64, sqlx::Error> {
-    match sqlx::query(r#" DELETE FROM listen_flow WHERE flow_code = $1 "#)
-        .bind(flow_code)
-        .execute(transaction)
-        .await
-    {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "listen_flow.delete: {}", &e);
-            Err(e)
-        }
-    }
+    delete(table)
+        .filter(flow_code.eq(q_flow_code))
+        .execute(&mut conn)
 }

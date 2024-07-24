@@ -2,105 +2,98 @@
 
 use std::collections::HashMap;
 
+use chrono::Local;
+use diesel::{Connection, PgConnection};
+use log::{debug, info};
 use scraper::{Html, Selector};
-use sqlx::PgConnection;
-use tracing::{event, Level};
 
 use crate::{
-    daily_task::model::DailyTaskInfo,
-    repository::Repository,
-    response_data::{self, model::ResponseData},
+    daily_task::model::DailyTask, repository::Repository, response_data,
+    security_temp::model::NewSecurityTemp,
 };
 
-use super::{dao, model::SecurityTemp};
+use super::dao;
 
-pub async fn delete_temp(db_url: &str) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "call daily_task.delete_temp");
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.begin().await?;
-    match dao::truncate(&mut *transaction).await {
-        Ok(_) => transaction.commit().await?,
-        Err(e) => {
-            transaction.rollback().await?;
-            event!(target: "security_api", Level::ERROR, "daily_task.delete_temp: {}", e);
-            panic!("daily_task.delete_temp Error {}", &e)
-        }
-    };
+pub fn delete_temp() -> Result<(), Box<dyn std::error::Error>> {
+    info!(target: "security_api", "call daily_task.delete_temp");
+
+    dao::remove_all();
+
     Ok(())
 }
 
-pub async fn get_security_to_temp(
-    db_url: &str,
-    task_info: &DailyTaskInfo,
-) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "call daily_task.get_security_to_temp");
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.acquire().await?;
+pub async fn get_security_to_temp(task: DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+    info!(target: "security_api", "call daily_task.get_security_to_temp");
+    let dao = Repository::new();
+    let mut conn = dao.connection.get().unwrap();
 
-    let query_response_data = ResponseData {
-        row_id: None,
-        open_date: task_info.open_date.clone(),
-        exec_code: Some("security".to_string()),
-        data_content: None,
-    };
+    let q_year = task.clone().open_date_year;
+    let q_month = task.clone().open_date_month;
+    let q_day = task.clone().open_date_day;
+    let q_exec_code = "security".to_string();
 
-    let data_list = response_data::dao::read_all(&mut *transaction, query_response_data).await?;
-    if data_list.0 > 0 {
-        let first_data = data_list.1.get(0);
-        let response_data = first_data.clone().unwrap();
-        let data_content = response_data.data_content.clone().unwrap();
+    let data = response_data::dao::find_one(q_year, q_month, q_day, q_exec_code);
+    if data.is_none() {
+        let data_content = data.unwrap().data_content;
 
-        let mut transaction = pool.connection.begin().await?;
-        match insert_temp_data(&mut *transaction, data_content, task_info.clone()).await {
-            Ok(_) => transaction.commit().await?,
-            Err(_) => transaction.rollback().await?,
-        }
+        conn.transaction(|conn| insert_temp_data(conn, data_content, &task));
     }
 
     Ok(())
 }
 
-pub async fn insert_temp_data(
+fn insert_temp_data(
     transaction: &mut PgConnection,
     data_content: String,
-    task_info: DailyTaskInfo,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let rows = parse_table_data(data_content)?;
+    task: &DailyTask,
+) -> Result<(), diesel::result::Error> {
+    let rows = parse_table_data(data_content).unwrap();
     for row in rows {
-        event!(target: "security_api", Level::DEBUG, "ROW: {:?}", &row);
-        loop_data_temp(&mut *transaction, row, &task_info).await?;
+        debug!(target: "security_api", "ROW: {:?}", &row);
+        loop_data_temp(&mut *transaction, row, &task)?;
     }
 
     Ok(())
 }
 
-async fn loop_data_temp(
+fn loop_data_temp(
     transaction: &mut PgConnection,
     content: HashMap<String, String>,
-    task_info: &DailyTaskInfo,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let open_date = task_info.open_date.clone().unwrap();
+    task: &DailyTask,
+) -> Result<(), diesel::result::Error> {
+    let q_year = task.clone().open_date_year;
+    let q_month = task.clone().open_date_month;
+    let q_day = task.clone().open_date_day;
+    let q_security_code = content.get("2").cloned().unwrap();
+    let q_market_type = content.get("4").cloned().unwrap();
+    let q_issue_date = content.get("7").cloned().unwrap();
 
-    let mut query_security_temp = SecurityTemp::new();
-    query_security_temp.open_date = Some(open_date.clone());
-    query_security_temp.security_code = content.get("2").cloned();
-
-    let data_list = dao::read_all(transaction, query_security_temp).await?;
-    if data_list.0 <= 0 {
-        let security_temp = SecurityTemp {
-            row_id: None,
-            open_date: Some(open_date.clone()),
-            international_code: content.get("1").cloned(),
-            security_code: content.get("2").cloned(),
-            security_name: content.get("3").cloned(),
-            market_type: content.get("4").cloned(),
-            security_type: content.get("5").cloned(),
-            industry_type: content.get("6").cloned(),
-            issue_date: content.get("7").cloned(),
-            cfi_code: content.get("8").cloned(),
-            remark: content.get("9").cloned(),
+    let data = dao::find_one(
+        q_year,
+        q_month,
+        q_day,
+        q_security_code,
+        q_market_type,
+        q_issue_date,
+    );
+    if data.is_none() {
+        let security_temp = NewSecurityTemp {
+            open_date_year: task.clone().open_date_year,
+            open_date_month: task.clone().open_date_month,
+            open_date_day: task.clone().open_date_day,
+            international_code: content.get("1").cloned().unwrap(),
+            security_code: content.get("2").cloned().unwrap(),
+            security_name: content.get("3").cloned().unwrap(),
+            market_type: content.get("4").cloned().unwrap(),
+            security_type: content.get("5").cloned().unwrap(),
+            industry_type: content.get("6").cloned().unwrap(),
+            issue_date: content.get("7").cloned().unwrap(),
+            cfi_code: content.get("8").cloned().unwrap(),
+            remark: content.get("9").cloned().unwrap(),
+            created_date: Local::now().naive_local(),
+            updated_date: Local::now().naive_local(),
         };
-        dao::create(transaction, security_temp).await?;
+        dao::create(transaction, security_temp);
     }
     Ok(())
 }

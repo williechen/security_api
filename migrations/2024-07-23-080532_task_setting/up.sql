@@ -1,4 +1,4 @@
--- Add up migration script here
+-- Your SQL goes here
 CREATE TABLE task_setting (
     row_id varchar not null default uuid_generate_v4(),
     group_code varchar not null default '',

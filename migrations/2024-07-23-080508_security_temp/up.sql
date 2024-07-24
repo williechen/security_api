@@ -1,7 +1,9 @@
--- Add up migration script here
+-- Your SQL goes here
 CREATE TABLE security_temp (
     row_id varchar not null default uuid_generate_v4(),
-    open_date varchar not null default '',
+    open_date_year varchar not null default '',
+    open_date_month varchar not null default '',
+    open_date_day varchar not null default '',
     international_code varchar not null default '',
     security_code varchar not null default '',
     security_name varchar not null default '',
@@ -16,7 +18,9 @@ CREATE TABLE security_temp (
     CONSTRAINT security_temp_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX security_temp_open_date_idx ON security_temp USING btree (open_date);
+CREATE INDEX security_temp_open_date_year_idx ON security_temp USING btree (open_date_year);
+CREATE INDEX security_temp_open_date_month_idx ON security_temp USING btree (open_date_month);
+CREATE INDEX security_temp_open_date_day_idx ON security_temp USING btree (open_date_day);
 CREATE INDEX security_temp_security_code_idx ON security_temp USING btree (security_code);
 CREATE INDEX security_temp_security_name_idx ON security_temp USING btree (security_name);
 CREATE INDEX security_temp_market_type_idx ON security_temp USING btree (market_type);
@@ -25,7 +29,9 @@ CREATE INDEX security_temp_security_type_idx ON security_temp USING btree (secur
 COMMENT ON TABLE security_temp IS '證券暫存';
 
 COMMENT ON COLUMN security_temp.row_id IS '序號';
-COMMENT ON COLUMN security_temp.open_date IS '開市日期';
+COMMENT ON COLUMN security_temp.open_date_year IS '開市日期_年';
+COMMENT ON COLUMN security_temp.open_date_month IS '開市日期_月';
+COMMENT ON COLUMN security_temp.open_date_day IS '開市日期_日';
 COMMENT ON COLUMN security_temp.international_code IS '國際代碼';
 COMMENT ON COLUMN security_temp.security_code IS '代碼';
 COMMENT ON COLUMN security_temp.security_name IS '名稱';

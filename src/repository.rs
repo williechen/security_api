@@ -1,28 +1,27 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use sqlx::{postgres::PgPoolOptions, PgPool};
-use tracing::{event, Level};
+use std::env;
+
+use diesel::{r2d2, PgConnection};
+use dotenvy::dotenv;
 
 #[derive(Debug, Clone)]
 pub struct Repository {
-    pub connection: PgPool,
+    pub connection: r2d2::Pool<r2d2::ConnectionManager<PgConnection>>,
 }
 
 impl Repository {
-    pub async fn new(db_url: &str) -> Self {
-        let db_pool = match PgPoolOptions::new()
-            .max_connections(5)
-            .connect(db_url)
-            .await
-        {
-            Ok(pool) => pool,
-            Err(e) => {
-                event!(target: "security_api", Level::ERROR, "init db_pool {}", &e);
-                panic!("Couldn't establish DB connection: {}", &e)
-            }
-        };
+    pub fn new() -> Self {
+        dotenv().ok();
+
+        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let manager = r2d2::ConnectionManager::<PgConnection>::new(database_url);
+
         Repository {
-            connection: db_pool,
+            connection: r2d2::Pool::builder()
+                .max_size(5)
+                .build(manager)
+                .expect("Failed to create pool."),
         }
     }
 }

@@ -2,66 +2,61 @@
 
 use std::time::Duration;
 
+use chrono::Local;
+use log::{debug, info};
 use regex::Regex;
-use reqwest::Client;
+use reqwest::blocking::Client;
 use scraper::{Html, Selector};
 use serde_json::json;
-use tracing::{event, Level};
 
 use crate::{
-    daily_task::model::DailyTaskInfo,
-    repository::Repository,
-    response_data::{self, model::ResponseData},
+    daily_task::model::DailyTask,
+    response_data::{dao, model::NewResponseData},
     security_task::model::SecurityTask,
 };
 
-pub async fn get_security_all_code(
-    db_url: &str,
-    task_info: &DailyTaskInfo,
-) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "call daily_task.get_security_all_code");
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.acquire().await?;
+pub fn get_security_all_code(task: DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+    info!(target: "security_api", "call daily_task.get_security_all_code");
 
-    let query_response_data = ResponseData {
-        row_id: None,
-        open_date: task_info.open_date.clone(),
-        exec_code: Some("security".to_string()),
-        data_content: None,
-    };
+    let q_year = task.clone().open_date_year;
+    let q_month = task.clone().open_date_month;
+    let q_day = task.clone().open_date_day;
+    let q_exec_code = "security".to_string();
 
-    let data_list = response_data::dao::read_all(&mut *transaction, query_response_data).await?;
-    if data_list.0 <= 0 {
-        let content = get_web_security_data().await?;
+    let data = dao::find_one(q_year, q_month, q_day, q_exec_code);
+    if data.is_none() {
+        let content = get_web_security_data()?;
 
-        let response_data = ResponseData {
-            row_id: None,
-            open_date: task_info.open_date.clone(),
-            exec_code: Some("security".to_string()),
-            data_content: Some(content),
+        let new_response_data = NewResponseData {
+            exec_code: "security".to_string(),
+            data_content: content,
+            open_date_year: task.clone().open_date_year,
+            open_date_month: task.clone().open_date_month,
+            open_date_day: task.clone().open_date_day,
+            created_date: Local::now().naive_local(),
+            updated_date: Local::now().naive_local(),
         };
 
-        response_data::dao::create(&mut *transaction, response_data).await?;
+        dao::create(new_response_data)?;
     }
 
     Ok(())
 }
 
-async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
+fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 
     let res = client
         .get("https://isin.twse.com.tw/isin/class_main.jsp")
-        .timeout(Duration::from_secs(10))
-        .send()
-        .await?;
-    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
+        .timeout(Duration::from_secs(20))
+        .send()?;
+    info!(target: "security_api", "{:?}", &res.url().to_string());
 
-    let big5_text = res.bytes().await?;
+    let big5_text = res.bytes()?;
     let utf8_text = encoding_rs::BIG5.decode(&big5_text);
 
     let result_html = parse_web_security_data(&utf8_text.0.to_string())?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &result_html);
+    debug!(target: "security_api", "{:?}", &result_html);
 
     Ok(result_html)
 }
@@ -80,8 +75,8 @@ fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error:
     Ok(result.to_string())
 }
 
-pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+pub async fn get_twse_json(task: SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
 
     let client = Client::new();
 
@@ -92,18 +87,17 @@ pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::e
         .query(&[("response", "json")])
         .query(&[("_", &task.security_seed)])
         .timeout(Duration::from_secs(4))
-        .send()
-        .await?;
-    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
+        .send()?;
+    info!(target: "security_api",  "{:?}", &res.url().to_string());
 
-    let json = res.text().await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &json);
+    let json = res.text()?;
+    debug!(target: "security_api", "{:?}", &json);
 
     Ok(json)
 }
 
-pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+pub async fn get_twse_avg_json(task: SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
 
     let client = Client::new();
 
@@ -114,18 +108,17 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
         .query(&[("response", "json")])
         .query(&[("_", &task.security_seed)])
         .timeout(Duration::from_secs(4))
-        .send()
-        .await?;
-    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
+        .send()?;
+    info!(target: "security_api",  "{:?}", &res.url().to_string());
 
-    let json = res.text().await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &json);
+    let json = res.text()?;
+    debug!(target: "security_api",  "{:?}", &json);
 
     Ok(json)
 }
 
-pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+pub async fn get_tpex1_json(task: SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
 
     let client = Client::new();
 
@@ -135,15 +128,14 @@ pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::
         .query(&[("stkno", &task.security_code)])
         .query(&[("_", &task.security_seed)])
         .timeout(Duration::from_secs(4))
-        .send()
-        .await?;
-    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
+        .send()?;
+    info!(target: "security_api", "{:?}", &res.url().to_string());
 
-    let json = res.text().await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &json);
+    let json = res.text()?;
+    debug!(target: "security_api",  "{:?}", &json);
 
     let parse_text = decode_unicode_escape(&json);
-    event!(target: "security_api", Level::DEBUG, "{:?}", &parse_text);
+    debug!(target: "security_api",  "{:?}", &parse_text);
 
     Ok(parse_text)
 }
@@ -180,8 +172,8 @@ fn decode_unicode_escape(s: &str) -> String {
     result
 }
 
-pub async fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+pub async fn get_tpex2_html(task: SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
 
     let params = [
         ("input_month", &task.security_date),
@@ -195,15 +187,14 @@ pub async fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::
         .post("https://www.tpex.org.tw/web/emergingstock/single_historical/result.php")
         .form(&params)
         .timeout(Duration::from_secs(4))
-        .send()
-        .await?;
-    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
+        .send()?;
+    info!(target: "security_api", "{:?}", &res.url().to_string());
 
-    let text = res.text().await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &text);
+    let text = res.text()?;
+    debug!(target: "security_api",  "{:?}", &text);
 
     let json_text = parse_web_tpex2_data(&text)?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &json_text);
+    debug!(target: "security_api",  "{:?}", &json_text);
 
     Ok(json_text)
 }

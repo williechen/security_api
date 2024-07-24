@@ -15,24 +15,6 @@ pub struct SecurityTask {
     pub sort_no: Option<i32>,
 }
 
-impl SecurityTask {
-    pub fn new() -> Self {
-        SecurityTask {
-            row_id: None,
-            open_date: None,
-            security_code: None,
-            security_name: None,
-            market_type: None,
-            issue_date: None,
-            security_date: None,
-            security_seed: None,
-            exec_count: None,
-            is_enabled: None,
-            sort_no: None,
-        }
-    }
-}
-
 impl std::fmt::Display for SecurityTask {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         let row_id = self.row_id.clone().unwrap_or(String::from(""));

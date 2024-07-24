@@ -18,24 +18,6 @@ pub struct SecurityPrice {
     pub price_lowest_avg: Option<BigDecimal>,
 }
 
-impl SecurityPrice {
-    pub fn new() -> Self {
-        SecurityPrice {
-            row_id: None,
-            open_date: None,
-            security_code: None,
-            security_name: None,
-            price_date: None,
-            price_close: None,
-            price_avg: None,
-            price_hight: None,
-            price_hight_avg: None,
-            price_lowest: None,
-            price_lowest_avg: None,
-        }
-    }
-}
-
 impl std::fmt::Display for SecurityPrice {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         let row_id = self.row_id.clone().unwrap_or(String::from(""));

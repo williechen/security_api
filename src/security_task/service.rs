@@ -424,9 +424,9 @@ async fn loop_data_security_task(
         }
         "興櫃" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
-                    response_data::service::get_tpex2_html(&security).await
-                })
-                .await?;
+                response_data::service::get_tpex2_html(&security).await
+            })
+            .await?;
 
             let json_value: Value = serde_json::from_str(&data)?;
             match json_value.get("iTotalRecords") {

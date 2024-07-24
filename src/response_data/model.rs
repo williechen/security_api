@@ -1,39 +1,53 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-#[derive(Debug, Clone)]
+use chrono::NaiveDateTime;
+use diesel::prelude::{AsChangeset, Insertable, Queryable, QueryableByName};
+
+use crate::schema::response_data;
+
+#[derive(Debug, Clone, Queryable, QueryableByName, AsChangeset)]
+#[diesel(table_name=response_data)]
+#[diesel(primary_key(row_id))]
 pub struct ResponseData {
-    pub row_id: Option<String>,
-    pub open_date: Option<String>,
-    pub exec_code: Option<String>,
-    pub data_content: Option<String>,
+    pub row_id: String,
+    pub open_date_year: String,
+    pub open_date_month: String,
+    pub open_date_day: String,
+    pub exec_code: String,
+    pub data_content: String,
+    pub created_date: NaiveDateTime,
+    pub updated_date: NaiveDateTime,
 }
 
-impl ResponseData {
-    pub fn new() -> Self {
-        ResponseData {
-            row_id: None,
-            open_date: None,
-            exec_code: None,
-            data_content: None,
-        }
-    }
+#[derive(Insertable)]
+#[diesel(table_name=response_data)]
+pub struct NewResponseData {
+    pub open_date_year: String,
+    pub open_date_month: String,
+    pub open_date_day: String,
+    pub exec_code: String,
+    pub data_content: String,
+    pub created_date: NaiveDateTime,
+    pub updated_date: NaiveDateTime,
 }
 
 impl std::fmt::Display for ResponseData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone().unwrap_or(String::from(""));
-        let open_date = self.open_date.clone().unwrap_or(String::from(""));
-        let exec_code = self.exec_code.clone().unwrap_or(String::from(""));
-        let data_content = self.data_content.clone().unwrap_or(String::from(""));
+        let row_id = self.row_id.clone();
+        let open_date_year = self.open_date_year.clone();
+        let open_date_month = self.open_date_month.clone();
+        let open_date_day = self.open_date_day.clone();
+        let exec_code = self.exec_code.clone();
+        let data_content = self.data_content.clone();
 
         write!(
             f,
-            r#"{}, 
-            open_date: {}, 
-            exec_code: {}, 
-            data_content: {}
+            r#"{0}, 
+            open_date: {1}{2}{3}, 
+            exec_code: {4}, 
+            data_content: {5}
             "#,
-            row_id, open_date, exec_code, data_content
+            row_id, open_date_year, open_date_month, open_date_day, exec_code, data_content
         )
     }
 }

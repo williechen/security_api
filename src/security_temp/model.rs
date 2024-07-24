@@ -1,68 +1,84 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-#[derive(Debug, Clone)]
+use chrono::NaiveDateTime;
+use diesel::prelude::{AsChangeset, Insertable, Queryable, QueryableByName};
+
+use crate::schema::security_temp;
+
+#[derive(Debug, Clone, Queryable, QueryableByName, AsChangeset)]
+#[diesel(table_name=security_temp)]
+#[diesel(primary_key(row_id))]
 pub struct SecurityTemp {
-    pub row_id: Option<String>,
-    pub open_date: Option<String>,
-    pub international_code: Option<String>,
-    pub security_code: Option<String>,
-    pub security_name: Option<String>,
-    pub market_type: Option<String>,
-    pub security_type: Option<String>,
-    pub industry_type: Option<String>,
-    pub issue_date: Option<String>,
-    pub cfi_code: Option<String>,
-    pub remark: Option<String>,
+    pub row_id: String,
+    pub open_date_year: String,
+    pub open_date_month: String,
+    pub open_date_day: String,
+    pub international_code: String,
+    pub security_code: String,
+    pub security_name: String,
+    pub market_type: String,
+    pub security_type: String,
+    pub industry_type: String,
+    pub issue_date: String,
+    pub cfi_code: String,
+    pub remark: String,
+    pub created_date: NaiveDateTime,
+    pub updated_date: NaiveDateTime,
 }
 
-impl SecurityTemp {
-    pub fn new() -> Self {
-        SecurityTemp {
-            row_id: None,
-            open_date: None,
-            international_code: None,
-            security_code: None,
-            security_name: None,
-            market_type: None,
-            security_type: None,
-            industry_type: None,
-            issue_date: None,
-            cfi_code: None,
-            remark: None,
-        }
-    }
+#[derive(Insertable)]
+#[diesel(table_name=security_temp)]
+pub struct NewSecurityTemp {
+    pub open_date_year: String,
+    pub open_date_month: String,
+    pub open_date_day: String,
+    pub international_code: String,
+    pub security_code: String,
+    pub security_name: String,
+    pub market_type: String,
+    pub security_type: String,
+    pub industry_type: String,
+    pub issue_date: String,
+    pub cfi_code: String,
+    pub remark: String,
+    pub created_date: NaiveDateTime,
+    pub updated_date: NaiveDateTime,
 }
 
 impl std::fmt::Display for SecurityTemp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone().unwrap_or(String::from(""));
-        let open_date = self.open_date.clone().unwrap_or(String::from(""));
-        let international_code = self.international_code.clone().unwrap_or(String::from(""));
-        let security_code = self.security_code.clone().unwrap_or(String::from(""));
-        let security_name = self.security_name.clone().unwrap_or(String::from(""));
-        let market_type = self.market_type.clone().unwrap_or(String::from(""));
-        let security_type = self.security_type.clone().unwrap_or(String::from(""));
-        let industry_type = self.industry_type.clone().unwrap_or(String::from(""));
-        let issue_date = self.issue_date.clone().unwrap_or(String::from(""));
-        let cfi_code = self.cfi_code.clone().unwrap_or(String::from(""));
-        let remark = self.remark.clone().unwrap_or(String::from(""));
+        let row_id = self.row_id.clone();
+        let open_date_year = self.open_date_year.clone();
+        let open_date_month = self.open_date_month.clone();
+        let open_date_day = self.open_date_day.clone();
+        let international_code = self.international_code.clone();
+        let security_code = self.security_code.clone();
+        let security_name = self.security_name.clone();
+        let market_type = self.market_type.clone();
+        let security_type = self.security_type.clone();
+        let industry_type = self.industry_type.clone();
+        let issue_date = self.issue_date.clone();
+        let cfi_code = self.cfi_code.clone();
+        let remark = self.remark.clone();
 
         write!(
             f,
-            r#"{}, 
-            open_date: {}, 
-            international_code: {}, 
-            security_code: {}, 
-            security_name: {}, 
-            market_type: {}, 
-            security_type: {}, 
-            industry_type: {}, 
-            issue_date: {}, 
-            cfi_code: {}, 
-            remark: {}, 
+            r#"{0}, 
+            open_date: {1}{2}{3}, 
+            international_code: {4}, 
+            security_code: {5}, 
+            security_name: {6}, 
+            market_type: {7}, 
+            security_type: {8}, 
+            industry_type: {9}, 
+            issue_date: {10}, 
+            cfi_code: {11}, 
+            remark: {12}, 
             "#,
             row_id,
-            open_date,
+            open_date_year,
+            open_date_month,
+            open_date_day,
             international_code,
             security_code,
             security_name,

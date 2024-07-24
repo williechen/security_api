@@ -1,39 +1,43 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-#[derive(Debug, Clone)]
+use crate::schema::calendar_data;
+use chrono::NaiveDateTime;
+use diesel::prelude::{AsChangeset, Insertable, Queryable, QueryableByName};
+
+#[derive(Debug, Clone, Queryable, QueryableByName, AsChangeset)]
+#[diesel(table_name=calendar_data)]
+#[diesel(primary_key(row_id))]
 pub struct CalendarData {
-    pub row_id: Option<String>,
-    pub ce_year: Option<String>,
-    pub tw_year: Option<String>,
-    pub ce_month: Option<String>,
-    pub ce_day: Option<String>,
-    pub date_status: Option<String>,
-    pub group_task: Option<String>,
+    pub row_id: String,
+    pub ce_year: String,
+    pub ce_month: String,
+    pub ce_day: String,
+    pub date_status: String,
+    pub group_task: String,
+    pub created_date: NaiveDateTime,
+    pub updated_date: NaiveDateTime,
 }
 
-impl CalendarData {
-    pub fn new() -> Self {
-        CalendarData {
-            row_id: None,
-            ce_year: None,
-            tw_year: None,
-            ce_month: None,
-            ce_day: None,
-            date_status: None,
-            group_task: None,
-        }
-    }
+#[derive(Insertable)]
+#[diesel(table_name=calendar_data)]
+pub struct NewCalendarData {
+    pub ce_year: String,
+    pub ce_month: String,
+    pub ce_day: String,
+    pub date_status: String,
+    pub group_task: String,
+    pub created_date: NaiveDateTime,
+    pub updated_date: NaiveDateTime,
 }
 
 impl std::fmt::Display for CalendarData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone().unwrap_or(String::from(""));
-        let ce_year = self.ce_year.clone().unwrap_or(String::from(""));
-        let tw_year = self.tw_year.clone().unwrap_or(String::from(""));
-        let ce_month = self.ce_month.clone().unwrap_or(String::from(""));
-        let ce_day = self.ce_day.clone().unwrap_or(String::from(""));
-        let date_status = self.date_status.clone().unwrap_or(String::from(""));
-        let group_task = self.group_task.clone().unwrap_or(String::from(""));
+        let row_id = self.row_id.clone();
+        let ce_year = self.ce_year.clone();
+        let ce_month = self.ce_month.clone();
+        let ce_day = self.ce_day.clone();
+        let date_status = self.date_status.clone();
+        let group_task = self.group_task.clone();
 
         write!(
             f,
@@ -43,7 +47,13 @@ impl std::fmt::Display for CalendarData {
             date_status: {5},
             group_task: {6}
             "#,
-            row_id, ce_year, tw_year, ce_month, ce_day, date_status, group_task
+            row_id,
+            ce_year,
+            (ce_year.parse::<i32>().unwrap() - 1911),
+            ce_month,
+            ce_day,
+            date_status,
+            group_task
         )
     }
 }
