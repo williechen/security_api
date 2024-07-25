@@ -132,7 +132,7 @@ pub fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error:
     let m = &task.open_date_month;
     let d = &task.open_date_day;
     let open_date = format!("{0}{1}{2}", y, m, d);
-    let tw_date = format!("{0}{1}", y.parse::<i32>().unwrap() - 1911, m);
+    let tw_date = format!("{0}/{1}", y.parse::<i32>().unwrap() - 1911, m);
 
     info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &open_date);
 
@@ -193,7 +193,7 @@ pub fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::error:
     let m = &task.open_date_month;
     let d = &task.open_date_day;
     let open_date = format!("{0}{1}{2}", y, m, d);
-    let tw_date = format!("{0}{1}", y.parse::<i32>().unwrap() - 1911, m);
+    let tw_date = format!("{0}/{1}", y.parse::<i32>().unwrap() - 1911, m);
 
     info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &open_date);
 
