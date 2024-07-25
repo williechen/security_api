@@ -133,7 +133,6 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                 }
                 Err(e) => {
                     error!(target: "security_api", "daily_task.get_all_task {}", &e);
-                    continue;
                 }
             }
 
@@ -157,7 +156,6 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                     }
                     Err(e) => {
                         error!(target: "security_api", "daily_task.get_all_task {}", &e);
-                        continue;
                     }
                 }
             } else {
@@ -169,7 +167,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
-fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn std::error::Error>> {
+fn loop_data_security_task(security: SecurityTask) -> Result<(), retry::Error<Box<(dyn std::error::Error + 'static)>>> {
     // 重試設定
     let retry_strategy = Exponential::from_millis(2000).map(jitter).take(5);
 
@@ -180,10 +178,9 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn std::er
         "上市" => {
             let data = retry(retry_strategy, || {
                 response_data::service::get_twse_avg_json(&security)
-            })
-            .expect("上市 retry end");
+            })?;
 
-            let json_value: Value = serde_json::from_str(&data)?;
+            let json_value: Value = serde_json::from_str(&data).expect("twse json parse error");
             match json_value.get("stat") {
                 Some(t) => {
                     if "OK" == t.as_str().unwrap_or("") {
@@ -199,10 +196,9 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn std::er
         "上櫃" => {
             let data = retry(retry_strategy, || {
                 response_data::service::get_tpex1_json(&security)
-            })
-            .expect("上櫃 retry end");
+            })?;
 
-            let json_value: Value = serde_json::from_str(&data)?;
+            let json_value: Value = serde_json::from_str(&data).expect("tpex1 json parse error");
             match json_value.get("iTotalRecords") {
                 Some(t) => {
                     if 0 < t.as_i64().unwrap_or(0) {
@@ -218,9 +214,9 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn std::er
         "興櫃" => {
             let data = retry(retry_strategy, || {
                 response_data::service::get_tpex2_html(&security)
-            })
-            .expect("興櫃 retry end");
-            let json_value: Value = serde_json::from_str(&data)?;
+            })?;
+
+            let json_value: Value = serde_json::from_str(&data).expect("tpex2 json parse error");
             match json_value.get("iTotalRecords") {
                 Some(t) => {
                     if 0 < t.as_i64().unwrap_or(0) {
@@ -255,9 +251,9 @@ fn add_res_data(security: &SecurityTask, html: &String) {
     } else {
         let new_res_data = ResponseData {
             row_id: res_data.clone().unwrap().row_id,
-            open_date_year: res_data.clone().unwrap().open_date_year,
-            open_date_month: res_data.clone().unwrap().open_date_month,
-            open_date_day: res_data.clone().unwrap().open_date_day,
+            open_date_year: security.clone().open_date_year,
+            open_date_month: security.clone().open_date_month,
+            open_date_day: security.clone().open_date_day,
             exec_code: res_data.clone().unwrap().exec_code,
             data_content: html.to_string(),
             created_date: res_data.clone().unwrap().created_date,
