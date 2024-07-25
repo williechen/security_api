@@ -22,7 +22,7 @@ pub fn delete_temp() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub async fn get_security_to_temp(task: DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+pub fn get_security_to_temp(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
     info!(target: "security_api", "call daily_task.get_security_to_temp");
     let dao = Repository::new();
     let mut conn = dao.connection.get().unwrap();

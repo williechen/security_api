@@ -2,24 +2,16 @@
 
 use std::cmp::max;
 
-use sqlx::PgConnection;
-use tracing::{event, Level};
+use log::info;
 
 use super::{dao, model::SecurityTask};
-use crate::{daily_task::model::DailyTaskInfo, repository::Repository};
+use crate::daily_task::model::DailyTask;
 
-pub async fn update_task_data(
-    db_url: &str,
-    task_info: &DailyTaskInfo,
-) -> Result<(), Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "call daily_task.task_range");
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.acquire().await?;
+pub fn update_task_data(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+    info!(target: "security_api", "call daily_task.task_range");
 
-    let open_date = task_info.open_date.clone().unwrap();
-
-    let twse_list = select_task_to_twse(&mut *transaction, open_date.clone()).await?;
-    let tpex_list = select_task_to_tpex(&mut *transaction, open_date.clone()).await?;
+    let twse_list = dao::find_all_by_twse(&task);
+    let tpex_list = dao::find_all_by_tpex(&task);
 
     let max_count = max(twse_list.len(), tpex_list.len());
 
@@ -29,107 +21,28 @@ pub async fn update_task_data(
             sort_num = sort_num + 1;
 
             let twse_data = &twse_list[i];
-            let mut transaction = pool.connection.acquire().await?;
-            loop_data_task_data(&mut *transaction, twse_data.clone(), sort_num).await?;
+            loop_data_task_data(twse_data.clone(), sort_num);
         }
         if i < tpex_list.len() {
             sort_num = sort_num + 1;
 
             let tpex_data = &tpex_list[i];
-            let mut transaction = pool.connection.acquire().await?;
-            loop_data_task_data(&mut *transaction, tpex_data.clone(), sort_num).await?;
+            loop_data_task_data(tpex_data.clone(), sort_num);
         }
     }
 
     Ok(())
 }
 
-async fn loop_data_task_data(
-    transaction: &mut PgConnection,
-    data: SecurityTask,
+fn loop_data_task_data(
+    security: SecurityTask,
     item_index: i32,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if data.sort_no != Some(item_index) {
-        let mut new_data = data.clone();
-        new_data.sort_no = Some(item_index);
-        dao::update(transaction, new_data).await?;
+    if security.sort_no != item_index {
+        let mut new_data = security.clone();
+        new_data.sort_no = item_index;
+        dao::modify(new_data);
     }
 
     Ok(())
-}
-
-async fn select_task_to_twse(
-    transaction: &mut PgConnection,
-    open_date: String,
-) -> Result<Vec<SecurityTask>, Box<dyn std::error::Error>> {
-    match dao::read_all_by_sql(
-        transaction,
-        &format!(
-            r#" SELECT row_id
-                     , open_date
-                     , security_code
-                     , security_name
-                     , market_type
-                     , issue_date
-                     , security_date
-                     , security_seed
-                     , exec_count
-                     , is_enabled
-                     , sort_no
-                     , created_date
-                     , updated_date
-                   FROM security_task 
-                  WHERE open_date = '{0}' 
-                    AND market_type in ('上市')
-                  ORDER BY security_code, issue_date, market_type
-            "#,
-            open_date
-        ),
-    )
-    .await
-    {
-        Ok(rows) => Ok(rows.1),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_task.select_temp_to_twse: {}", &e);
-            panic!("security_task.select_temp_to_twse Error {}", &e)
-        }
-    }
-}
-
-async fn select_task_to_tpex(
-    transaction: &mut PgConnection,
-    open_date: String,
-) -> Result<Vec<SecurityTask>, Box<dyn std::error::Error>> {
-    match dao::read_all_by_sql(
-        transaction,
-        &format!(
-            r#" SELECT row_id
-                     , open_date
-                     , security_code
-                     , security_name
-                     , market_type
-                     , issue_date
-                     , security_date
-                     , security_seed
-                     , exec_count
-                     , is_enabled
-                     , sort_no
-                     , created_date
-                     , updated_date
-                   FROM security_task 
-                 WHERE open_date = '{0}' 
-                   AND market_type in ('上櫃', '興櫃')
-                 ORDER BY security_code, issue_date, market_type
-            "#,
-            open_date
-        ),
-    )
-    .await
-    {
-        Ok(rows) => Ok(rows.1),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_task.select_temp_to_tpex: {}", &e);
-            panic!("security_task.select_temp_to_tpex Error {}", &e)
-        }
-    }
 }

@@ -5,7 +5,9 @@ use chrono::Local;
 use log::{debug, error, info};
 use rand::{thread_rng, Rng};
 
-use crate::{daily_task::model::NewDailyTask, listen_flow, response_data};
+use crate::{
+    daily_task::model::NewDailyTask, listen_flow, response_data, security_task, security_temp,
+};
 
 use super::{dao, model::DailyTask};
 
@@ -54,11 +56,11 @@ pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
                 task.open_date_day.clone()
             );
 
-            let ref_job_code = task.job_code.clone().as_str();
+            let ref_job_code = job_code.as_str();
 
             // 執行任務
             match ref_job_code {
-                "get_web_security" => match response_data::service::get_security_all_code(task) {
+                "get_web_security" => match response_data::service::get_security_all_code(&task) {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
                         info!(target: "security_api", "daily_task.get_web_security Done");
@@ -69,7 +71,7 @@ pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
                         panic!("daily_task.get_web_security Error {}", &e)
                     }
                 },
-                "res_to_temp" => match security_temp::service::get_security_to_temp(task) {
+                "res_to_temp" => match security_temp::service::get_security_to_temp(&task) {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
                         info!(target: "security_api","daily_task.res_to_temp Done");
@@ -81,7 +83,7 @@ pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 },
                 "temp_to_task" => {
-                    match security_task::service::insert_task_data(task) {
+                    match security_task::service::insert_task_data(&task) {
                         Ok(_) => {
                             update_task_status(&task, "EXIT");
                             info!(target: "security_api", "daily_task.temp_to_task Done");
@@ -93,7 +95,7 @@ pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
 
-                    security_task::service_range::update_task_data(task)?;
+                    security_task::service_range::update_task_data(&task)?;
                 }
                 "delete_temp" => match security_temp::service::delete_temp() {
                     Ok(_) => {
@@ -106,7 +108,7 @@ pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
                         panic!("daily_task.delete_temp Error {}", &e)
                     }
                 },
-                "task_run" => match security_task::service::get_all_task(task) {
+                "task_run" => match security_task::service::get_all_task(&task) {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
                         info!(target: "security_api", "daily_task.task_run Done");

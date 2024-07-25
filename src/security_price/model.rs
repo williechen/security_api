@@ -3,40 +3,65 @@
 use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Queryable, QueryableByName, AsChangeset)]
+#[diesel(table_name=security_task)]
+#[diesel(primary_key(row_id))]
 pub struct SecurityPrice {
-    pub row_id: Option<String>,
-    pub open_date: Option<String>,
-    pub security_code: Option<String>,
-    pub security_name: Option<String>,
-    pub price_date: Option<String>,
-    pub price_close: Option<BigDecimal>,
-    pub price_avg: Option<BigDecimal>,
-    pub price_hight: Option<BigDecimal>,
-    pub price_hight_avg: Option<BigDecimal>,
-    pub price_lowest: Option<BigDecimal>,
-    pub price_lowest_avg: Option<BigDecimal>,
+    pub row_id: String,
+    pub open_date_year: String,
+    pub open_date_month: String,
+    pub open_date_day: String,
+    pub security_code: String,
+    pub security_name: String,
+    pub price_date: String,
+    pub price_close: BigDecimal,
+    pub price_avg: BigDecimal,
+    pub price_hight: BigDecimal,
+    pub price_hight_avg: BigDecimal,
+    pub price_lowest: BigDecimal,
+    pub price_lowest_avg: BigDecimal,
+    pub created_date: NaiveDateTime,
+    pub updated_date: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name=security_task)]
+pub struct NewSecurityTask {
+    pub open_date_year: String,
+    pub open_date_month: String,
+    pub open_date_day: String,
+    pub security_code: String,
+    pub security_name: String,
+    pub price_date: String,
+    pub price_close: BigDecimal,
+    pub price_avg: BigDecimal,
+    pub price_hight: BigDecimal,
+    pub price_hight_avg: BigDecimal,
+    pub price_lowest: BigDecimal,
+    pub price_lowest_avg: BigDecimal,
+    pub created_date: NaiveDateTime,
+    pub updated_date: NaiveDateTime,
 }
 
 impl std::fmt::Display for SecurityPrice {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone().unwrap_or(String::from(""));
-        let open_date = self.open_date.clone().unwrap_or(String::from(""));
-        let security_code = self.security_code.clone().unwrap_or(String::from(""));
-        let security_name = self.security_name.clone().unwrap_or(String::from(""));
-        let price_date = self.price_date.clone().unwrap_or(String::from(""));
-        let price_close = self.price_close.clone().unwrap_or(BigDecimal::default());
-        let price_avg = self.price_avg.clone().unwrap_or(BigDecimal::default());
-        let price_hight = self.price_hight.clone().unwrap_or(BigDecimal::default());
+        let row_id = self.row_id.clone();
+        let open_date_year = self.open_date_year.clone();
+        let open_date_month = self.open_date_month.clone();
+        let open_date_day = self.open_date_day.clone();
+        let security_code = self.security_code.clone();
+        let security_name = self.security_name.clone();
+        let price_date = self.price_date.clone();
+        let price_close = self.price_close.clone();
+        let price_avg = self.price_avg.clone();
+        let price_hight = self.price_hight.clone();
         let price_hight_avg = self
             .price_hight_avg
-            .clone()
-            .unwrap_or(BigDecimal::default());
-        let price_lowest = self.price_lowest.clone().unwrap_or(BigDecimal::default());
+            .clone();
+        let price_lowest = self.price_lowest.clone();
         let price_lowest_avg = self
             .price_lowest_avg
-            .clone()
-            .unwrap_or(BigDecimal::default());
+            .clone();
 
         write!(
             f,
@@ -53,7 +78,9 @@ impl std::fmt::Display for SecurityPrice {
             price_lowest_avg: {},
             "#,
             row_id,
-            open_date,
+            open_date_year,
+            open_date_month,
+            open_date_day,
             security_code,
             security_name,
             price_date,

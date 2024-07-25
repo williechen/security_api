@@ -15,7 +15,7 @@ use crate::{
     security_task::model::SecurityTask,
 };
 
-pub fn get_security_all_code(task: DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+pub fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
     info!(target: "security_api", "call daily_task.get_security_all_code");
 
     let q_year = task.clone().open_date_year;
@@ -75,17 +75,22 @@ fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error:
     Ok(result.to_string())
 }
 
-pub async fn get_twse_json(task: SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+pub fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    let y = &task.open_date_year;
+    let m = &task.open_date_month;
+    let d = &task.open_date_day;
+    let open_date = format!("{0}{1}{2}", y, m, d);
+
+    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &open_date);
 
     let client = Client::new();
 
     let res = client
         .get("https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY")
-        .query(&[("date", &task.security_date)])
+        .query(&[("date", &open_date)])
         .query(&[("stockNo", &task.security_code)])
         .query(&[("response", "json")])
-        .query(&[("_", &task.security_seed)])
+        .query(&[("_", &task.exec_seed)])
         .timeout(Duration::from_secs(4))
         .send()?;
     info!(target: "security_api",  "{:?}", &res.url().to_string());
@@ -96,17 +101,22 @@ pub async fn get_twse_json(task: SecurityTask) -> Result<String, Box<dyn std::er
     Ok(json)
 }
 
-pub async fn get_twse_avg_json(task: SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+pub fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    let y = &task.open_date_year;
+    let m = &task.open_date_month;
+    let d = &task.open_date_day;
+    let open_date = format!("{0}{1}{2}", y, m, d);
+
+    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &open_date);
 
     let client = Client::new();
 
     let res = client
         .get("https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY_AVG")
-        .query(&[("date", &task.security_date)])
+        .query(&[("date", &open_date)])
         .query(&[("stockNo", &task.security_code)])
         .query(&[("response", "json")])
-        .query(&[("_", &task.security_seed)])
+        .query(&[("_", &task.exec_seed)])
         .timeout(Duration::from_secs(4))
         .send()?;
     info!(target: "security_api",  "{:?}", &res.url().to_string());
@@ -117,16 +127,22 @@ pub async fn get_twse_avg_json(task: SecurityTask) -> Result<String, Box<dyn std
     Ok(json)
 }
 
-pub async fn get_tpex1_json(task: SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+pub fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    let y = &task.open_date_year;
+    let m = &task.open_date_month;
+    let d = &task.open_date_day;
+    let open_date = format!("{0}{1}{2}", y, m, d);
+    let tw_date = format!("{0}{1}", y.parse::<i32>().unwrap() - 1911, m);
+
+    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &open_date);
 
     let client = Client::new();
 
     let res = client
         .get("https://www.tpex.org.tw/web/stock/aftertrading/daily_trading_info/st43_result.php")
-        .query(&[("d", &task.security_date)])
+        .query(&[("d", &tw_date)])
         .query(&[("stkno", &task.security_code)])
-        .query(&[("_", &task.security_seed)])
+        .query(&[("_", &task.exec_seed)])
         .timeout(Duration::from_secs(4))
         .send()?;
     info!(target: "security_api", "{:?}", &res.url().to_string());
@@ -172,13 +188,19 @@ fn decode_unicode_escape(s: &str) -> String {
     result
 }
 
-pub async fn get_tpex2_html(task: SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+pub fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    let y = &task.open_date_year;
+    let m = &task.open_date_month;
+    let d = &task.open_date_day;
+    let open_date = format!("{0}{1}{2}", y, m, d);
+    let tw_date = format!("{0}{1}", y.parse::<i32>().unwrap() - 1911, m);
+
+    info!(target: "security_api", "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &open_date);
 
     let params = [
-        ("input_month", &task.security_date),
+        ("input_month", &tw_date),
         ("input_emgstk_code", &task.security_code),
-        ("ajax", &Some("true".to_string())),
+        ("ajax", &"true".to_string()),
     ];
 
     let client = Client::new();
