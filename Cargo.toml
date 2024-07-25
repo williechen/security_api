@@ -11,7 +11,7 @@ bigdecimal = "0.4"
 
 chrono = "0.4"
 
-diesel = { version = "2.2.2", features = ["postgres", "r2d2", "chrono"] }
+diesel = { version = "2.2.2", features = ["postgres", "r2d2", "chrono" , "numeric"] }
 dotenvy = "0.15"
 
 encoding_rs = "0.8"

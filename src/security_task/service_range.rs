@@ -21,13 +21,13 @@ pub fn update_task_data(task: &DailyTask) -> Result<(), Box<dyn std::error::Erro
             sort_num = sort_num + 1;
 
             let twse_data = &twse_list[i];
-            loop_data_task_data(twse_data.clone(), sort_num);
+            loop_data_task_data(twse_data.clone(), sort_num)?;
         }
         if i < tpex_list.len() {
             sort_num = sort_num + 1;
 
             let tpex_data = &tpex_list[i];
-            loop_data_task_data(tpex_data.clone(), sort_num);
+            loop_data_task_data(tpex_data.clone(), sort_num)?;
         }
     }
 
@@ -41,7 +41,7 @@ fn loop_data_task_data(
     if security.sort_no != item_index {
         let mut new_data = security.clone();
         new_data.sort_no = item_index;
-        dao::modify(new_data);
+        dao::modify(new_data)?;
     }
 
     Ok(())

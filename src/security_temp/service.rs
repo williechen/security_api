@@ -17,7 +17,7 @@ use super::dao;
 pub fn delete_temp() -> Result<(), Box<dyn std::error::Error>> {
     info!(target: "security_api", "call daily_task.delete_temp");
 
-    dao::remove_all();
+    dao::remove_all()?;
 
     Ok(())
 }
@@ -33,10 +33,9 @@ pub fn get_security_to_temp(task: &DailyTask) -> Result<(), Box<dyn std::error::
     let q_exec_code = "security".to_string();
 
     let data = response_data::dao::find_one(q_year, q_month, q_day, q_exec_code);
-    if data.is_none() {
+    if data.is_some() {
         let data_content = data.unwrap().data_content;
-
-        conn.transaction(|conn| insert_temp_data(conn, data_content, &task));
+        conn.transaction(|trax_conn| insert_temp_data(trax_conn, data_content, &task))?;
     }
 
     Ok(())
@@ -50,7 +49,7 @@ fn insert_temp_data(
     let rows = parse_table_data(data_content).unwrap();
     for row in rows {
         debug!(target: "security_api", "ROW: {:?}", &row);
-        loop_data_temp(&mut *transaction, row, &task)?;
+        loop_data_temp(transaction, row, &task)?;
     }
 
     Ok(())
@@ -93,7 +92,7 @@ fn loop_data_temp(
             created_date: Local::now().naive_local(),
             updated_date: Local::now().naive_local(),
         };
-        dao::create(transaction, security_temp);
+        dao::create(transaction, security_temp)?;
     }
     Ok(())
 }

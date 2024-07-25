@@ -20,11 +20,16 @@ appenders:
       roller:
         kind: fixed_window
         base: 1
-        count: 10
+        count: 150
         pattern: "log/security_api_{}.log"
 
 root:
-  level: debug
+  level: info
   appenders:
     - stdout
-    - roll
+
+loggers:
+  security_api:
+    level: debug
+    appenders:
+      - roll

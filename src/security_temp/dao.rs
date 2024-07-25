@@ -2,17 +2,15 @@
 
 use diesel::query_dsl::methods::FilterDsl;
 use diesel::sql_types::VarChar;
-use diesel::{
-    delete, insert_into, sql_query, update, ExpressionMethods, PgConnection, RunQueryDsl,
-};
+use diesel::{delete, insert_into, sql_query, ExpressionMethods, PgConnection, RunQueryDsl};
 use log::debug;
 
 use crate::daily_task::model::DailyTask;
+use crate::repository::Repository;
 use crate::schema::security_temp::dsl::security_temp as table;
 use crate::schema::security_temp::{
     issue_date, market_type, open_date_day, open_date_month, open_date_year, security_code,
 };
-use crate::{repository::Repository, schema::security_temp::row_id};
 
 use super::model::{NewSecurityTemp, SecurityTemp};
 
@@ -27,7 +25,9 @@ pub fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTemp> {
 
     let query = sql_query(
         r#" SELECT row_id
-                      , open_date
+                      , open_date_year
+                      , open_date_month
+                      , open_date_day
                       , international_code
                       , security_code
                       , security_name
@@ -70,7 +70,9 @@ pub fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTemp> {
 
     let query = sql_query(
         r#" SELECT row_id
-                     , open_date
+                     , open_date_year
+                     , open_date_month
+                     , open_date_day
                      , international_code
                      , security_code
                      , security_name
@@ -137,13 +139,6 @@ pub fn create(
     data: NewSecurityTemp,
 ) -> Result<usize, diesel::result::Error> {
     insert_into(table).values(data).execute(conn)
-}
-
-pub fn modify(conn: &mut PgConnection, data: SecurityTemp) -> Result<usize, diesel::result::Error> {
-    update(table)
-        .filter(row_id.eq(data.row_id.clone()))
-        .set(data)
-        .execute(conn)
 }
 
 pub fn remove_all() -> Result<usize, diesel::result::Error> {

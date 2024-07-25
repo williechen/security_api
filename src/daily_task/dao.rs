@@ -25,6 +25,8 @@ pub fn find_all() -> Vec<DailyTask> {
                  , cd.ce_day AS open_date_day
                  , ts.job_code 
                  , 'WAIT' AS exec_status
+                 , now() AS created_date
+                 , now() AS updated_date
               FROM calendar_data cd
               JOIN task_setting ts
                 ON cd.group_task = ts.group_code
@@ -38,7 +40,7 @@ pub fn find_all() -> Vec<DailyTask> {
              )
               AND cd.ce_year = $1
               AND cd.ce_month = $2
-              AND cd.ce_day = $3
+              AND cd.ce_day <= $3
               AND cd.date_status = 'O'
             ORDER BY cd.ce_year desc, cd.ce_month desc, cd.ce_day desc, ts.sort_no  
             "#,
@@ -101,9 +103,14 @@ pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
 
     let query = sql_query(
         r#"
-        SELECT distinct dt.open_date_year
-             , dt.open_date_month
-             , dt.open_date_day
+        SELECT distinct '' AS row_id
+                 , '' AS job_code 
+                 , '' AS exec_status
+                 , now() AS created_date
+                 , now() AS updated_date 
+                 , dt.open_date_year
+                 , dt.open_date_month
+                 , dt.open_date_day
           FROM daily_task dt
           JOIN calendar_data cd
             ON dt.open_date_year = cd.ce_year
@@ -128,7 +135,7 @@ pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
     match query.get_result::<DailyTask>(&mut conn) {
         Ok(row) => Some(row),
         Err(e) => {
-            debug!("read_by_exec {}", e);
+            debug!("find_one_by_exec_asc {}", e);
             None
         }
     }
@@ -140,9 +147,14 @@ pub fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
 
     let query = sql_query(
         r#"
-        SELECT distinct dt.open_date_year
-             , dt.open_date_month
-             , dt.open_date_day
+        SELECT distinct '' AS row_id
+                 , '' AS job_code 
+                 , '' AS exec_status
+                 , now() AS created_date
+                 , now() AS updated_date 
+                 , dt.open_date_year
+                 , dt.open_date_month
+                 , dt.open_date_day
           FROM daily_task dt
           JOIN calendar_data cd
             ON dt.open_date_year = cd.ce_year
@@ -167,7 +179,7 @@ pub fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
     match query.get_result::<DailyTask>(&mut conn) {
         Ok(row) => Some(row),
         Err(e) => {
-            debug!("read_by_exec {}", e);
+            debug!("find_one_by_exec_desc {}", e);
             None
         }
     }

@@ -88,7 +88,7 @@ fn loop_data_temp_data(
             updated_date: Local::now().naive_local(),
         };
 
-        dao::create(new_security_task);
+        dao::create(new_security_task)?;
     }
 
     Ok(())

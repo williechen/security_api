@@ -1,10 +1,17 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 use bigdecimal::BigDecimal;
+use chrono::NaiveDateTime;
+use diesel::{
+    prelude::{AsChangeset, Insertable, Queryable, QueryableByName},
+    sql_types,
+};
 use serde::{Deserialize, Serialize};
 
+use crate::schema::security_price;
+
 #[derive(Debug, Clone, Queryable, QueryableByName, AsChangeset)]
-#[diesel(table_name=security_task)]
+#[diesel(table_name=security_price)]
 #[diesel(primary_key(row_id))]
 pub struct SecurityPrice {
     pub row_id: String,
@@ -25,8 +32,8 @@ pub struct SecurityPrice {
 }
 
 #[derive(Insertable)]
-#[diesel(table_name=security_task)]
-pub struct NewSecurityTask {
+#[diesel(table_name=security_price)]
+pub struct NewSecurityPrice {
     pub open_date_year: String,
     pub open_date_month: String,
     pub open_date_day: String,
@@ -55,27 +62,23 @@ impl std::fmt::Display for SecurityPrice {
         let price_close = self.price_close.clone();
         let price_avg = self.price_avg.clone();
         let price_hight = self.price_hight.clone();
-        let price_hight_avg = self
-            .price_hight_avg
-            .clone();
+        let price_hight_avg = self.price_hight_avg.clone();
         let price_lowest = self.price_lowest.clone();
-        let price_lowest_avg = self
-            .price_lowest_avg
-            .clone();
+        let price_lowest_avg = self.price_lowest_avg.clone();
 
         write!(
             f,
-            r#"{}, 
-            open_date: {}, 
-            security_code: {}, 
-            security_name: {}, 
-            price_date: {}, 
-            price_close: {}, 
-            price_avg: {},
-            price_hight: {},
-            price_hight_avg: {},
-            price_lowest: {},
-            price_lowest_avg: {},
+            r#"{0}, 
+            open_date: {1}{2}{3}, 
+            security_code: {4}, 
+            security_name: {5}, 
+            price_date: {6}, 
+            price_close: {7}, 
+            price_avg: {8},
+            price_hight: {9},
+            price_hight_avg: {10},
+            price_lowest: {11},
+            price_lowest_avg: {12},
             "#,
             row_id,
             open_date_year,
@@ -94,13 +97,22 @@ impl std::fmt::Display for SecurityPrice {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, QueryableByName)]
 pub struct ResposePrice {
-    pub open_date: Option<String>,
-    pub security_code: Option<String>,
-    pub security_name: Option<String>,
-    pub market_type: Option<String>,
-    pub data_content: Option<String>,
+    #[diesel(sql_type = sql_types::VarChar)]
+    pub open_date_year: String,
+    #[diesel(sql_type = sql_types::VarChar)]
+    pub open_date_month: String,
+    #[diesel(sql_type = sql_types::VarChar)]
+    pub open_date_day: String,
+    #[diesel(sql_type = sql_types::VarChar)]
+    pub security_code: String,
+    #[diesel(sql_type = sql_types::VarChar)]
+    pub security_name: String,
+    #[diesel(sql_type = sql_types::VarChar)]
+    pub market_type: String,
+    #[diesel(sql_type = sql_types::VarChar)]
+    pub data_content: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

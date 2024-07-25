@@ -26,20 +26,23 @@ pub fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTask> {
 
     let query = sql_query(
         r#" SELECT row_id
-                     , open_date
+                     , open_date_year
+                     , open_date_month
+                     , open_date_day
                      , security_code
                      , security_name
                      , market_type
                      , issue_date
-                     , security_date
-                     , security_seed
+                     , exec_seed
                      , exec_count
                      , is_enabled
                      , sort_no
                      , created_date
                      , updated_date
                    FROM security_task 
-                  WHERE open_date = '{0}' 
+                  WHERE open_date_year = $1
+                    AND open_date_month = $2
+                    AND open_date_day = $3
                     AND market_type in ('上市')
                   ORDER BY security_code, issue_date, market_type
                   "#,
@@ -63,22 +66,25 @@ pub fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTask> {
 
     let query = sql_query(
         r#" SELECT row_id
-                     , open_date
+                     , open_date_year
+                     , open_date_month
+                     , open_date_day
                      , security_code
                      , security_name
                      , market_type
                      , issue_date
-                     , security_date
-                     , security_seed
+                     , exec_seed
                      , exec_count
                      , is_enabled
                      , sort_no
                      , created_date
                      , updated_date
                    FROM security_task 
-                 WHERE open_date = '{0}' 
-                   AND market_type in ('上櫃', '興櫃')
-                 ORDER BY security_code, issue_date, market_type
+                  WHERE open_date_year = $1
+                    AND open_date_month = $2
+                    AND open_date_day = $3 
+                    AND market_type in ('上櫃', '興櫃')
+                  ORDER BY security_code, issue_date, market_type
             "#,
     )
     .bind::<VarChar, _>(q_year)

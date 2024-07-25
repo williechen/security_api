@@ -6,7 +6,8 @@ use log::{debug, error, info};
 use rand::{thread_rng, Rng};
 
 use crate::{
-    daily_task::model::NewDailyTask, listen_flow, response_data, security_task, security_temp,
+    daily_task::model::NewDailyTask, listen_flow, response_data, security_price, security_task,
+    security_temp,
 };
 
 use super::{dao, model::DailyTask};
@@ -147,11 +148,11 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                 task.open_date_day.clone()
             );
 
-            let ref_job_code = task.job_code.clone().as_str();
+            let ref_job_code = job_code.as_str();
 
             // 執行任務
             match ref_job_code {
-                "res_price" => match security_price::service::get_security_to_price(task) {
+                "res_price" => match security_price::service::get_security_to_price(&task) {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
                         info!(target: "security_api",  "daily_task.res_price Done");
@@ -162,7 +163,7 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                         panic!("daily_task.res_price Error {}", &e)
                     }
                 },
-                "price_value" => match security_price::service::get_calculator_to_price(task) {
+                "price_value" => match security_price::service::get_calculator_to_price(&task) {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
                         info!(target: "security_api",  "daily_task.price_value Done");
@@ -186,7 +187,7 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
 fn update_task_status(task: &DailyTask, status: &str) {
     let mut daily_task = task.clone();
     daily_task.exec_status = status.to_string();
-    dao::modify(daily_task);
+    dao::modify(daily_task).unwrap();
 }
 
 fn get_open_data(flow_code: &str, task: &DailyTask) -> (String, String) {

@@ -8,6 +8,7 @@ mod calendar_data;
 mod daily_task;
 mod listen_flow;
 mod response_data;
+mod security_price;
 mod security_task;
 mod security_temp;
 
@@ -36,9 +37,9 @@ pub fn run_daily_task(is_renew: bool) -> Result<(), Box<dyn std::error::Error>> 
 }
 
 pub fn run_price_task(is_renew: bool) -> Result<(), Box<dyn std::error::Error>> {
-    /*if is_renew {
-        listen_flow::service::delete_flow_data(db_url, "price").await;
+    if is_renew {
+        listen_flow::service::delete_flow_data("price");
     }
-    daily_task::service::exec_price_task(db_url).await?;*/
+    daily_task::service::exec_price_task()?;
     Ok(())
 }
