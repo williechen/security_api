@@ -178,10 +178,12 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn std::er
 
     match ref_market_type {
         "上市" => {
-            let data = retry(retry_strategy, || {
+            let data = match retry(retry_strategy, || {
                 response_data::service::get_twse_avg_json(&security)
-            })
-            .unwrap();
+            }){
+                Ok(t) => t,
+                Err(_) => panic!("上市 retry end"),
+            };
 
             let json_value: Value = serde_json::from_str(&data)?;
             match json_value.get("stat") {
@@ -197,10 +199,13 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn std::er
             };
         }
         "上櫃" => {
-            let data = retry(retry_strategy, || {
+            let data = match retry(retry_strategy, || {
                 response_data::service::get_tpex1_json(&security)
             })
-            .unwrap();
+            {
+                Ok(t) => t,
+                Err(_) => panic!("上櫃 retry end"),
+            };
 
             let json_value: Value = serde_json::from_str(&data)?;
             match json_value.get("iTotalRecords") {
@@ -216,10 +221,13 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn std::er
             };
         }
         "興櫃" => {
-            let data = retry(retry_strategy, || {
+            let data = match retry(retry_strategy, || {
                 response_data::service::get_tpex2_html(&security)
             })
-            .unwrap();
+            {
+                Ok(t) => t,
+                Err(_) => panic!("興櫃 retry end"),
+            };
 
             let json_value: Value = serde_json::from_str(&data)?;
             match json_value.get("iTotalRecords") {
@@ -271,6 +279,7 @@ fn add_res_data(security: &SecurityTask, html: &String) {
 fn update_data(security: &SecurityTask, is_action: bool) {
     let mut security_task = security.clone();
     security_task.exec_count = security_task.exec_count + 1;
+    security_task.updated_date=Local::now().naive_local();
 
     if is_action {
         security_task.is_enabled = 0;

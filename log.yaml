@@ -16,7 +16,7 @@ appenders:
       kind: compound
       trigger: 
         kind: size
-        limit: 1 gb #限制大小为1gb
+        limit: 512 mb #限制大小为512mb
       roller:
         kind: fixed_window
         base: 1

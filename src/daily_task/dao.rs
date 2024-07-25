@@ -92,7 +92,10 @@ pub fn modify(data: DailyTask) -> Result<usize, diesel::result::Error> {
     let mut conn = dao.connection.get().unwrap();
 
     update(table)
-        .filter(row_id.eq(data.row_id.clone()))
+        .filter(open_date_year.eq(data.open_date_year.clone()))
+        .filter(open_date_month.eq(data.open_date_month.clone()))
+        .filter(open_date_day.eq(data.open_date_day.clone()))
+        .filter(job_code.eq(data.job_code.clone()))
         .set(data)
         .execute(&mut conn)
 }
@@ -112,10 +115,6 @@ pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
                  , dt.open_date_month
                  , dt.open_date_day
           FROM daily_task dt
-          JOIN calendar_data cd
-            ON dt.open_date_year = cd.ce_year
-           AND dt.open_date_month = cd.ce_month
-           AND dt.open_date_day = cd.ce_day
          WHERE dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
            AND NOT EXISTS (
                SELECT 1 
@@ -156,10 +155,6 @@ pub fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
                  , dt.open_date_month
                  , dt.open_date_day
           FROM daily_task dt
-          JOIN calendar_data cd
-            ON dt.open_date_year = cd.ce_year
-           AND dt.open_date_month = cd.ce_month
-           AND dt.open_date_day = cd.ce_day
          WHERE dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
            AND NOT EXISTS (
                SELECT 1 
@@ -200,16 +195,13 @@ pub fn find_all_by_exec(q_year: String, q_month: String) -> Vec<DailyTask> {
              , dt.created_date
              , dt.updated_date
           FROM daily_task dt
-          JOIN calendar_data cd
-            ON dt.open_date_year = cd.ce_year
-           AND dt.open_date_month = cd.ce_month
-           AND dt.open_date_day = cd.ce_day
           JOIN task_setting ts
             ON ts.group_code = cd.group_task 
            AND ts.job_code = dt.job_code
          WHERE dt.open_date_year = $1
            AND dt.open_date_month = $2
-         ORDER BY ts.sort_no
+           AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
+         ORDER BY dt.open_date_year desc, dt.open_date_month desc, dt.open_date_day desc,ts.sort_no
          "#,
     )
     .bind::<VarChar, _>(q_year)

@@ -42,7 +42,7 @@ pub fn insert_task_data() -> Result<(), Box<dyn std::error::Error>> {
 pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
     let mut exec_task = dao::find_one_by_exec_desc("security".to_string());
     while exec_task.is_some() {
-        let e_open_date = get_open_data("security", &exec_task.unwrap());
+        let e_open_date = start_open_data("security", &exec_task.clone().unwrap());
 
         let task_list = dao::find_all_by_exec(e_open_date.0, e_open_date.1);
         for task in task_list {
@@ -125,6 +125,7 @@ pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
         }
+        end_open_date("price", &exec_task.clone().unwrap());
         exec_task = dao::find_one_by_exec_desc("security".to_string());
     }
     Ok(())
@@ -133,7 +134,7 @@ pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
 pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
     let mut exec_task = dao::find_one_by_exec_asc("price".to_string());
     while exec_task.is_some() {
-        let e_open_date = get_open_data("price", &exec_task.unwrap());
+        let e_open_date = start_open_data("price", &exec_task.clone().unwrap());
 
         let task_list = dao::find_all_by_exec(e_open_date.0, e_open_date.1);
         for task in task_list {
@@ -179,6 +180,7 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
         }
+        end_open_date("price", &exec_task.clone().unwrap());
         exec_task = dao::find_one_by_exec_asc("price".to_string());
     }
     Ok(())
@@ -190,7 +192,7 @@ fn update_task_status(task: &DailyTask, status: &str) {
     dao::modify(daily_task).unwrap();
 }
 
-fn get_open_data(flow_code: &str, task: &DailyTask) -> (String, String) {
+fn start_open_data(flow_code: &str, task: &DailyTask) -> (String, String) {
     let pid = process::id() as i32;
     let year = task.open_date_year.clone();
     let month = task.open_date_month.clone();
@@ -219,4 +221,12 @@ fn get_open_data(flow_code: &str, task: &DailyTask) -> (String, String) {
         listen_flow::service::insert_flow_data2(pid, flow_code, &year, &month);
         (year, month)
     }
+}
+
+fn end_open_date(flow_code: &str, task: &DailyTask){
+    let pid = process::id() as i32;
+    let year = task.open_date_year.clone();
+    let month = task.open_date_month.clone();
+
+    listen_flow::service::modify_flow_data2(pid, flow_code, &year, &month);
 }
