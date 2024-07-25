@@ -62,7 +62,7 @@ pub fn insert_flow_data2(pid: i32, flow_code: &str, flow_param1: &str, flow_para
     }
 }
 
-pub fn modify_flow_data2(pid: i32, flow_code: &str, flow_param1: &str, flow_param2: &str){
+pub fn modify_flow_data2(pid: i32, flow_code: &str, flow_param1: &str, flow_param2: &str) {
     let listen_flow = ListenFlow {
         row_id: String::new(),
         flow_code: flow_code.to_string(),
@@ -79,10 +79,9 @@ pub fn modify_flow_data2(pid: i32, flow_code: &str, flow_param1: &str, flow_para
 
     let flows = dao::find_all(listen_flow);
     if flows.len() <= 0 {
-
         let mut new_flow = flows[0].clone();
-        new_flow.pstatus="EXIT".to_string();
-        new_flow.updated_date=Local::now().naive_local();
+        new_flow.pstatus = "EXIT".to_string();
+        new_flow.updated_date = Local::now().naive_local();
 
         dao::modify(new_flow).unwrap();
     }

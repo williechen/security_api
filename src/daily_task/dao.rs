@@ -7,7 +7,7 @@ use log::debug;
 
 use crate::repository::Repository;
 use crate::schema::daily_task::dsl::daily_task as table;
-use crate::schema::daily_task::{job_code, open_date_day, open_date_month, open_date_year, row_id};
+use crate::schema::daily_task::{job_code, open_date_day, open_date_month, open_date_year};
 
 use super::model::{DailyTask, NewDailyTask};
 

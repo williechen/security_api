@@ -223,7 +223,7 @@ fn start_open_data(flow_code: &str, task: &DailyTask) -> (String, String) {
     }
 }
 
-fn end_open_date(flow_code: &str, task: &DailyTask){
+fn end_open_date(flow_code: &str, task: &DailyTask) {
     let pid = process::id() as i32;
     let year = task.open_date_year.clone();
     let month = task.open_date_month.clone();
