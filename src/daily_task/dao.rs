@@ -40,7 +40,7 @@ pub fn find_all() -> Vec<DailyTask> {
              )
               AND cd.ce_year = $1
               AND cd.ce_month = $2
-              AND cd.ce_day <= $3
+              AND cd.ce_day = $3
               AND cd.date_status = 'O'
             ORDER BY cd.ce_year desc, cd.ce_month desc, cd.ce_day desc, ts.sort_no  
             "#,
