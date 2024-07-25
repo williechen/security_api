@@ -120,8 +120,8 @@ pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
                SELECT 1 
                  FROM listen_flow lf
                 WHERE lf.flow_code = $1
-                  AND lf.flow_param1 = cd.ce_year
-                  AND lf.flow_param2 = cd.ce_month
+                  AND lf.flow_param1 = dt.open_date_year
+                  AND lf.flow_param2 = dt.open_date_month
             )
          ORDER BY dt.open_date_year, dt.open_date_month, dt.open_date_day
          Limit 1
@@ -160,8 +160,8 @@ pub fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
                SELECT 1 
                  FROM listen_flow lf
                 WHERE lf.flow_code = $1
-                  AND lf.flow_param1 = cd.ce_year
-                  AND lf.flow_param2 = cd.ce_month
+                  AND lf.flow_param1 = dt.open_date_year
+                  AND lf.flow_param2 = dt.open_date_month
             )
          ORDER BY dt.open_date_year desc, dt.open_date_month desc, dt.open_date_day desc
          Limit 1
@@ -195,6 +195,10 @@ pub fn find_all_by_exec(q_year: String, q_month: String) -> Vec<DailyTask> {
              , dt.created_date
              , dt.updated_date
           FROM daily_task dt
+          JOIN calendar_data cd
+            ON dt.open_date_year = cd.ce_year
+           AND dt.open_date_month = cd.ce_month
+           AND dt.open_date_day = cd.ce_day
           JOIN task_setting ts
             ON ts.group_code = cd.group_task 
            AND ts.job_code = dt.job_code
