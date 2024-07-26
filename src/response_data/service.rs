@@ -81,7 +81,7 @@ fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error:
 }
 
 pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+    run_task_log(task);
 
     let client = Client::new();
 
@@ -103,7 +103,7 @@ pub async fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::e
 }
 
 pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+    run_task_log(task);
 
     let client = Client::new();
 
@@ -125,7 +125,7 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
 }
 
 pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+    run_task_log(task);
 
     let client = Client::new();
 
@@ -181,7 +181,7 @@ fn decode_unicode_escape(s: &str) -> String {
 }
 
 pub async fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    event!(target: "security_api", Level::INFO, "send {0:?} {1:?} {2:?}", &task.security_code, &task.market_type, &task.open_date);
+    run_task_log(task);
 
     let params = [
         ("input_month", &task.security_date),
@@ -252,4 +252,14 @@ fn parse_web_tpex2_data(document: &String) -> Result<String, Box<dyn std::error:
     data_map.insert("aaData".to_string(), serde_json::Value::Array(data_row));
 
     Ok(serde_json::to_string(&data_map)?)
+}
+
+
+fn run_task_log(task: &SecurityTask){
+
+    let security_code = task.security_code.clone().unwrap();
+    let market_type = task.market_type.clone().unwrap();
+    let open_date = task.open_date.clone().unwrap();
+
+    event!(target: "security_api", Level::INFO, "send [{0}:{1}({2})]", open_date, market_type, security_code);
 }

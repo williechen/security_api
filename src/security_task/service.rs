@@ -377,16 +377,13 @@ async fn loop_data_security_task(
         .max_delay(time::Duration::from_secs(10))
         .take(5);
 
-    let open_date = security.open_date.clone().unwrap();
-    let security_code = security.security_code.clone().unwrap();
-
     let market_type = security.market_type.clone().unwrap_or("".to_string());
     let ref_market_type = market_type.as_str();
 
     match ref_market_type {
         "上市" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
-                response_data::service::get_twse_avg_json(&security).await
+                retry_twse(&security).await
             })
             .await?;
 
@@ -405,7 +402,7 @@ async fn loop_data_security_task(
         }
         "上櫃" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
-                response_data::service::get_tpex1_json(&security).await
+                retry_tpex1(&security).await
             })
             .await?;
 
@@ -424,9 +421,9 @@ async fn loop_data_security_task(
         }
         "興櫃" => {
             let data = Retry::spawn(retry_strategy.clone(), || async {
-                    response_data::service::get_tpex2_html(&security).await
-                })
-                .await?;
+                retry_tpex2(&security).await
+            })
+            .await?;
 
             let json_value: Value = serde_json::from_str(&data)?;
             match json_value.get("iTotalRecords") {
@@ -445,6 +442,36 @@ async fn loop_data_security_task(
     }
 
     Ok(())
+}
+
+async fn retry_twse(security: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    match response_data::service::get_twse_avg_json(security).await {
+        Ok(data) => Ok(data),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "retry_twse Error: {}", &e);
+            Err(e)
+        }
+    }
+}
+
+async fn retry_tpex1(security: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    match response_data::service::get_tpex1_json(security).await {
+        Ok(data) => Ok(data),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "retry_tpex1 Error: {}", &e);
+            Err(e)
+        }
+    }
+}
+
+async fn retry_tpex2(security: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    match response_data::service::get_tpex2_html(security).await {
+        Ok(data) => Ok(data),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "retry_tpex2 Error: {}", &e);
+            Err(e)
+        }
+    }
 }
 
 async fn add_res_data(transaction: &mut PgConnection, security: &SecurityTask, html: &String) {
