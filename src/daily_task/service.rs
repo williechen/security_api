@@ -125,7 +125,7 @@ pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
         }
-        end_open_date("price", &exec_task.clone().unwrap());
+        end_open_date("security", &exec_task.clone().unwrap());
         exec_task = dao::find_one_by_exec_desc("security".to_string());
     }
     Ok(())
@@ -227,6 +227,8 @@ fn end_open_date(flow_code: &str, task: &DailyTask) {
     let pid = process::id() as i32;
     let year = task.open_date_year.clone();
     let month = task.open_date_month.clone();
+
+    info!("{0}/{1}/{2}/{3}", pid, flow_code, year, month);
 
     listen_flow::service::modify_flow_data2(pid, flow_code, &year, &month);
 }
