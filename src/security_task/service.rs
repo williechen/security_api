@@ -236,7 +236,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), retry::Error<Bo
 }
 
 fn add_res_data(security: &SecurityTask, html: &String) {
-    let res_data = response_data::dao::find_one_by_max(&security);
+    let res_data = response_data::dao::find_one_by_min(&security);
     if res_data.is_none() {
         let new_res_data = NewResponseData {
             open_date_year: security.clone().open_date_year,
