@@ -14,7 +14,7 @@ use super::model::{ListenFlow, NewListenFlow};
 
 pub fn find_all(data: ListenFlow) -> Vec<ListenFlow> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let mut query = table.into_boxed();
 
@@ -51,14 +51,14 @@ pub fn find_all(data: ListenFlow) -> Vec<ListenFlow> {
 
 pub fn create(data: NewListenFlow) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     insert_into(table).values(data).execute(&mut conn)
 }
 
 pub fn modify(data: ListenFlow) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     update(table)
         .filter(row_id.eq(data.row_id.clone()))
@@ -68,7 +68,7 @@ pub fn modify(data: ListenFlow) -> Result<usize, diesel::result::Error> {
 
 pub fn remove_all(q_flow_code: &str) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     delete(table)
         .filter(flow_code.eq(q_flow_code))

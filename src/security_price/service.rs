@@ -40,7 +40,7 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
     let data_content = data.data_content.clone();
 
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     conn.transaction(|trax_conn| {
         match market_type.as_str() {

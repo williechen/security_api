@@ -16,7 +16,7 @@ use super::model::{NewResponseData, ResponseData};
 
 pub fn find_one_by_max(task: &SecurityTask) -> Option<ResponseData> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let q_year = task.open_date_year.clone();
     let q_month = task.open_date_month.clone();
@@ -47,7 +47,7 @@ pub fn find_one(
     q_exec_code: String,
 ) -> Option<ResponseData> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = table
         .filter(open_date_year.eq(q_year))
@@ -68,14 +68,14 @@ pub fn find_one(
 
 pub fn create(data: NewResponseData) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     insert_into(table).values(data).execute(&mut conn)
 }
 
 pub fn modify(data: ResponseData) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     update(table)
         .filter(row_id.eq(data.row_id.clone()))

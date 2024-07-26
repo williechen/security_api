@@ -16,7 +16,7 @@ use super::model::{NewSecurityTemp, SecurityTemp};
 
 pub fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTemp> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let q_year = task.clone().open_date_year;
     let q_month = task.clone().open_date_month;
@@ -61,7 +61,7 @@ pub fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTemp> {
 
 pub fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTemp> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let q_year = task.clone().open_date_year;
     let q_month = task.clone().open_date_month;
@@ -113,7 +113,7 @@ pub fn find_one(
     q_issue_date: String,
 ) -> Option<SecurityTemp> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = table
         .filter(open_date_year.eq(q_year))
@@ -143,7 +143,7 @@ pub fn create(
 
 pub fn remove_all() -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     delete(table).execute(&mut conn)
 }

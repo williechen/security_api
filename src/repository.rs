@@ -2,12 +2,11 @@
 
 use std::env;
 
-use diesel::{r2d2, PgConnection};
+use diesel::{Connection, PgConnection};
 use dotenvy::dotenv;
 
-#[derive(Debug, Clone)]
 pub struct Repository {
-    pub connection: r2d2::Pool<r2d2::ConnectionManager<PgConnection>>,
+    pub connection: PgConnection,
 }
 
 impl Repository {
@@ -15,13 +14,9 @@ impl Repository {
         dotenv().ok();
 
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let manager = r2d2::ConnectionManager::<PgConnection>::new(database_url);
 
         Repository {
-            connection: r2d2::Pool::builder()
-                .max_size(5)
-                .build(manager)
-                .expect("Failed to create pool."),
+            connection: PgConnection::establish(&database_url).expect(&format!("Error connecting to {}", database_url))
         }
     }
 }

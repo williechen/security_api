@@ -189,6 +189,8 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
 fn update_task_status(task: &DailyTask, status: &str) {
     let mut daily_task = task.clone();
     daily_task.exec_status = status.to_string();
+    daily_task.updated_date = Local::now().naive_local();
+
     dao::modify(daily_task).unwrap();
 }
 
@@ -227,8 +229,6 @@ fn end_open_date(flow_code: &str, task: &DailyTask) {
     let pid = process::id() as i32;
     let year = task.open_date_year.clone();
     let month = task.open_date_month.clone();
-
-    info!("{0}/{1}/{2}/{3}", pid, flow_code, year, month);
 
     listen_flow::service::modify_flow_data2(pid, flow_code, &year, &month);
 }

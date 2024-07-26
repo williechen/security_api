@@ -13,7 +13,7 @@ use super::model::{DailyTask, NewDailyTask};
 
 pub fn find_all() -> Vec<DailyTask> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let now = Local::now();
 
@@ -61,7 +61,7 @@ pub fn find_one(
     q_job_code: String,
 ) -> Option<DailyTask> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = table
         .filter(open_date_year.eq(q_year))
@@ -82,14 +82,14 @@ pub fn find_one(
 
 pub fn create(data: NewDailyTask) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     insert_into(table).values(data).execute(&mut conn)
 }
 
 pub fn modify(data: DailyTask) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     update(table)
         .filter(open_date_year.eq(data.open_date_year.clone()))
@@ -102,7 +102,7 @@ pub fn modify(data: DailyTask) -> Result<usize, diesel::result::Error> {
 
 pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = sql_query(
         r#"
@@ -142,7 +142,7 @@ pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
 
 pub fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = sql_query(
         r#"
@@ -182,7 +182,7 @@ pub fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
 
 pub fn find_all_by_exec(q_year: String, q_month: String) -> Vec<DailyTask> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = sql_query(
         r#"

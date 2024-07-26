@@ -18,7 +18,7 @@ use super::model::{NewSecurityTask, SecurityTask};
 
 pub fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTask> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let q_year = task.clone().open_date_year;
     let q_month = task.clone().open_date_month;
@@ -58,7 +58,7 @@ pub fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTask> {
 
 pub fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTask> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let q_year = task.clone().open_date_year;
     let q_month = task.clone().open_date_month;
@@ -105,7 +105,7 @@ pub fn find_one(
     q_issue_date: String,
 ) -> Option<SecurityTask> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = table
         .filter(open_date_year.eq(q_year))
@@ -128,7 +128,7 @@ pub fn find_one(
 
 pub fn find_one_by_times(q_year: String, q_month: String, q_day: String) -> Option<SecurityTask> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = table
         .filter(open_date_year.eq(q_year))
@@ -150,14 +150,14 @@ pub fn find_one_by_times(q_year: String, q_month: String, q_day: String) -> Opti
 
 pub fn create(data: NewSecurityTask) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     insert_into(table).values(data).execute(&mut conn)
 }
 
 pub fn modify(data: SecurityTask) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     update(table)
         .filter(row_id.eq(data.row_id.clone()))

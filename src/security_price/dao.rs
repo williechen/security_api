@@ -16,7 +16,7 @@ pub fn find_all_by_code(
     q_security_code: String,
 ) -> Vec<SecurityPrice> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = sql_query(
         r#"
@@ -59,7 +59,7 @@ pub fn find_all_by_code(
 
 pub fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<SecurityPrice> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = sql_query(
         r#"
@@ -100,7 +100,7 @@ pub fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<S
 
 pub fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<ResposePrice> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = sql_query(
         r#"
@@ -147,7 +147,7 @@ pub fn create(
 
 pub fn modify(data: SecurityPrice) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     update(table)
         .filter(row_id.eq(data.row_id.clone()))

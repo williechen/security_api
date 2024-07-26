@@ -15,7 +15,7 @@ use super::model::{CalendarData, NewCalendarData};
 
 pub fn find_one(q_year: String, q_month: String, q_day: String) -> Option<CalendarData> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = table
         .filter(ce_year.eq(q_year))
@@ -35,14 +35,14 @@ pub fn find_one(q_year: String, q_month: String, q_day: String) -> Option<Calend
 
 pub fn create(data: NewCalendarData) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     insert_into(table).values(data).execute(&mut conn)
 }
 
 pub fn modify(data: CalendarData) -> Result<usize, diesel::result::Error> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     update(table)
         .filter(row_id.eq(data.row_id.clone()))
@@ -52,7 +52,7 @@ pub fn modify(data: CalendarData) -> Result<usize, diesel::result::Error> {
 
 pub fn read_by_work_day_first(q_year: String, q_month: String) -> Option<CalendarData> {
     let dao = Repository::new();
-    let mut conn = dao.connection.get().unwrap();
+    let mut conn = dao.connection;
 
     let query = sql_query(
         "SELECT cd.row_id
