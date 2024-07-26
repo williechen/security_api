@@ -1,13 +1,13 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 use bigdecimal::Zero;
-use diesel::{delete, insert_into, update, ExpressionMethods, QueryDsl, RunQueryDsl};
+use diesel::{delete, insert_into, update, ExpressionMethods, QueryDsl, RunQueryDsl, TextExpressionMethods};
 use log::debug;
 
 use crate::repository::Repository;
 use crate::schema::listen_flow::dsl::listen_flow as table;
 use crate::schema::listen_flow::{
-    flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5, pid, row_id,
+    flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5, pid, pstatus, row_id
 };
 
 use super::model::{ListenFlow, NewListenFlow};
@@ -18,7 +18,8 @@ pub fn find_all(data: ListenFlow) -> Vec<ListenFlow> {
 
     let mut query = table.into_boxed();
 
-    query = query.filter(flow_code.eq(data.flow_code));
+    query = query.filter(flow_code.eq(data.flow_code))
+    .filter(pstatus.ne_all(vec!["EXIT", "STOP"]));
     if !data.pid.is_zero() {
         query = query.filter(pid.eq(data.pid));
     }
@@ -37,6 +38,8 @@ pub fn find_all(data: ListenFlow) -> Vec<ListenFlow> {
     if data.flow_param5.is_some() {
         query = query.filter(flow_param5.eq(data.flow_param5));
     }
+
+    query = query.order((pid.asc(), flow_code.asc()));
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 

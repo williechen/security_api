@@ -1,6 +1,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 use diesel::query_dsl::methods::FilterDsl;
+use diesel::query_dsl::methods::OrderDsl;
 use diesel::sql_types::VarChar;
 use diesel::{insert_into, update, ExpressionMethods};
 use diesel::{sql_query, RunQueryDsl};
@@ -11,7 +12,7 @@ use crate::repository::Repository;
 use crate::schema::security_task::dsl::security_task as table;
 use crate::schema::security_task::{
     exec_count, is_enabled, issue_date, market_type, open_date_day, open_date_month,
-    open_date_year, row_id, security_code,
+    open_date_year, row_id, security_code, sort_no,
 };
 
 use super::model::{NewSecurityTask, SecurityTask};
@@ -135,7 +136,8 @@ pub fn find_one_by_times(q_year: String, q_month: String, q_day: String) -> Opti
         .filter(open_date_month.eq(q_month))
         .filter(open_date_day.eq(q_day))
         .filter(exec_count.eq(0))
-        .filter(is_enabled.eq(1));
+        .filter(is_enabled.eq(1))
+        .order(sort_no.asc());
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
