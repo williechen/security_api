@@ -15,12 +15,12 @@ appenders:
     policy:
       kind: compound
       trigger: 
-        kind: size
-        limit: 50 mb #限制大小为50mb
+        kind: time
+        interval: 1 hours
       roller:
         kind: fixed_window
         base: 1
-        count: 150
+        count: 240
         pattern: "log/security_api_{}.log"
 
 root:

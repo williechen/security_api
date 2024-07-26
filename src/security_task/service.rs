@@ -264,6 +264,7 @@ fn add_res_data(security: &SecurityTask, html: &String) {
 }
 
 fn update_data(security: &SecurityTask, is_action: bool) {
+    info!(target: "security_api", "modify security_task: {}", security);
     let mut security_task = security.clone();
     security_task.exec_count = security_task.exec_count + 1;
     security_task.updated_date = Local::now().naive_local();
