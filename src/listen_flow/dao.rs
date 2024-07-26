@@ -1,7 +1,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 use bigdecimal::Zero;
-use diesel::{delete, insert_into, update, ExpressionMethods, QueryDsl, RunQueryDsl, TextExpressionMethods};
+use diesel::{delete, insert_into, update, ExpressionMethods, QueryDsl, RunQueryDsl};
 use log::debug;
 
 use crate::repository::Repository;

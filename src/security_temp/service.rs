@@ -48,7 +48,7 @@ fn insert_temp_data(
 ) -> Result<(), diesel::result::Error> {
     let rows = parse_table_data(data_content).unwrap();
     for row in rows {
-        info!(target: "security_api", "ROW: {:?}", &row);
+        debug!(target: "security_api", "ROW: {:?}", &row);
         loop_data_temp(transaction, row, &task)?;
     }
 
