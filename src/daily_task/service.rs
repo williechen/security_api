@@ -205,6 +205,7 @@ fn start_open_data(flow_code: &str, task: &DailyTask) -> (String, String) {
         if pid == results[0].pid {
             (year, month)
         } else {
+            end_open_date(flow_code, task);
             if "price" == flow_code {
                 let res = dao::find_one_by_exec_asc("price".to_string());
                 let year = res.clone().unwrap().open_date_year;
