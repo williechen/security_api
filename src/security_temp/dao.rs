@@ -21,6 +21,7 @@ pub fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTemp> {
     let q_year = task.clone().open_date_year;
     let q_month = task.clone().open_date_month;
     let q_day = task.clone().open_date_day;
+    let q_open_date = format!("{0}{1}{2}", q_year, q_month, q_day);
     let q_issue_date = format!("{0}/{1}/{2}", q_year, q_month, q_day);
 
     let query = sql_query(
@@ -40,18 +41,14 @@ pub fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTemp> {
                       , created_date
                       , updated_date
                    FROM security_temp 
-                  WHERE open_date_year = $1
-                    AND open_date_month = $2
-                    AND open_date_day = $3 
-                    AND issue_date <= $4
+                  WHERE CONCAT(open_date_year, open_date_month, open_date_day) >= $1
+                    AND issue_date <= $2
                     AND market_type in ('上市')
                     AND security_type in ('ETF', 'ETN', '股票', '特別股')
                   ORDER BY security_code, issue_date, market_type, security_type
             "#,
     )
-    .bind::<VarChar, _>(q_year)
-    .bind::<VarChar, _>(q_month)
-    .bind::<VarChar, _>(q_day)
+    .bind::<VarChar, _>(q_open_date)
     .bind::<VarChar, _>(q_issue_date);
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
@@ -66,6 +63,7 @@ pub fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTemp> {
     let q_year = task.clone().open_date_year;
     let q_month = task.clone().open_date_month;
     let q_day = task.clone().open_date_day;
+    let q_open_date = format!("{0}{1}{2}", q_year, q_month, q_day);
     let q_issue_date = format!("{0}/{1}/{2}", q_year, q_month, q_day);
 
     let query = sql_query(
@@ -85,18 +83,14 @@ pub fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTemp> {
                      , created_date
                      , updated_date
                   FROM security_temp 
-                 WHERE open_date_year = $1
-                   AND open_date_month = $2
-                   AND open_date_day = $3 
-                   AND issue_date <= $4
+                 WHERE CONCAT(open_date_year, open_date_month, open_date_day) >= $1
+                    AND issue_date <= $2
                    AND market_type in ('上櫃', '興櫃')
                    AND security_type in ('ETF', 'ETN', '股票', '特別股')
                  ORDER BY security_code, issue_date, market_type, security_type
             "#,
     )
-    .bind::<VarChar, _>(q_year)
-    .bind::<VarChar, _>(q_month)
-    .bind::<VarChar, _>(q_day)
+    .bind::<VarChar, _>(q_open_date)
     .bind::<VarChar, _>(q_issue_date);
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));

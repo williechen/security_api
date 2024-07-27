@@ -7,7 +7,7 @@ use log::debug;
 use crate::repository::Repository;
 use crate::schema::listen_flow::dsl::listen_flow as table;
 use crate::schema::listen_flow::{
-    flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5, pid, pstatus, row_id
+    flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5, pid, row_id
 };
 
 use super::model::{ListenFlow, NewListenFlow};
@@ -18,8 +18,7 @@ pub fn find_all(data: ListenFlow) -> Vec<ListenFlow> {
 
     let mut query = table.into_boxed();
 
-    query = query.filter(flow_code.eq(data.flow_code))
-    .filter(pstatus.ne_all(vec!["EXIT", "STOP"]));
+    query = query.filter(flow_code.eq(data.flow_code));
     if !data.pid.is_zero() {
         query = query.filter(pid.eq(data.pid));
     }
