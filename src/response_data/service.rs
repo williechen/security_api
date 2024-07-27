@@ -273,5 +273,5 @@ fn run_task_log(task: &SecurityTask){
     let d = &task.open_date_day;
     let open_date = format!("{0}{1}{2}", y, m, d);
 
-    info!(target: "security_api", "send [{0}:{1}({2})]", open_date, market_type, security_code);
+    info!(target: "security_api", "send [ {0}: {1}({2}) ]", open_date, market_type, security_code);
 }
