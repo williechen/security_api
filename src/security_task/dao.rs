@@ -127,7 +127,7 @@ pub fn find_one(
     }
 }
 
-pub fn find_one_by_times(q_year: String, q_month: String, q_day: String) -> Option<SecurityTask> {
+pub fn find_all_by_times(q_year: String, q_month: String, q_day: String) -> Vec<SecurityTask> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
@@ -141,11 +141,11 @@ pub fn find_one_by_times(q_year: String, q_month: String, q_day: String) -> Opti
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.first::<SecurityTask>(&mut conn) {
-        Ok(row) => Some(row),
+    match query.load::<SecurityTask>(&mut conn) {
+        Ok(rows) => rows,
         Err(e) => {
             debug!("find_one {}", e);
-            None
+            Vec::new()
         }
     }
 }

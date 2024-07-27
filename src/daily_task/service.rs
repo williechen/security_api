@@ -44,7 +44,7 @@ pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
     while exec_task.is_some() {
         let e_open_date = start_open_data("security", &exec_task.clone().unwrap());
 
-        let task_list = dao::find_all_by_exec(e_open_date.0, e_open_date.1);
+        let task_list = dao::find_all_by_exec(e_open_date.0.clone(), e_open_date.1.clone());
         for task in task_list {
             debug!(target: "security_api", "DailyTaskInfo: {:?}", &task);
             update_task_status(&task, "OPEN");
@@ -125,7 +125,8 @@ pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
         }
-        end_open_date("security", &exec_task.clone().unwrap());
+
+        end_open_date("security", &e_open_date.0, &e_open_date.1);
         exec_task = dao::find_one_by_exec_desc("security".to_string());
     }
     Ok(())
@@ -136,7 +137,7 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
     while exec_task.is_some() {
         let e_open_date = start_open_data("price", &exec_task.clone().unwrap());
 
-        let task_list = dao::find_all_by_exec(e_open_date.0, e_open_date.1);
+        let task_list = dao::find_all_by_exec(e_open_date.0.clone(), e_open_date.1.clone());
         for task in task_list {
             debug!(target: "security_api", "DailyTaskInfo {:?}", &task);
             update_task_status(&task, "OPEN");
@@ -180,7 +181,8 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
         }
-        end_open_date("price", &exec_task.clone().unwrap());
+        
+        end_open_date("price", &e_open_date.0, &e_open_date.1);
         exec_task = dao::find_one_by_exec_asc("price".to_string());
     }
     Ok(())
@@ -205,7 +207,7 @@ fn start_open_data(flow_code: &str, task: &DailyTask) -> (String, String) {
         if pid == results[0].pid {
             (year, month)
         } else {
-            end_open_date(flow_code, task);
+            end_open_date(flow_code, &year, &month);
             if "price" == flow_code {
                 let res = dao::find_one_by_exec_asc("price".to_string());
                 let year = res.clone().unwrap().open_date_year;
@@ -226,10 +228,7 @@ fn start_open_data(flow_code: &str, task: &DailyTask) -> (String, String) {
     }
 }
 
-fn end_open_date(flow_code: &str, task: &DailyTask) {
+fn end_open_date(flow_code: &str, year: &str, month: &str) {
     let pid = process::id() as i32;
-    let year = task.open_date_year.clone();
-    let month = task.open_date_month.clone();
-
-    listen_flow::service::modify_flow_data2(pid, flow_code, &year, &month);
+    listen_flow::service::modify_flow_data2(pid, flow_code, year, month);
 }

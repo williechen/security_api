@@ -101,9 +101,9 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
     let q_month = task.open_date_month.clone();
     let q_day = task.open_date_day.clone();
 
-    let mut security = dao::find_one_by_times(q_year.clone(), q_month.clone(), q_day.clone());
-    while security.is_some() {
-        debug!(target: "security_api", "SecurityTask: {}", &security.clone().unwrap());
+    let securitys = dao::find_all_by_times(q_year.clone(), q_month.clone(), q_day.clone());
+    for security in  securitys {
+        debug!(target: "security_api", "SecurityTask: {}", &security.clone());
 
         let y = task.open_date_year.clone().parse().unwrap();
         let m = task.open_date_month.clone().parse().unwrap();
@@ -119,7 +119,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
         if nd == od && nod < ndt {
             let start_time = Local::now().time();
 
-            match loop_data_security_task(security.clone().unwrap()) {
+            match loop_data_security_task(security.clone()) {
                 Ok(_) => {
                     let end_time = Local::now().time();
                     let seconds = 8 - (end_time - start_time).num_seconds();
@@ -138,11 +138,11 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
 
         // 小於今天的日期
         } else if nd > od {
-            let res_data = response_data::dao::find_one_by_max(&security.clone().unwrap());
+            let res_data = response_data::dao::find_one_by_max(&security.clone());
             if res_data.is_none() {
                 let start_time = Local::now().time();
 
-                match loop_data_security_task(security.clone().unwrap()) {
+                match loop_data_security_task(security.clone()) {
                     Ok(_) => {
                         let end_time = Local::now().time();
                         let seconds = 8 - (end_time - start_time).num_seconds();
@@ -159,10 +159,9 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                     }
                 }
             } else {
-                update_data(&security.clone().unwrap(), true);
+                update_data(&security.clone(), true);
             }
         }
-        security = dao::find_one_by_times(q_year.clone(), q_month.clone(), q_day.clone());
     }
     Ok(())
 }

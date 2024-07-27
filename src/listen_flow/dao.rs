@@ -45,7 +45,7 @@ pub fn find_all(data: ListenFlow) -> Vec<ListenFlow> {
     match query.load::<ListenFlow>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("read_by_exec {}", e);
+            debug!("find_all {}", e);
             Vec::new()
         }
     }
