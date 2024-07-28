@@ -102,8 +102,12 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
     let q_day = task.open_date_day.clone();
 
     let securitys = dao::find_all_by_times(q_year.clone(), q_month.clone(), q_day.clone());
-    for security in  securitys {
-        debug!(target: "security_api", "SecurityTask: {}", &security.clone());
+
+    let mut index = 0;
+    while securitys.len() > index {
+
+    let security = &securitys[index];
+        debug!(target: "security_api", "SecurityTask: {}", &security);
 
         let y = task.open_date_year.clone().parse().unwrap();
         let m = task.open_date_month.clone().parse().unwrap();
@@ -130,7 +134,9 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                         4
                     };
                     sleep(time::Duration::from_secs(sleep_num.try_into().unwrap()));
-                }
+                    
+                    index += 1;
+                }   
                 Err(e) => {
                     error!(target: "security_api", "daily_task.get_all_task {}", &e);
                 }
@@ -138,7 +144,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
 
         // 小於今天的日期
         } else if nd > od {
-            let res_data = response_data::dao::find_one_by_max(&security.clone());
+            let res_data = response_data::dao::find_one_by_max(&security);
             if res_data.is_none() {
                 let start_time = Local::now().time();
 
@@ -153,6 +159,8 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                             4
                         };
                         sleep(time::Duration::from_secs(sleep_num.try_into().unwrap()));
+
+                        index += 1;
                     }
                     Err(e) => {
                         error!(target: "security_api", "daily_task.get_all_task {}", &e);
@@ -163,6 +171,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
             }
         }
     }
+
     Ok(())
 }
 
