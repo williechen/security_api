@@ -181,7 +181,7 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
         }
-        
+
         end_open_date("price", &e_open_date.0, &e_open_date.1);
         exec_task = dao::find_one_by_exec_asc("price".to_string());
     }

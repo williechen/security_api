@@ -263,8 +263,7 @@ fn parse_web_tpex2_data(document: &String) -> Result<String, Box<dyn std::error:
     Ok(serde_json::to_string(&data_map)?)
 }
 
-fn run_task_log(task: &SecurityTask){
-
+fn run_task_log(task: &SecurityTask) {
     let security_code = &task.security_code;
     let market_type = &task.market_type;
 

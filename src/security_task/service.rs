@@ -105,8 +105,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
 
     let mut index = 0;
     while securitys.len() > index {
-
-    let security = &securitys[index];
+        let security = &securitys[index];
         debug!(target: "security_api", "SecurityTask: {}", &security);
 
         let y = task.open_date_year.clone().parse().unwrap();
@@ -134,9 +133,9 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                         4
                     };
                     sleep(time::Duration::from_secs(sleep_num.try_into().unwrap()));
-                    
+
                     index += 1;
-                }   
+                }
                 Err(e) => {
                     error!(target: "security_api", "daily_task.get_all_task {}", &e);
                     continue;
@@ -144,6 +143,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
             }
 
         // 小於今天的日期
+        } else if nd > od {
         } else if nd > od {
             let res_data = response_data::dao::find_one_by_max(&security);
             if res_data.is_none() {
@@ -170,6 +170,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                 }
             } else {
                 update_data(&security.clone(), true);
+                index += 1;
             }
         }
     }
@@ -177,7 +178,9 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
-fn loop_data_security_task(security: SecurityTask) -> Result<(), retry::Error<Box<(dyn std::error::Error + 'static)>>> {
+fn loop_data_security_task(
+    security: SecurityTask,
+) -> Result<(), retry::Error<Box<(dyn std::error::Error + 'static)>>> {
     // 重試設定
     let retry_strategy = Exponential::from_millis(2000).map(jitter).take(5);
 
@@ -274,7 +277,6 @@ fn add_res_data(security: &SecurityTask, html: &String) {
 }
 
 fn update_data(security: &SecurityTask, is_action: bool) {
-    
     let mut security_task = security.clone();
     security_task.exec_count = security_task.exec_count + 1;
     security_task.updated_date = Local::now().naive_local();

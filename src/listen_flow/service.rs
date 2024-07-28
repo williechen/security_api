@@ -78,7 +78,7 @@ pub fn modify_flow_data2(pid: i32, flow_code: &str, flow_param1: &str, flow_para
     };
 
     let flows = dao::find_all(listen_flow);
-    for flow in flows{
+    for flow in flows {
         let mut new_flow = flow;
         new_flow.pstatus = "EXIT".to_string();
         new_flow.updated_date = Local::now().naive_local();

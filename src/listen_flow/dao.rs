@@ -7,7 +7,7 @@ use log::debug;
 use crate::repository::Repository;
 use crate::schema::listen_flow::dsl::listen_flow as table;
 use crate::schema::listen_flow::{
-    flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5, pid, row_id
+    flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5, pid, row_id,
 };
 
 use super::model::{ListenFlow, NewListenFlow};
