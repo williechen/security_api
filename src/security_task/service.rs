@@ -133,7 +133,6 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                         4
                     };
                     sleep(time::Duration::from_secs(sleep_num.try_into().unwrap()));
-
                     index += 1;
                 }
                 Err(e) => {
@@ -141,9 +140,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                     continue;
                 }
             }
-
         // 小於今天的日期
-        } else if nd > od {
         } else if nd > od {
             let res_data = response_data::dao::find_one_by_max(&security);
             if res_data.is_none() {
@@ -160,7 +157,6 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                             4
                         };
                         sleep(time::Duration::from_secs(sleep_num.try_into().unwrap()));
-
                         index += 1;
                     }
                     Err(e) => {
