@@ -139,6 +139,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                 }   
                 Err(e) => {
                     error!(target: "security_api", "daily_task.get_all_task {}", &e);
+                    continue;
                 }
             }
 
@@ -164,6 +165,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                     }
                     Err(e) => {
                         error!(target: "security_api", "daily_task.get_all_task {}", &e);
+                        continue;
                     }
                 }
             } else {
