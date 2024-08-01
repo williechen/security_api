@@ -7,23 +7,33 @@
     - maintenance_work_mem = 2GB
     - wal_compression = on
 
+## postgresql pg_dump
 
-    pg_dump security_api --data-only --encoding=UTF-8 --file=security_api_bak_.sql --format=plain --exclude-table=_sqlx_migrations --exclude-table=security_temp --column-inserts --no-sync
-
-
+[source,]
+----
+  pg_dump security_api --data-only --encoding=UTF-8 --file=security_api_bak_.sql --format=plain --exclude-table=_sqlx_migrations --exclude-table=security_temp --column-inserts --no-sync
+----
+[source,]
+----
     pg_dump security_api --data-only --encoding=UTF-8 --file=security_api_bak_.sql --format=plain --exclude-table=_sqlx_migrations --exclude-table=security_temp --no-sync
-
-
+----
+[source,]
+----
     psql -d security_api -f security_api_bak_20240707_1.sql
-
-
+----
+[source,]
+----
     pg_dump security_api --encoding=UTF-8 --file=security_api_bak --format=directory --exclude-table=_sqlx_migrations --exclude-table=security_temp --column-inserts --no-sync --jobs=4
-
-
+----
+[source,]
+----
     pg_dump security_api --encoding=UTF-8 --file=security_api_bak --format=directory --exclude-table=_sqlx_migrations --exclude-table=security_temp --no-sync --jobs=4
-
-
+----
+[source,]
+----
     pg_restore security_api_bak --dbname=security_api --format=directory --jobs=4
-
-
+----
+[source,]
+----
     pg_restore security_api_bak --dbname=security_api --data-only --format=directory --jobs=4
+----
