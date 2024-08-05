@@ -9,7 +9,7 @@ use super::{
 
 pub fn init_calendar_data() -> Result<(), Box<dyn std::error::Error>> {
     let max_date = Local::now().date_naive();
-    let min_date = NaiveDate::from_ymd_opt(1962, 2, 9).unwrap();
+    let min_date = NaiveDate::from_ymd_opt(1999, 1, 1).unwrap();
     let max_date_str = max_date.format("%Y%m%d").to_string();
     let min_date_str = min_date.format("%Y%m%d").to_string();
 
