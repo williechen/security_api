@@ -129,10 +129,9 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
             match loop_data_security_task(security.clone()) {
                 Ok(_) => {
                     let end_time = Local::now().time();
-                    let seconds = 4 - (end_time - start_time).num_seconds();
 
                     sleep(time::Duration::from_secs(sleep_time(
-                        seconds,
+                        (end_time - start_time).num_seconds(),
                         old_market_type,
                         market_type,
                     )));
@@ -154,10 +153,9 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                 match loop_data_security_task(security.clone()) {
                     Ok(_) => {
                         let end_time = Local::now().time();
-                        let seconds = 4 - (end_time - start_time).num_seconds();
 
                         sleep(time::Duration::from_secs(sleep_time(
-                            seconds,
+                            (end_time - start_time).num_seconds(),
                             old_market_type,
                             market_type,
                         )));
@@ -180,6 +178,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
 }
 
 fn sleep_time(seconds: i64, old_market_type: String, new_market_type: String) -> u64 {
+    println!("{}", seconds);
     match (old_market_type.as_ref(), new_market_type.as_ref()) {
         ("上市", "上櫃") => {
             if 4 - seconds > 0 {
