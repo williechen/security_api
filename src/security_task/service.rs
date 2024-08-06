@@ -103,6 +103,8 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
 
     let securitys = dao::find_all_by_times(q_year.clone(), q_month.clone(), q_day.clone());
 
+    let mut old_market_type = String::new();
+
     let mut index = 0;
     while securitys.len() > index {
         let security = &securitys[index];
@@ -118,6 +120,8 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
         let nd = Local::now().date_naive();
         let ndt = Local::now().naive_local();
 
+        let market_type = security.market_type.clone();
+
         // 今天且下午三點半
         if nd == od && nod < ndt {
             let start_time = Local::now().time();
@@ -127,13 +131,14 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                     let end_time = Local::now().time();
                     let seconds = 4 - (end_time - start_time).num_seconds();
 
-                    let sleep_num = if seconds > 0 {
-                        thread_rng().gen_range(4..=seconds)
-                    } else {
-                        4
-                    };
-                    sleep(time::Duration::from_secs(sleep_num.try_into().unwrap()));
+                    sleep(time::Duration::from_secs(sleep_time(
+                        seconds,
+                        old_market_type,
+                        market_type,
+                    )));
+
                     index += 1;
+                    old_market_type = security.market_type.clone();
                 }
                 Err(e) => {
                     error!(target: "security_api", "daily_task.get_all_task {}", &e);
@@ -151,13 +156,13 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                         let end_time = Local::now().time();
                         let seconds = 4 - (end_time - start_time).num_seconds();
 
-                        let sleep_num = if seconds > 0 {
-                            thread_rng().gen_range(4..=seconds)
-                        } else {
-                            4
-                        };
-                        sleep(time::Duration::from_secs(sleep_num.try_into().unwrap()));
+                        sleep(time::Duration::from_secs(sleep_time(
+                            seconds,
+                            old_market_type,
+                            market_type,
+                        )));
                         index += 1;
+                        old_market_type = security.market_type.clone();
                     }
                     Err(e) => {
                         error!(target: "security_api", "daily_task.get_all_task {}", &e);
@@ -172,6 +177,56 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
     }
 
     Ok(())
+}
+
+fn sleep_time(seconds: i64, old_market_type: String, new_market_type: String) -> u64 {
+    match (old_market_type.as_ref(), new_market_type.as_ref()) {
+        ("上市", "上櫃") => {
+            if 4 - seconds > 0 {
+                (4 - seconds) as u64
+            } else if 4 - seconds <= 0 {
+                0
+            } else {
+                4
+            }
+        }
+        ("上市", "興櫃") => {
+            if 4 - seconds > 0 {
+                (4 - seconds) as u64
+            } else if 4 - seconds <= 0 {
+                0
+            } else {
+                4
+            }
+        }
+        ("上櫃", "上市") => {
+            if 4 - seconds > 0 {
+                (4 - seconds) as u64
+            } else if 4 - seconds <= 0 {
+                0
+            } else {
+                4
+            }
+        }
+        ("興櫃", "上市") => {
+            if 4 - seconds > 0 {
+                (4 - seconds) as u64
+            } else if 4 - seconds <= 0 {
+                0
+            } else {
+                4
+            }
+        }
+        (_, _) => {
+            if 8 - seconds > 0 {
+                (8 - seconds) as u64
+            } else if 8 - seconds <= 0 {
+                0
+            } else {
+                8
+            }
+        }
+    }
 }
 
 fn loop_data_security_task(
