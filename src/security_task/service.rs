@@ -125,9 +125,9 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
             match loop_data_security_task(security.clone()) {
                 Ok(_) => {
                     let end_time = Local::now().time();
-                    let seconds = 8 - (end_time - start_time).num_seconds();
+                    let seconds = 4 - (end_time - start_time).num_seconds();
 
-                    let sleep_num = if seconds > 4 {
+                    let sleep_num = if seconds > 0 {
                         thread_rng().gen_range(4..=seconds)
                     } else {
                         4
@@ -149,9 +149,9 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
                 match loop_data_security_task(security.clone()) {
                     Ok(_) => {
                         let end_time = Local::now().time();
-                        let seconds = 8 - (end_time - start_time).num_seconds();
+                        let seconds = 4 - (end_time - start_time).num_seconds();
 
-                        let sleep_num = if seconds > 4 {
+                        let sleep_num = if seconds > 0 {
                             thread_rng().gen_range(4..=seconds)
                         } else {
                             4
