@@ -137,7 +137,7 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
     while exec_task.is_some() {
         let e_open_date = start_open_data("price", &exec_task.clone().unwrap());
 
-        let mut task_list = dao::find_all_by_exec_asc(e_open_date.0.clone(), e_open_date.1.clone());
+        let task_list = dao::find_all_by_exec_asc(e_open_date.0.clone(), e_open_date.1.clone());
         for task in task_list {
             debug!(target: "security_api", "DailyTaskInfo {:?}", &task);
             update_task_status(&task, "OPEN");

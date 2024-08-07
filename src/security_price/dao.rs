@@ -5,7 +5,7 @@ use crate::schema::security_price::dsl::security_price as table;
 use crate::schema::security_price::row_id;
 use diesel::{insert_into, update, ExpressionMethods, PgConnection};
 use diesel::{sql_query, sql_types::VarChar, RunQueryDsl};
-use log::{debug, info};
+use log::debug;
 
 use super::model::{NewSecurityPrice, ResposePrice, SecurityPrice};
 
