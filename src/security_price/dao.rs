@@ -5,23 +5,20 @@ use crate::schema::security_price::dsl::security_price as table;
 use crate::schema::security_price::row_id;
 use diesel::{insert_into, update, ExpressionMethods, PgConnection};
 use diesel::{sql_query, sql_types::VarChar, RunQueryDsl};
-use log::debug;
+use log::{debug, info};
 
 use super::model::{NewSecurityPrice, ResposePrice, SecurityPrice};
 
-pub fn find_all_by_code(
-    q_year: String,
-    q_month: String,
-    q_day: String,
-    q_security_code: String,
-) -> Vec<SecurityPrice> {
+pub fn find_all_by_code(q_price_date: String, q_security_code: String) -> Vec<SecurityPrice> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
     let query = sql_query(
         r#"
         SELECT sp.row_id
-             , sp.open_date
+             , sp.open_date_year
+             , sp.open_date_month
+             , sp.open_date_day
              , sp.security_code
              , sp.security_name
              , sp.price_date
@@ -34,16 +31,12 @@ pub fn find_all_by_code(
              , sp.created_date
              , sp.updated_date
           FROM security_price sp
-          JWHERE sp.open_date_year = $1
-           AND sp.open_date_month = $2
-           AND sp.open_date_day <= $3 
-           AND sp.security_code = $4
+          WHERE sp.price_date <= $1
+           AND sp.security_code = $2
          ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.security_code
         "#,
     )
-    .bind::<VarChar, _>(q_year)
-    .bind::<VarChar, _>(q_month)
-    .bind::<VarChar, _>(q_day)
+    .bind::<VarChar, _>(q_price_date)
     .bind::<VarChar, _>(q_security_code);
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
@@ -64,7 +57,9 @@ pub fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<S
     let query = sql_query(
         r#"
         SELECT sp.row_id
-             , sp.open_date
+             , sp.open_date_year
+             , sp.open_date_month
+             , sp.open_date_day
              , sp.security_code
              , sp.security_name
              , sp.price_date
@@ -77,15 +72,16 @@ pub fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<S
              , sp.created_date
              , sp.updated_date
           FROM security_price sp
-          WHERE sp.open_date_year = $1
-           AND sp.open_date_month = $2
-           AND sp.open_date_day = $3 
+          WHERE sp.price_date = $1
          ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.security_code
         "#,
     )
-    .bind::<VarChar, _>(q_year)
-    .bind::<VarChar, _>(q_month)
-    .bind::<VarChar, _>(q_day);
+    .bind::<VarChar, _>(format!(
+        "{0}/{1}/{2}",
+        (q_year.parse::<i32>().unwrap() - 1911),
+        q_month,
+        q_day
+    ));
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 

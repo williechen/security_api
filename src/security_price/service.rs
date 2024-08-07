@@ -34,7 +34,7 @@ pub fn get_security_to_price(task: &DailyTask) -> Result<(), Box<dyn std::error:
 }
 
 fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
-    let re = Regex::new(r"[0-9-.]+").unwrap();
+    let re = Regex::new(r"[0-9.]+").unwrap();
 
     let market_type = data.market_type.clone();
     let data_content = data.data_content.clone();
@@ -53,7 +53,7 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
                             let price = NewSecurityPrice {
                                 security_code: data.security_code.clone(),
                                 security_name: data.security_name.clone(),
-                                price_date: row[0].clone(),
+                                price_date: row[0].clone().trim().to_string(),
                                 price_close: price_code,
                                 price_avg: BigDecimal::zero(),
                                 price_hight: BigDecimal::zero(),
@@ -80,7 +80,7 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
                             let price = NewSecurityPrice {
                                 security_code: data.security_code.clone(),
                                 security_name: data.security_name.clone(),
-                                price_date: row[0].clone(),
+                                price_date: row[0].clone().trim().to_string(),
                                 price_close: BigDecimal::from_str(&row[6]).unwrap(),
                                 price_avg: BigDecimal::zero(),
                                 price_hight: BigDecimal::zero(),
@@ -107,7 +107,7 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
                             let price = NewSecurityPrice {
                                 security_code: data.security_code.clone(),
                                 security_name: data.security_name.clone(),
-                                price_date: row[0].clone(),
+                                price_date: row[0].clone().trim().to_string(),
                                 price_close: BigDecimal::from_str(&row[5]).unwrap(),
                                 price_avg: BigDecimal::zero(),
                                 price_hight: BigDecimal::zero(),
@@ -151,19 +151,12 @@ pub fn get_calculator_to_price(task: &DailyTask) -> Result<(), Box<dyn std::erro
 
 fn loop_data_calculator(data: SecurityPrice) -> Result<(), Box<dyn std::error::Error>> {
     let q_security_code = data.security_code.clone();
-    let q_year = data.open_date_year.clone();
-    let q_month = data.open_date_month.clone();
-    let q_day = data.open_date_day.clone();
+    let q_price_date = data.price_date.clone();
 
     let mut sum_count = BigDecimal::from(0);
     let mut sum_price = BigDecimal::from(0);
 
-    let res_prices = dao::find_all_by_code(
-        q_year.clone(),
-        q_month.clone(),
-        q_day.clone(),
-        q_security_code.clone(),
-    );
+    let res_prices = dao::find_all_by_code(q_price_date.clone(), q_security_code.clone());
     for price in res_prices {
         sum_count = sum_count.add(BigDecimal::from(1));
         sum_price = sum_price.add(price.price_close.clone());
@@ -177,15 +170,10 @@ fn loop_data_calculator(data: SecurityPrice) -> Result<(), Box<dyn std::error::E
     let mut sum_max_price = BigDecimal::from(0);
 
     let mut min_price_closes = Vec::new();
-    let mut sum_min_count = bigdecimal::BigDecimal::from(0);
+    let mut sum_min_count = BigDecimal::from(0);
     let mut sum_min_price = BigDecimal::from(0);
 
-    let res_prices = dao::find_all_by_code(
-        q_year.clone(),
-        q_month.clone(),
-        q_day.clone(),
-        q_security_code.clone(),
-    );
+    let res_prices = dao::find_all_by_code(q_price_date.clone(), q_security_code.clone());
     for price in res_prices {
         let price_close = to_big_decimal_round(price.price_close.clone());
         if price_close > price_avg {
@@ -201,6 +189,7 @@ fn loop_data_calculator(data: SecurityPrice) -> Result<(), Box<dyn std::error::E
 
     let mut new_price = data.clone();
     new_price.price_avg = price_avg;
+    new_price.updated_date = Local::now().naive_local();
 
     if max_price_closes.len() > 0 {
         let max_price = max_price_closes.iter().max();
@@ -219,7 +208,6 @@ fn loop_data_calculator(data: SecurityPrice) -> Result<(), Box<dyn std::error::E
         new_price.price_lowest = to_big_decimal_round(data.price_close.clone());
         new_price.price_lowest_avg = to_big_decimal_round(data.price_close.clone());
     }
-
     dao::modify(new_price)?;
 
     Ok(())

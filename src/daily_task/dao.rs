@@ -180,7 +180,7 @@ pub fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
     }
 }
 
-pub fn find_all_by_exec(q_year: String, q_month: String) -> Vec<DailyTask> {
+pub fn find_all_by_exec_desc(q_year: String, q_month: String) -> Vec<DailyTask> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
@@ -206,6 +206,48 @@ pub fn find_all_by_exec(q_year: String, q_month: String) -> Vec<DailyTask> {
            AND dt.open_date_month = $2
            AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
          ORDER BY dt.open_date_year desc, dt.open_date_month desc, dt.open_date_day desc,ts.sort_no
+         "#,
+    )
+    .bind::<VarChar, _>(q_year)
+    .bind::<VarChar, _>(q_month);
+
+    debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
+
+    match query.get_results::<DailyTask>(&mut conn) {
+        Ok(rows) => rows,
+        Err(e) => {
+            debug!("find_all_by_exec {}", e);
+            Vec::new()
+        }
+    }
+}
+
+pub fn find_all_by_exec_asc(q_year: String, q_month: String) -> Vec<DailyTask> {
+    let dao = Repository::new();
+    let mut conn = dao.connection;
+
+    let query = sql_query(
+        r#"
+        SELECT dt.row_id
+             , dt.open_date_year
+             , dt.open_date_month
+             , dt.open_date_day
+             , dt.job_code
+             , dt.exec_status
+             , dt.created_date
+             , dt.updated_date
+          FROM daily_task dt
+          JOIN calendar_data cd
+            ON dt.open_date_year = cd.ce_year
+           AND dt.open_date_month = cd.ce_month
+           AND dt.open_date_day = cd.ce_day
+          JOIN task_setting ts
+            ON ts.group_code = cd.group_task 
+           AND ts.job_code = dt.job_code
+         WHERE dt.open_date_year = $1
+           AND dt.open_date_month = $2
+           AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
+         ORDER BY dt.open_date_year, dt.open_date_month, dt.open_date_day,ts.sort_no
          "#,
     )
     .bind::<VarChar, _>(q_year)
