@@ -2,12 +2,33 @@
 
 use crate::repository::Repository;
 use crate::schema::security_price::dsl::security_price as table;
-use crate::schema::security_price::row_id;
-use diesel::{insert_into, update, ExpressionMethods, PgConnection};
+use crate::schema::security_price::{open_date_day, open_date_month, open_date_year, row_id, security_code};
+use diesel::{insert_into, update, ExpressionMethods, PgConnection, QueryDsl};
 use diesel::{sql_query, sql_types::VarChar, RunQueryDsl};
 use log::debug;
 
 use super::model::{NewSecurityPrice, ResposePrice, SecurityPrice};
+
+pub fn find_all(q_year: String, q_month: String, q_day: String, q_security_code: String) -> Vec<SecurityPrice> {
+    let dao = Repository::new();
+    let mut conn = dao.connection;
+
+    let query = table
+        .filter(open_date_year.eq(q_year))
+        .filter(open_date_month.eq(q_month))
+        .filter(open_date_day.ge(q_day))
+        .filter(security_code.eq(q_security_code));
+
+    debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
+
+    match query.load::<SecurityPrice>(&mut conn) {
+        Ok(rows) => rows,
+        Err(e) => {
+            debug!("find_one {}", e);
+            Vec::new()
+        }
+    }
+}
 
 pub fn find_all_by_code(q_price_date: String, q_security_code: String) -> Vec<SecurityPrice> {
     let dao = Repository::new();

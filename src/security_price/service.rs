@@ -27,7 +27,17 @@ pub fn get_security_to_price(task: &DailyTask) -> Result<(), Box<dyn std::error:
     let res_prices = dao::read_all_by_res(q_year, q_month, q_day);
     for price in res_prices {
         debug!(target: "security_api", "ResposePrice: {:?}", &price);
-        loop_data_res(price)?;
+
+        let q_year = price.open_date_year.clone();
+        let q_month = price.open_date_month.clone();
+        let q_day = price.open_date_day.clone();
+        let q_security_code = price.security_code.clone();
+
+        let month_prices = dao::find_all(q_year, q_month, q_day, q_security_code); 
+        if month_prices.len() <= 0 {
+            loop_data_res(price)?;
+        }
+        
     }
 
     Ok(())
