@@ -14,6 +14,7 @@ use super::{
     model::{NewSecurityTask, SecurityTask},
 };
 use crate::response_data::model::NewResponseData;
+use crate::security_error::SecurityError;
 use crate::{
     daily_task::model::DailyTask,
     response_data::{self, model::ResponseData},
@@ -229,7 +230,7 @@ fn sleep_time(seconds: i64, old_market_type: String, new_market_type: String) ->
 
 fn loop_data_security_task(
     security: SecurityTask,
-) -> Result<(), retry::Error<Box<(dyn std::error::Error + 'static)>>> {
+) -> Result<(), SecurityError> {
     // 重試設定
     let retry_strategy = Exponential::from_millis(2000).map(jitter).take(5);
 
@@ -242,7 +243,7 @@ fn loop_data_security_task(
                 response_data::service::get_twse_avg_json(&security)
             })?;
 
-            let json_value: Value = serde_json::from_str(&data).expect("twse json parse error");
+            let json_value: Value = serde_json::from_str(&data)?;
             match json_value.get("stat") {
                 Some(t) => {
                     if "OK" == t.as_str().unwrap_or("") {
@@ -260,7 +261,7 @@ fn loop_data_security_task(
                 response_data::service::get_tpex1_json(&security)
             })?;
 
-            let json_value: Value = serde_json::from_str(&data).expect("tpex1 json parse error");
+            let json_value: Value = serde_json::from_str(&data)?;
             match json_value.get("iTotalRecords") {
                 Some(t) => {
                     if 0 < t.as_i64().unwrap_or(0) {
@@ -278,7 +279,7 @@ fn loop_data_security_task(
                 response_data::service::get_tpex2_html(&security)
             })?;
 
-            let json_value: Value = serde_json::from_str(&data).expect("tpex2 json parse error");
+            let json_value: Value = serde_json::from_str(&data)?;
             match json_value.get("iTotalRecords") {
                 Some(t) => {
                     if 0 < t.as_i64().unwrap_or(0) {

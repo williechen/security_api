@@ -11,6 +11,7 @@ mod response_data;
 mod security_price;
 mod security_task;
 mod security_temp;
+pub mod security_error;
 
 pub fn add_next_year() -> Result<(), Box<dyn std::error::Error>> {
     let now = Local::now().date_naive();

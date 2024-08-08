@@ -8,7 +8,7 @@ use log::debug;
 
 use crate::{
     repository::Repository,
-    schema::calendar_data::{ce_day, ce_month, ce_year, dsl::calendar_data as table, row_id},
+    schema::calendar_data::{ce_day, ce_month, ce_year, dsl::calendar_data as table, row_id}, security_error::SecurityError,
 };
 
 use super::model::{CalendarData, NewCalendarData};
@@ -33,21 +33,25 @@ pub fn find_one(q_year: String, q_month: String, q_day: String) -> Option<Calend
     }
 }
 
-pub fn create(data: NewCalendarData) -> Result<usize, diesel::result::Error> {
+pub fn create(data: NewCalendarData) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    insert_into(table).values(data).execute(&mut conn)
+    let cnt = insert_into(table).values(data).execute(&mut conn)?;
+
+    Ok(cnt)
 }
 
-pub fn modify(data: CalendarData) -> Result<usize, diesel::result::Error> {
+pub fn modify(data: CalendarData) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    update(table)
+    let cnt = update(table)
         .filter(row_id.eq(data.row_id.clone()))
         .set(data)
-        .execute(&mut conn)
+        .execute(&mut conn)?;
+
+    Ok(cnt)
 }
 
 pub fn read_by_work_day_first(q_year: String, q_month: String) -> Option<CalendarData> {
