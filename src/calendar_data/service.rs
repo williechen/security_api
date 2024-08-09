@@ -1,6 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use chrono::{Datelike, Local, NaiveDate};
+use chrono::{format::format, Datelike, Local, NaiveDate};
 
 use crate::security_price;
 
@@ -81,15 +81,21 @@ fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), Box<dyn std
     let now = Local::now().date_naive();
     // 指定日期
     let this_date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
+    let this_tw_date = format!("{0:03}/{1:02}/{2:02}", year, month, day);
     // 收盤價資料
-    let price_data = security_price::dao::find_all_by_date(year.to_string(), month.to_string(), day.to_string());
-
+    let price_data =
+        security_price::dao::find_all_by_date(year.to_string(), month.to_string(), day.to_string());
+        let max_price_date = security_price::dao::find_one_by_maxdate().unwrap();
+        let split_price_date = max_price_date.price_date.split("/").collect::<Vec<&str>>();
+        let split_year = split_price_date[0].parse::<i32>().unwrap();
+        let price_tw_date = format!("{0:03}/{1}/{2}", split_year, split_price_date[1], split_price_date[2]);
+    
     // 如果是假日
     if (this_date.weekday().number_from_monday() == 6 && price_data.len() == 0)
         || (this_date.weekday().number_from_monday() == 7 && price_data.len() == 0)
-        || price_data.len() == 0
+        || (this_tw_date <= price_tw_date && price_data.len() == 0)
     {
-         let calendar_data = NewCalendarData {
+        let calendar_data = NewCalendarData {
             ce_year: format!("{:04}", year),
             ce_month: format!("{:02}", month),
             ce_day: format!("{:02}", day),

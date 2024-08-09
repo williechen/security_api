@@ -2,14 +2,21 @@
 
 use crate::repository::Repository;
 use crate::schema::security_price::dsl::security_price as table;
-use crate::schema::security_price::{open_date_day, open_date_month, open_date_year, row_id, security_code};
-use diesel::{insert_into, update, ExpressionMethods, PgConnection, QueryDsl};
+use crate::schema::security_price::{
+    open_date_day, open_date_month, open_date_year, row_id, security_code,
+};
+use diesel::{insert_into, update, ExpressionMethods, OptionalExtension, PgConnection, QueryDsl};
 use diesel::{sql_query, sql_types::VarChar, RunQueryDsl};
 use log::debug;
 
-use super::model::{NewSecurityPrice, ResposePrice, SecurityPrice};
+use super::model::{MaxPriceDate, NewSecurityPrice, ResposePrice, SecurityPrice};
 
-pub fn find_all(q_year: String, q_month: String, q_day: String, q_security_code: String) -> Vec<SecurityPrice> {
+pub fn find_all(
+    q_year: String,
+    q_month: String,
+    q_day: String,
+    q_security_code: String,
+) -> Vec<SecurityPrice> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
@@ -111,6 +118,29 @@ pub fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<S
         Err(e) => {
             debug!("find_one_by_date {}", e);
             Vec::new()
+        }
+    }
+}
+
+pub fn find_one_by_maxdate() -> Option<MaxPriceDate> {
+    let dao = Repository::new();
+    let mut conn = dao.connection;
+
+    let query = sql_query(
+        r#"
+        SELECT MAX(sp.price_date) AS price_date
+          FROM security_price sp
+        WHERE sp.price_date not like '%月平均收盤價%'
+        "#,
+    );
+
+    debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
+
+    match query.get_result::<MaxPriceDate>(&mut conn).optional() {
+        Ok(row) => row,
+        Err(e) => {
+            debug!("find_one_by_maxdate {}", e);
+            None
         }
     }
 }

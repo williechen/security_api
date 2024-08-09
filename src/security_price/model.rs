@@ -115,6 +115,12 @@ pub struct ResposePrice {
     pub data_content: String,
 }
 
+#[derive(Debug, Clone, QueryableByName)]
+pub struct MaxPriceDate {
+    #[diesel(sql_type = sql_types::VarChar)]
+    pub price_date: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityPriceTwse {
     pub stat: String,
