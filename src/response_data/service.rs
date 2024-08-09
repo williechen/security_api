@@ -246,7 +246,9 @@ fn parse_web_tpex2_data(document: &String) -> Result<String, Box<dyn std::error:
             row.push(td.inner_html());
         }
 
-        if "日期" == row.get(0).clone().unwrap() || "成交<br>股數" == row.get(0).clone().unwrap()
+        if  row.get(0).clone().unwrap().contains("日期") || 
+        row.get(0).clone().unwrap().contains("成交<br>股數") || 
+        row.get(0).clone().unwrap().contains("查無股票代碼")
         {
             field_row.push(json!(row));
         } else {
