@@ -63,7 +63,7 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
                             let price = NewSecurityPrice {
                                 security_code: data.security_code.clone(),
                                 security_name: data.security_name.clone(),
-                                price_date: row[0].clone().trim().to_string(),
+                                price_date: row[0].clone().trim().replace("＊", "").to_string(),
                                 price_close: price_code,
                                 price_avg: BigDecimal::zero(),
                                 price_hight: BigDecimal::zero(),
@@ -90,7 +90,7 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
                             let price = NewSecurityPrice {
                                 security_code: data.security_code.clone(),
                                 security_name: data.security_name.clone(),
-                                price_date: row[0].clone().trim().to_string(),
+                                price_date: row[0].clone().trim().replace("＊", "").to_string(),
                                 price_close: BigDecimal::from_str(&row[6]).unwrap(),
                                 price_avg: BigDecimal::zero(),
                                 price_hight: BigDecimal::zero(),
@@ -117,7 +117,7 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
                             let price = NewSecurityPrice {
                                 security_code: data.security_code.clone(),
                                 security_name: data.security_name.clone(),
-                                price_date: row[0].clone().trim().to_string(),
+                                price_date: row[0].clone().trim().replace("＊", "").to_string(),
                                 price_close: BigDecimal::from_str(&row[5]).unwrap(),
                                 price_avg: BigDecimal::zero(),
                                 price_hight: BigDecimal::zero(),

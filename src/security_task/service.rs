@@ -125,11 +125,11 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
 
         // 今天且下午三點半
         if nd == od && nod < ndt {
-            let start_time = Local::now().time();
+            let start_time = Local::now();
 
             match loop_data_security_task(security.clone()) {
                 Ok(_) => {
-                    let end_time = Local::now().time();
+                    let end_time = Local::now();
 
                     sleep(time::Duration::from_secs(sleep_time(
                         (end_time - start_time).num_seconds(),
@@ -149,11 +149,11 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
         } else if nd > od {
             let res_data = response_data::dao::find_one_by_max(&security);
             if res_data.is_none() {
-                let start_time = Local::now().time();
+                let start_time = Local::now();
 
                 match loop_data_security_task(security.clone()) {
                     Ok(_) => {
-                        let end_time = Local::now().time();
+                        let end_time = Local::now();
 
                         sleep(time::Duration::from_secs(sleep_time(
                             (end_time - start_time).num_seconds(),
@@ -179,6 +179,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
 }
 
 fn sleep_time(seconds: i64, old_market_type: String, new_market_type: String) -> u64 {
+    info!("{0},{1},{2}", seconds, old_market_type, new_market_type);
     match (old_market_type.as_ref(), new_market_type.as_ref()) {
         ("上市", "上櫃") => {
             if 4 - seconds > 0 {
