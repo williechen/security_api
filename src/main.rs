@@ -101,5 +101,27 @@ fn main() {
             }
             _ => info!(target: "security_api", "{:?}", args[1]),
         }
+    } else {
+        match security_api::add_daily_task() {
+            Ok(_) => info!(target: "security_api",  "add_daily_task Done"),
+            Err(e) => {
+                error!(target: "security_api", "add_daily_task {}", &e);
+                panic!("add_daily_task Error {}", &e)
+            }
+        };
+        match security_api::run_daily_task(true) {
+            Ok(_) => info!(target: "security_api",  "run_daily_task Done"),
+            Err(e) => {
+                error!(target: "security_api", "run_daily_task {}", &e);
+                panic!("run_daily_task Error {}", &e)
+            }
+        };
+        match security_api::run_price_task(true) {
+            Ok(_) => info!(target: "security_api","run_price_task Done"),
+            Err(e) => {
+                error!(target: "security_api", "run_price_task {}", &e);
+                panic!("run_price_task Error {}", &e)
+            }
+        };
     }
 }
