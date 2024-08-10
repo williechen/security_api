@@ -154,65 +154,6 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
 
             // 執行任務
             match ref_job_code {
-                "get_web_security" => match response_data::service::get_security_all_code(&task) {
-                    Ok(_) => {
-                        update_task_status(&task, "EXIT");
-                        info!(target: "security_api", "daily_task.get_web_security Done");
-                    }
-                    Err(e) => {
-                        update_task_status(&task, "EXEC");
-                        error!(target: "security_api", "daily_task.get_web_security {}", &e);
-                        panic!("daily_task.get_web_security Error {}", &e)
-                    }
-                },
-                "res_to_temp" => match security_temp::service::get_security_to_temp(&task) {
-                    Ok(_) => {
-                        update_task_status(&task, "EXIT");
-                        info!(target: "security_api","daily_task.res_to_temp Done");
-                    }
-                    Err(e) => {
-                        update_task_status(&task, "EXEC");
-                        error!(target: "security_api", "daily_task.res_to_temp {}", &e);
-                        panic!("daily_task.res_to_temp Error {}", &e)
-                    }
-                },
-                "temp_to_task" => {
-                    match security_task::service::insert_task_data(&task) {
-                        Ok(_) => {
-                            update_task_status(&task, "EXIT");
-                            info!(target: "security_api", "daily_task.temp_to_task Done");
-                        }
-                        Err(e) => {
-                            update_task_status(&task, "EXEC");
-                            error!(target: "security_api", "daily_task.temp_to_task {}", &e);
-                            panic!("daily_task.temp_to_task Error {}", &e)
-                        }
-                    }
-
-                    security_task::service_range::update_task_data(&task)?;
-                }
-                "delete_temp" => match security_temp::service::delete_temp() {
-                    Ok(_) => {
-                        update_task_status(&task, "EXIT");
-                        info!(target: "security_api", "daily_task.delete_temp Done");
-                    }
-                    Err(e) => {
-                        update_task_status(&task, "EXEC");
-                        error!(target: "security_api", "daily_task.delete_temp {}", &e);
-                        panic!("daily_task.delete_temp Error {}", &e)
-                    }
-                },
-                "task_run" => match security_task::service::get_all_task(&task) {
-                    Ok(_) => {
-                        update_task_status(&task, "EXIT");
-                        info!(target: "security_api", "daily_task.task_run Done");
-                    }
-                    Err(e) => {
-                        update_task_status(&task, "EXEC");
-                        error!(target: "security_api", "daily_task.task_run {}", &e);
-                        panic!("daily_task.task_run Error {}", &e)
-                    }
-                },
                 "res_price" => match security_price::service::get_security_to_price(&task) {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
