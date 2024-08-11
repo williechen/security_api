@@ -13,6 +13,12 @@ mod security_task;
 mod security_temp;
 pub mod security_error;
 
+
+pub fn add_init_year() -> Result<(), Box<dyn std::error::Error>> {
+    calendar_data::service::init_calendar_data()?;
+    Ok(())
+}
+
 pub fn add_next_year() -> Result<(), Box<dyn std::error::Error>> {
     let now = Local::now().date_naive();
     if 10 == now.month() && 1 == now.day() {

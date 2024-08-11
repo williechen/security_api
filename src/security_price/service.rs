@@ -44,7 +44,7 @@ pub fn get_security_to_price(task: &DailyTask) -> Result<(), Box<dyn std::error:
 }
 
 fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
-    let re = Regex::new(r"[0-9.]+").unwrap();
+    let re = Regex::new(r"[0-9.,]+").unwrap();
 
     let market_type = data.market_type.clone();
     let data_content = data.data_content.clone();
@@ -58,8 +58,8 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
                 let obj_data = serde_json::from_str::<SecurityPriceTwse>(&data_content).unwrap();
                 for row in obj_data.data {
                     if re.is_match(&row[1]) {
-                        let price_code = BigDecimal::from_str(&row[1]).unwrap();
-                        if price_code > BigDecimal::default() {
+                        let price_code = BigDecimal::from_str(&row[1].replace(",", "")).unwrap();
+                        if price_code > BigDecimal::zero() {
                             let price = NewSecurityPrice {
                                 security_code: data.security_code.clone(),
                                 security_name: data.security_name.clone(),
@@ -85,13 +85,13 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
                 let obj_data = serde_json::from_str::<SecurityPriceTpex1>(&data_content).unwrap();
                 for row in obj_data.aa_data {
                     if re.is_match(&row[6]) {
-                        let price_code = BigDecimal::from_str(&row[6]).unwrap();
-                        if price_code > BigDecimal::default() {
+                        let price_code = BigDecimal::from_str(&row[6].replace(",", "")).unwrap();
+                        if price_code > BigDecimal::zero() {
                             let price = NewSecurityPrice {
                                 security_code: data.security_code.clone(),
                                 security_name: data.security_name.clone(),
                                 price_date: row[0].clone().trim().replace("＊", "").to_string(),
-                                price_close: BigDecimal::from_str(&row[6]).unwrap(),
+                                price_close: price_code,
                                 price_avg: BigDecimal::zero(),
                                 price_hight: BigDecimal::zero(),
                                 price_hight_avg: BigDecimal::zero(),
@@ -112,13 +112,13 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
                 let obj_data = serde_json::from_str::<SecurityPriceTpex2>(&data_content).unwrap();
                 for row in obj_data.aa_data {
                     if re.is_match(&row[5]) {
-                        let price_code = BigDecimal::from_str(&row[5]).unwrap();
-                        if price_code > BigDecimal::default() {
+                        let price_code = BigDecimal::from_str(&row[5].replace(",", "")).unwrap();
+                        if price_code > BigDecimal::zero() {
                             let price = NewSecurityPrice {
                                 security_code: data.security_code.clone(),
                                 security_name: data.security_name.clone(),
                                 price_date: row[0].clone().trim().replace("＊", "").to_string(),
-                                price_close: BigDecimal::from_str(&row[5]).unwrap(),
+                                price_close: price_code,
                                 price_avg: BigDecimal::zero(),
                                 price_hight: BigDecimal::zero(),
                                 price_hight_avg: BigDecimal::zero(),

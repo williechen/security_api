@@ -105,10 +105,10 @@ pub fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<S
         "#,
     )
     .bind::<VarChar, _>(format!(
-        "{0}/{1}/{2}",
+        "{0}/{1:02}/{2:02}",
         (q_year.parse::<i32>().unwrap() - 1911),
-        q_month,
-        q_day
+        q_month.parse::<i32>().unwrap(),
+        q_day.parse::<i32>().unwrap()
     ));
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));

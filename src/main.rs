@@ -11,6 +11,13 @@ fn main() {
     if args.len() > 1 {
         let action_code = args[1].as_str();
         match action_code {
+            "add_init_year" => match security_api::add_init_year() {
+                Ok(_) => info!(target: "security_api",  "add_init_year Done"),
+                Err(e) => {
+                    error!(target: "security_api",  "add_init_year {}", &e);
+                    panic!("add_init_year Error {}", &e)
+                }
+            },
             "add_next_year" => match security_api::add_next_year() {
                 Ok(_) => info!(target: "security_api",  "add_next_year Done"),
                 Err(e) => {
