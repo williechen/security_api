@@ -1,15 +1,14 @@
 use std::fmt::{Display, Formatter};
 
-
 #[derive(Debug)]
-pub enum SecurityError{
+pub enum SecurityError {
     RequestError(reqwest::Error),
     RetryError(retry::Error<Box<(dyn std::error::Error + 'static)>>),
     SQLError(diesel::result::Error),
     JsonError(serde_json::Error),
 }
 
-impl std::error::Error for SecurityError{
+impl std::error::Error for SecurityError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match &self {
             SecurityError::RequestError(ref err) => Some(err),
@@ -20,7 +19,7 @@ impl std::error::Error for SecurityError{
     }
 }
 
-impl Display for SecurityError{
+impl Display for SecurityError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
             SecurityError::RequestError(ref err) => write!(f, " Request Error -> {} ", err),

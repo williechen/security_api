@@ -8,7 +8,8 @@ use log::debug;
 
 use crate::{
     repository::Repository,
-    schema::calendar_data::{ce_day, ce_month, ce_year, dsl::calendar_data as table, row_id}, security_error::SecurityError,
+    schema::calendar_data::{ce_day, ce_month, ce_year, dsl::calendar_data as table, row_id},
+    security_error::SecurityError,
 };
 
 use super::model::{CalendarData, NewCalendarData};

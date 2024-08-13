@@ -33,11 +33,10 @@ pub fn get_security_to_price(task: &DailyTask) -> Result<(), Box<dyn std::error:
         let q_day = price.open_date_day.clone();
         let q_security_code = price.security_code.clone();
 
-        let month_prices = dao::find_all(q_year, q_month, q_day, q_security_code); 
+        let month_prices = dao::find_all(q_year, q_month, q_day, q_security_code);
         if month_prices.len() <= 0 {
             loop_data_res(price)?;
         }
-        
     }
 
     Ok(())
@@ -160,13 +159,21 @@ pub fn get_calculator_to_price(task: &DailyTask) -> Result<(), Box<dyn std::erro
 }
 
 fn loop_data_calculator(data: SecurityPrice) -> Result<(), Box<dyn std::error::Error>> {
+    let q_year = data.open_date_year.clone();
+    let q_month = data.open_date_month.clone();
+    let q_day = data.open_date_day.clone();
+    let q_open_date = format!("{0}{1}{2}", q_year, q_month, q_day);
     let q_security_code = data.security_code.clone();
     let q_price_date = data.price_date.clone();
 
     let mut sum_count = BigDecimal::from(0);
     let mut sum_price = BigDecimal::from(0);
 
-    let res_prices = dao::find_all_by_code(q_price_date.clone(), q_security_code.clone());
+    let res_prices = dao::find_all_by_code(
+        q_open_date.clone(),
+        q_price_date.clone(),
+        q_security_code.clone(),
+    );
     for price in res_prices {
         sum_count = sum_count.add(BigDecimal::from(1));
         sum_price = sum_price.add(price.price_close.clone());
@@ -183,7 +190,11 @@ fn loop_data_calculator(data: SecurityPrice) -> Result<(), Box<dyn std::error::E
     let mut sum_min_count = BigDecimal::from(0);
     let mut sum_min_price = BigDecimal::from(0);
 
-    let res_prices = dao::find_all_by_code(q_price_date.clone(), q_security_code.clone());
+    let res_prices = dao::find_all_by_code(
+        q_open_date.clone(),
+        q_price_date.clone(),
+        q_security_code.clone(),
+    );
     for price in res_prices {
         let price_close = to_big_decimal_round(price.price_close.clone());
         if price_close > price_avg {

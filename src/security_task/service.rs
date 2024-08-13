@@ -229,9 +229,7 @@ fn sleep_time(seconds: i64, old_market_type: String, new_market_type: String) ->
     }
 }
 
-fn loop_data_security_task(
-    security: SecurityTask,
-) -> Result<(), SecurityError> {
+fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> {
     // 重試設定
     let retry_strategy = Exponential::from_millis(2000).map(jitter).take(5);
 

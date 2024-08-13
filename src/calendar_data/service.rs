@@ -81,7 +81,7 @@ fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), Box<dyn std
     let now = NaiveDate::from_ymd_opt(2024, 5, 17).unwrap();
     // 指定日期
     let this_date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
-    let this_tw_date = format!("{0:03}/{1:02}/{2:02}", year-1911, month, day);
+    let this_tw_date = format!("{0:03}/{1:02}/{2:02}", year - 1911, month, day);
     // 收盤價資料
     let price_data =
         security_price::dao::find_all_by_date(year.to_string(), month.to_string(), day.to_string());
@@ -92,8 +92,6 @@ fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), Box<dyn std
         "{0:03}/{1}/{2}",
         split_year, split_price_date[1], split_price_date[2]
     );
-
-    
 
     // 如果是假日
     if (this_date.weekday().number_from_monday() == 6 && price_data.len() == 0)

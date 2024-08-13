@@ -37,7 +37,11 @@ pub fn find_all(
     }
 }
 
-pub fn find_all_by_code(q_price_date: String, q_security_code: String) -> Vec<SecurityPrice> {
+pub fn find_all_by_code(
+    q_open_date: String,
+    q_price_date: String,
+    q_security_code: String,
+) -> Vec<SecurityPrice> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
@@ -61,11 +65,13 @@ pub fn find_all_by_code(q_price_date: String, q_security_code: String) -> Vec<Se
           FROM security_price sp
           WHERE sp.price_date <= $1
            AND sp.security_code = $2
+           AND concat(sp.open_date_year, sp.open_date_month, sp.open_date_day) <= $3
          ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.security_code
         "#,
     )
     .bind::<VarChar, _>(q_price_date)
-    .bind::<VarChar, _>(q_security_code);
+    .bind::<VarChar, _>(q_security_code)
+    .bind::<VarChar, _>(q_open_date);
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
