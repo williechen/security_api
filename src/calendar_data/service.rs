@@ -2,14 +2,14 @@
 
 use chrono::{Datelike, Local, NaiveDate};
 
-use crate::security_price;
+use crate::{security_error::SecurityError, security_price};
 
 use super::{
     dao,
     model::{CalendarData, NewCalendarData},
 };
 
-pub fn init_calendar_data() -> Result<(), Box<dyn std::error::Error>> {
+pub fn init_calendar_data() -> Result<(), SecurityError> {
     let max_date = Local::now().date_naive();
     let min_date = NaiveDate::from_ymd_opt(1999, 1, 1).unwrap();
     let max_date_str = max_date.format("%Y%m%d").to_string();
@@ -27,7 +27,7 @@ pub fn init_calendar_data() -> Result<(), Box<dyn std::error::Error>> {
 
             let first_date = dao::read_by_work_day_first(format!("{:04}", y), format!("{:02}", m));
             if first_date.is_some() {
-                update_first_date(first_date.unwrap());
+                update_first_date(first_date.unwrap())?;
             }
         }
     }
@@ -35,7 +35,7 @@ pub fn init_calendar_data() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn insert_calendar_data(open_next_year: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub fn insert_calendar_data(open_next_year: bool) -> Result<(), SecurityError> {
     let now = Local::now().date_naive();
     let year = if open_next_year {
         now.year() + 1
@@ -57,7 +57,7 @@ pub fn insert_calendar_data(open_next_year: bool) -> Result<(), Box<dyn std::err
 
         let first_date = dao::read_by_work_day_first(format!("{:04}", year), format!("{:02}", m));
         if first_date.is_some() {
-            update_first_date(first_date.unwrap());
+            update_first_date(first_date.unwrap())?;
         }
     }
 
@@ -76,7 +76,7 @@ fn last_day_in_month(year: i32, month: u32) -> NaiveDate {
         .unwrap()
 }
 
-fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), Box<dyn std::error::Error>> {
+fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), SecurityError> {
     // 初始日期
     let now = NaiveDate::from_ymd_opt(2024, 5, 17).unwrap();
     // 指定日期
@@ -139,7 +139,7 @@ fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), Box<dyn std
     Ok(())
 }
 
-fn update_first_date(first_date: CalendarData) {
+fn update_first_date(first_date: CalendarData) -> Result<(), SecurityError> {
     let mut m_first_date = first_date.clone();
 
     // 當前日期
@@ -157,5 +157,7 @@ fn update_first_date(first_date: CalendarData) {
     }
     m_first_date.updated_date = Local::now().naive_local();
 
-    dao::modify(m_first_date).unwrap();
+    dao::modify(m_first_date)?;
+
+    Ok(())
 }

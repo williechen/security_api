@@ -2,12 +2,13 @@
 use chrono::{Datelike, Local};
 use diesel::dsl::insert_into;
 use diesel::sql_types::VarChar;
-use diesel::{sql_query, update, ExpressionMethods, QueryDsl, RunQueryDsl};
+use diesel::{sql_query, update, ExpressionMethods, QueryDsl, RunQueryDsl, OptionalExtension};
 use log::debug;
 
 use crate::repository::Repository;
 use crate::schema::daily_task::dsl::daily_task as table;
 use crate::schema::daily_task::{job_code, open_date_day, open_date_month, open_date_year};
+use crate::security_error::SecurityError;
 
 use super::model::{DailyTask, NewDailyTask};
 
@@ -51,7 +52,14 @@ pub fn find_all() -> Vec<DailyTask> {
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    query.load::<DailyTask>(&mut conn).unwrap()
+    match query.load::<DailyTask>(&mut conn){
+        Ok(rows) => rows,
+        Err(e) => {
+            debug!("find_all Error => {0}", e);
+            Vec::new()
+        },
+    }
+
 }
 
 pub fn find_one(
@@ -71,33 +79,37 @@ pub fn find_one(
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.first::<DailyTask>(&mut conn) {
-        Ok(row) => Some(row),
-        Err(e) => {
-            debug!("find_one {}", e);
+    match query.first::<DailyTask>(&mut conn).optional(){
+        Ok(row) => row,
+        Err(e) =>{
+            debug!("find_one Error => {0}", e);
             None
         }
     }
 }
 
-pub fn create(data: NewDailyTask) -> Result<usize, diesel::result::Error> {
+pub fn create(data: NewDailyTask) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    insert_into(table).values(data).execute(&mut conn)
+    let cnt = insert_into(table).values(data).execute(&mut conn)?;
+
+    Ok(cnt)
 }
 
-pub fn modify(data: DailyTask) -> Result<usize, diesel::result::Error> {
+pub fn modify(data: DailyTask) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    update(table)
+    let cnt = update(table)
         .filter(open_date_year.eq(data.open_date_year.clone()))
         .filter(open_date_month.eq(data.open_date_month.clone()))
         .filter(open_date_day.eq(data.open_date_day.clone()))
         .filter(job_code.eq(data.job_code.clone()))
         .set(data)
-        .execute(&mut conn)
+        .execute(&mut conn)?;
+
+    Ok(cnt)
 }
 
 pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
@@ -131,8 +143,8 @@ pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.get_result::<DailyTask>(&mut conn) {
-        Ok(row) => Some(row),
+    match query.get_result::<DailyTask>(&mut conn).optional() {
+        Ok(row) => row,
         Err(e) => {
             debug!("find_one_by_exec_asc {}", e);
             None
@@ -171,8 +183,8 @@ pub fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.get_result::<DailyTask>(&mut conn) {
-        Ok(row) => Some(row),
+    match query.get_result::<DailyTask>(&mut conn).optional() {
+        Ok(row) => row,
         Err(e) => {
             debug!("find_one_by_exec_desc {}", e);
             None
@@ -216,7 +228,7 @@ pub fn find_all_by_exec_desc(q_year: String, q_month: String) -> Vec<DailyTask> 
     match query.get_results::<DailyTask>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("find_all_by_exec {}", e);
+            debug!("find_all_by_exec_desc {}", e);
             Vec::new()
         }
     }
@@ -258,7 +270,7 @@ pub fn find_all_by_exec_asc(q_year: String, q_month: String) -> Vec<DailyTask> {
     match query.get_results::<DailyTask>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("find_all_by_exec {}", e);
+            debug!("find_all_by_exec_asc {}", e);
             Vec::new()
         }
     }

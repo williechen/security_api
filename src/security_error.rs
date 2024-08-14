@@ -1,20 +1,22 @@
-use std::fmt::{Display, Formatter};
+use std::{error::Error, fmt::{Display, Formatter}};
 
 #[derive(Debug)]
 pub enum SecurityError {
+    BaseError(Box<dyn Error>),
     RequestError(reqwest::Error),
-    RetryError(retry::Error<Box<(dyn std::error::Error + 'static)>>),
+    RetryError(retry::Error<Box<(dyn Error + 'static)>>),
     SQLError(diesel::result::Error),
     JsonError(serde_json::Error),
 }
 
-impl std::error::Error for SecurityError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl Error for SecurityError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match &self {
             SecurityError::RequestError(ref err) => Some(err),
             SecurityError::RetryError(ref err) => err.error.source(),
             SecurityError::SQLError(ref err) => Some(err),
             SecurityError::JsonError(ref err) => Some(err),
+            SecurityError::BaseError(ref err) => err.source(),
         }
     }
 }
@@ -26,7 +28,14 @@ impl Display for SecurityError {
             SecurityError::RetryError(ref err) => write!(f, " Retry Error -> {} ", err.error),
             SecurityError::SQLError(ref err) => write!(f, " SQL Error -> {} ", err),
             SecurityError::JsonError(ref err) => write!(f, " Json Error -> {} ", err),
+            SecurityError::BaseError(ref err) => write!(f, " Base Error -> {} ", err),
         }
+    }
+}
+
+impl From<Box<dyn Error>> for SecurityError {
+    fn from(s: Box<dyn Error>) -> Self {
+        SecurityError::BaseError(s)
     }
 }
 
