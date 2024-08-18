@@ -80,7 +80,7 @@ fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error:
     Ok(result.to_string())
 }
 
-pub fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+/*pub fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
     let y = &task.open_date_year;
     let m = &task.open_date_month;
     let d = &task.open_date_day;
@@ -104,7 +104,7 @@ pub fn get_twse_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::
     debug!(target: "security_api", "{:?}", &json);
 
     Ok(json)
-}
+}*/
 
 pub fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
     run_task_log(task);
