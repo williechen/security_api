@@ -67,7 +67,7 @@ pub fn find_all_by_code(
           WHERE sp.price_date <= $1
            AND sp.security_code = $2
            AND concat(sp.open_date_year, sp.open_date_month, sp.open_date_day) <= $3
-         ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.security_code
+         ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.price_date, sp.security_code
         "#,
     )
     .bind::<VarChar, _>(q_price_date)
@@ -108,7 +108,7 @@ pub fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<S
              , sp.updated_date
           FROM security_price sp
           WHERE sp.price_date = $1
-         ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.security_code
+         ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.price_date, sp.security_code
         "#,
     )
     .bind::<VarChar, _>(format!(
