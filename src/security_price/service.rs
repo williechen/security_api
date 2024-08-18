@@ -5,19 +5,21 @@ use std::str::FromStr;
 
 use bigdecimal::{BigDecimal, RoundingMode, Zero};
 use chrono::Local;
-use diesel::Connection;
+use diesel::{Connection, PgConnection};
 use log::{debug, info};
 use regex::Regex;
 
 use crate::daily_task::model::DailyTask;
-use crate::{repository::Repository, security_price::dao};
+use crate::response_data::model::{SecurityPriceTpex1, SecurityPriceTpex2, SecurityPriceTwse};
+use crate::security_error::SecurityError;
+use crate::repository::Repository;
 
+use super::dao;
 use super::model::{
-    NewSecurityPrice, ResposePrice, SecurityPrice, SecurityPriceTpex1, SecurityPriceTpex2,
-    SecurityPriceTwse,
+    NewSecurityPrice, ResposePrice, SecurityPrice
 };
 
-pub fn get_security_to_price(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+pub fn get_security_to_price(task: &DailyTask) -> Result<(), SecurityError> {
     info!(target: "security_api", "call daily_task.get_security_to_price");
 
     let q_year = task.open_date_year.clone();
@@ -42,7 +44,7 @@ pub fn get_security_to_price(task: &DailyTask) -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
-fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
+fn loop_data_res(data: ResposePrice) -> Result<(), SecurityError> {
     let re = Regex::new(r"[0-9.,]+").unwrap();
 
     let market_type = data.market_type.clone();
@@ -51,98 +53,93 @@ fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn std::error::Error>> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    conn.transaction(|trax_conn| {
-        match market_type.as_str() {
-            "上市" => {
-                let obj_data = serde_json::from_str::<SecurityPriceTwse>(&data_content).unwrap();
-                for row in obj_data.data {
-                    if re.is_match(&row[1]) {
-                        let price_code = BigDecimal::from_str(&row[1].replace(",", "")).unwrap();
-                        if price_code > BigDecimal::zero() {
-                            let price = NewSecurityPrice {
-                                security_code: data.security_code.clone(),
-                                security_name: data.security_name.clone(),
-                                price_date: row[0].clone().trim().replace("＊", "").to_string(),
-                                price_close: price_code,
-                                price_avg: BigDecimal::zero(),
-                                price_hight: BigDecimal::zero(),
-                                price_hight_avg: BigDecimal::zero(),
-                                price_lowest: BigDecimal::zero(),
-                                price_lowest_avg: BigDecimal::zero(),
-                                open_date_year: data.open_date_year.clone(),
-                                open_date_month: data.open_date_month.clone(),
-                                open_date_day: data.open_date_day.clone(),
-                                created_date: Local::now().naive_local(),
-                                updated_date: Local::now().naive_local(),
-                            };
-                            dao::create(trax_conn, price)?;
+    match market_type.as_str() {
+        "上市" => match serde_json::from_str::<SecurityPriceTwse>(&data_content) {
+            Ok(data_row) => {
+                conn.transaction::<_, SecurityError, _>(|trax_conn| {
+                    for row in data_row.data {
+                        if re.is_match(&row[1]) {
+                            let price_date = row[0].trim().replace("＊", "");
+                            let price_close =
+                                BigDecimal::from_str(&row[1].replace(",", "")).unwrap();
+
+                            loop_data_price(trax_conn, price_date, price_close, data.clone())?;
                         }
                     }
-                }
+                    Ok(())
+                })?;
             }
-            "上櫃" => {
-                let obj_data = serde_json::from_str::<SecurityPriceTpex1>(&data_content).unwrap();
-                for row in obj_data.aa_data {
-                    if re.is_match(&row[6]) {
-                        let price_code = BigDecimal::from_str(&row[6].replace(",", "")).unwrap();
-                        if price_code > BigDecimal::zero() {
-                            let price = NewSecurityPrice {
-                                security_code: data.security_code.clone(),
-                                security_name: data.security_name.clone(),
-                                price_date: row[0].clone().trim().replace("＊", "").to_string(),
-                                price_close: price_code,
-                                price_avg: BigDecimal::zero(),
-                                price_hight: BigDecimal::zero(),
-                                price_hight_avg: BigDecimal::zero(),
-                                price_lowest: BigDecimal::zero(),
-                                price_lowest_avg: BigDecimal::zero(),
-                                open_date_year: data.open_date_year.clone(),
-                                open_date_month: data.open_date_month.clone(),
-                                open_date_day: data.open_date_day.clone(),
-                                created_date: Local::now().naive_local(),
-                                updated_date: Local::now().naive_local(),
-                            };
-                            dao::create(trax_conn, price)?;
+            Err(e) => return Err(SecurityError::JsonError(e)),
+        },
+        "上櫃" => match serde_json::from_str::<SecurityPriceTpex1>(&data_content) {
+            Ok(data_row) => {
+                conn.transaction::<_, SecurityError, _>(|trax_conn| {
+                    for row in data_row.aa_data {
+                        if re.is_match(&row[6]) {
+                            let price_date = row[0].trim().replace("＊", "");
+                            let price_close =
+                                BigDecimal::from_str(&row[6].replace(",", "")).unwrap();
+
+                            loop_data_price(trax_conn, price_date, price_close, data.clone())?;
                         }
                     }
-                }
+                    Ok(())
+                })?;
             }
-            "興櫃" => {
-                let obj_data = serde_json::from_str::<SecurityPriceTpex2>(&data_content).unwrap();
-                for row in obj_data.aa_data {
-                    if re.is_match(&row[5]) {
-                        let price_code = BigDecimal::from_str(&row[5].replace(",", "")).unwrap();
-                        if price_code > BigDecimal::zero() {
-                            let price = NewSecurityPrice {
-                                security_code: data.security_code.clone(),
-                                security_name: data.security_name.clone(),
-                                price_date: row[0].clone().trim().replace("＊", "").to_string(),
-                                price_close: price_code,
-                                price_avg: BigDecimal::zero(),
-                                price_hight: BigDecimal::zero(),
-                                price_hight_avg: BigDecimal::zero(),
-                                price_lowest: BigDecimal::zero(),
-                                price_lowest_avg: BigDecimal::zero(),
-                                open_date_year: data.open_date_year.clone(),
-                                open_date_month: data.open_date_month.clone(),
-                                open_date_day: data.open_date_day.clone(),
-                                created_date: Local::now().naive_local(),
-                                updated_date: Local::now().naive_local(),
-                            };
-                            dao::create(trax_conn, price)?;
+            Err(e) => return Err(SecurityError::JsonError(e)),
+        },
+        "興櫃" => match serde_json::from_str::<SecurityPriceTpex2>(&data_content) {
+            Ok(data_row) => {
+                conn.transaction::<_, SecurityError, _>(|trax_conn| {
+                    for row in data_row.aa_data {
+                        if re.is_match(&row[5]) {
+                            let price_date = row[0].trim().replace("＊", "");
+                            let price_close =
+                                BigDecimal::from_str(&row[5].replace(",", "")).unwrap();
+
+                            loop_data_price(trax_conn, price_date, price_close, data.clone())?;
                         }
                     }
-                }
+                    Ok(())
+                })?;
             }
-            _ => (),
-        }
-        Ok::<_, diesel::result::Error>(())
-    })?;
+            Err(e) => return Err(SecurityError::JsonError(e)),
+        },
+        _ => (),
+    }
+    Ok(())
+}
+
+fn loop_data_price(
+    trax_conn: &mut PgConnection,
+    price_date: String,
+    price_close: BigDecimal,
+    data: ResposePrice,
+) -> Result<(), SecurityError> {
+    if price_close > BigDecimal::zero() {
+        let price = NewSecurityPrice {
+            security_code: data.security_code.clone(),
+            security_name: data.security_name.clone(),
+            price_date: price_date,
+            price_close: price_close,
+            price_avg: BigDecimal::zero(),
+            price_hight: BigDecimal::zero(),
+            price_hight_avg: BigDecimal::zero(),
+            price_lowest: BigDecimal::zero(),
+            price_lowest_avg: BigDecimal::zero(),
+            open_date_year: data.open_date_year.clone(),
+            open_date_month: data.open_date_month.clone(),
+            open_date_day: data.open_date_day.clone(),
+            created_date: Local::now().naive_local(),
+            updated_date: Local::now().naive_local(),
+        };
+        dao::create(trax_conn, price)?;
+    }
 
     Ok(())
 }
 
-pub fn get_calculator_to_price(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+pub fn get_calculator_to_price(task: &DailyTask) -> Result<(), SecurityError> {
     info!(target: "security_api", "call daily_task.get_calculator_to_price");
 
     let q_year = task.open_date_year.clone();
@@ -158,7 +155,7 @@ pub fn get_calculator_to_price(task: &DailyTask) -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
-fn loop_data_calculator(data: SecurityPrice) -> Result<(), Box<dyn std::error::Error>> {
+fn loop_data_calculator(data: SecurityPrice) -> Result<(), SecurityError> {
     let q_year = data.open_date_year.clone();
     let q_month = data.open_date_month.clone();
     let q_day = data.open_date_day.clone();

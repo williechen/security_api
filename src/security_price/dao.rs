@@ -5,9 +5,10 @@ use crate::schema::security_price::dsl::security_price as table;
 use crate::schema::security_price::{
     open_date_day, open_date_month, open_date_year, row_id, security_code,
 };
+use crate::security_error::SecurityError;
 use diesel::{insert_into, update, ExpressionMethods, OptionalExtension, PgConnection, QueryDsl};
 use diesel::{sql_query, sql_types::VarChar, RunQueryDsl};
-use log::debug;
+use log::{debug, error};
 
 use super::model::{MaxPriceDate, NewSecurityPrice, ResposePrice, SecurityPrice};
 
@@ -31,7 +32,7 @@ pub fn find_all(
     match query.load::<SecurityPrice>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("find_one {}", e);
+            error!("{}", SecurityError::SQLError(e));
             Vec::new()
         }
     }
@@ -78,7 +79,7 @@ pub fn find_all_by_code(
     match query.load::<SecurityPrice>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("find_all_by_code {}", e);
+            error!("{}", SecurityError::SQLError(e));
             Vec::new()
         }
     }
@@ -122,7 +123,7 @@ pub fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<S
     match query.load::<SecurityPrice>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("find_one_by_date {}", e);
+            error!("{}", SecurityError::SQLError(e));
             Vec::new()
         }
     }
@@ -145,7 +146,7 @@ pub fn find_one_by_maxdate() -> Option<MaxPriceDate> {
     match query.get_result::<MaxPriceDate>(&mut conn).optional() {
         Ok(row) => row,
         Err(e) => {
-            debug!("find_one_by_maxdate {}", e);
+            error!("{}", SecurityError::SQLError(e));
             None
         }
     }
@@ -185,7 +186,7 @@ pub fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<Re
     match query.load::<ResposePrice>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("read_all_by_res {}", e);
+            error!("{}", SecurityError::SQLError(e));
             Vec::new()
         }
     }
@@ -194,16 +195,22 @@ pub fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<Re
 pub fn create(
     conn: &mut PgConnection,
     data: NewSecurityPrice,
-) -> Result<usize, diesel::result::Error> {
-    insert_into(table).values(data).execute(conn)
+) -> Result<usize, SecurityError> {
+    match insert_into(table).values(data).execute(conn){
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e))
+    }
 }
 
-pub fn modify(data: SecurityPrice) -> Result<usize, diesel::result::Error> {
+pub fn modify(data: SecurityPrice) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    update(table)
+    match update(table)
         .filter(row_id.eq(data.row_id.clone()))
         .set(data)
-        .execute(&mut conn)
+        .execute(&mut conn){
+            Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e))
+        }
 }

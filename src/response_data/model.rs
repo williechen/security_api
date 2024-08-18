@@ -2,6 +2,7 @@
 
 use chrono::NaiveDateTime;
 use diesel::prelude::{AsChangeset, Insertable, Queryable, QueryableByName};
+use serde::{Deserialize, Serialize};
 
 use crate::schema::response_data;
 
@@ -51,3 +52,49 @@ impl std::fmt::Display for ResponseData {
         )
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityPriceTwse {
+    pub stat: String,
+    pub date: String,
+    pub title: String,
+    pub fields: Vec<String>,
+    pub data: Vec<Vec<String>>,
+    pub notes: Vec<String>,
+    pub hints: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityPriceTpex1 {
+    #[serde(alias = "stkNo")]
+    pub stk_no: String,
+    #[serde(alias = "stkName")]
+    pub stk_name: String,
+    #[serde(alias = "showListPriceNote")]
+    pub show_list_price_note: bool,
+    #[serde(alias = "showListPriceLink")]
+    pub show_list_price_link: bool,
+    #[serde(alias = "reportDate")]
+    pub report_date: String,
+    #[serde(alias = "iTotalRecords")]
+    pub i_total_records: i32,
+    #[serde(alias = "aaData")]
+    pub aa_data: Vec<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityPriceTpex2 {
+    #[serde(alias = "stkno")]
+    pub stk_no: String,
+    #[serde(alias = "stkname")]
+    pub stk_name: String,
+    #[serde(alias = "iTotalRecords")]
+    pub i_total_records: i32,
+    #[serde(alias = "aaData")]
+    pub aa_data: Vec<Vec<String>>,
+    pub fields: Vec<Vec<String>>,
+    pub lang: String,
+    pub year: String,
+    pub month: String,
+}
+

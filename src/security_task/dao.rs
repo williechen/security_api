@@ -3,9 +3,9 @@
 use diesel::query_dsl::methods::FilterDsl;
 use diesel::query_dsl::methods::OrderDsl;
 use diesel::sql_types::VarChar;
-use diesel::{insert_into, update, ExpressionMethods};
-use diesel::{sql_query, RunQueryDsl};
+use diesel::{insert_into, update, ExpressionMethods,sql_query, RunQueryDsl, OptionalExtension};
 use log::debug;
+use log::error;
 
 use crate::daily_task::model::DailyTask;
 use crate::repository::Repository;
@@ -14,6 +14,7 @@ use crate::schema::security_task::{
     exec_count, is_enabled, issue_date, market_type, open_date_day, open_date_month,
     open_date_year, row_id, security_code, sort_no,
 };
+use crate::security_error::SecurityError;
 
 use super::model::{NewSecurityTask, SecurityTask};
 
@@ -54,7 +55,13 @@ pub fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTask> {
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    query.load::<SecurityTask>(&mut conn).unwrap()
+    match query.load::<SecurityTask>(&mut conn){
+        Ok(rows) => rows,
+        Err(e) =>{
+            error!("{}", SecurityError::SQLError(e));
+            Vec::new()
+        }
+    }
 }
 
 pub fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTask> {
@@ -94,7 +101,13 @@ pub fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTask> {
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    query.load::<SecurityTask>(&mut conn).unwrap()
+    match query.load::<SecurityTask>(&mut conn){
+        Ok(rows)=> rows,
+        Err(e) =>{
+            error!("{}", SecurityError::SQLError(e));
+            Vec::new()
+        }
+    }
 }
 
 pub fn find_one(
@@ -118,10 +131,10 @@ pub fn find_one(
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.first::<SecurityTask>(&mut conn) {
-        Ok(row) => Some(row),
+    match query.first::<SecurityTask>(&mut conn).optional() {
+        Ok(row) => row,
         Err(e) => {
-            debug!("find_one {}", e);
+            error!("{}", SecurityError::SQLError(e));
             None
         }
     }
@@ -144,25 +157,31 @@ pub fn find_all_by_times(q_year: String, q_month: String, q_day: String) -> Vec<
     match query.load::<SecurityTask>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("find_one {}", e);
+            error!("{}", SecurityError::SQLError(e));
             Vec::new()
         }
     }
 }
 
-pub fn create(data: NewSecurityTask) -> Result<usize, diesel::result::Error> {
+pub fn create(data: NewSecurityTask) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    insert_into(table).values(data).execute(&mut conn)
+    match insert_into(table).values(data).execute(&mut conn){
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e))
+    }
 }
 
-pub fn modify(data: SecurityTask) -> Result<usize, diesel::result::Error> {
+pub fn modify(data: SecurityTask) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    update(table)
+    match update(table)
         .filter(row_id.eq(data.row_id.clone()))
         .set(data)
-        .execute(&mut conn)
+        .execute(&mut conn){
+            Ok(cnt) => Ok(cnt),
+            Err(e) => Err(SecurityError::SQLError(e))
+        }
 }

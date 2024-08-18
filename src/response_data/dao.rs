@@ -1,15 +1,15 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 use diesel::query_dsl::methods::FilterDsl;
-use diesel::{insert_into, RunQueryDsl};
-use diesel::{update, ExpressionMethods};
-use log::debug;
+use diesel::{insert_into, update, ExpressionMethods, OptionalExtension, RunQueryDsl};
+use log::{debug, error};
 
 use crate::repository::Repository;
 use crate::schema::response_data::dsl::response_data as table;
 use crate::schema::response_data::{
     exec_code, open_date_day, open_date_month, open_date_year, row_id,
 };
+use crate::security_error::SecurityError;
 use crate::security_task::model::SecurityTask;
 
 use super::model::{NewResponseData, ResponseData};
@@ -31,10 +31,10 @@ pub fn find_one_by_max(task: &SecurityTask) -> Option<ResponseData> {
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.first::<ResponseData>(&mut conn) {
-        Ok(row) => Some(row),
+    match query.first::<ResponseData>(&mut conn).optional() {
+        Ok(row) => row,
         Err(e) => {
-            debug!("find_one {}", e);
+            error!("{}", SecurityError::SQLError(e));
             None
         }
     }
@@ -57,10 +57,10 @@ pub fn find_one_by_min(task: &SecurityTask) -> Option<ResponseData> {
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.first::<ResponseData>(&mut conn) {
-        Ok(row) => Some(row),
+    match query.first::<ResponseData>(&mut conn).optional() {
+        Ok(row) => row,
         Err(e) => {
-            debug!("find_one {}", e);
+            error!("{}", SecurityError::SQLError(e));
             None
         }
     }
@@ -83,28 +83,34 @@ pub fn find_one(
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.first::<ResponseData>(&mut conn) {
-        Ok(row) => Some(row),
+    match query.first::<ResponseData>(&mut conn).optional() {
+        Ok(row) => row,
         Err(e) => {
-            debug!("find_one {}", e);
+            error!("{}", SecurityError::SQLError(e));
             None
         }
     }
 }
 
-pub fn create(data: NewResponseData) -> Result<usize, diesel::result::Error> {
+pub fn create(data: NewResponseData) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    insert_into(table).values(data).execute(&mut conn)
+    match insert_into(table).values(data).execute(&mut conn){
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e))
+    }
 }
 
-pub fn modify(data: ResponseData) -> Result<usize, diesel::result::Error> {
+pub fn modify(data: ResponseData) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    update(table)
+    match update(table)
         .filter(row_id.eq(data.row_id.clone()))
         .set(data)
-        .execute(&mut conn)
+        .execute(&mut conn){
+            Ok(cnt) => Ok(cnt),
+            Err(e) => Err(SecurityError::SQLError(e))
+        }
 }

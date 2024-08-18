@@ -2,9 +2,9 @@
 
 use diesel::{
     insert_into, query_dsl::methods::FilterDsl, sql_query, sql_types::VarChar, update,
-    ExpressionMethods, RunQueryDsl,
+    ExpressionMethods, RunQueryDsl,OptionalExtension
 };
-use log::debug;
+use log::{debug, error};
 
 use crate::{
     repository::Repository,
@@ -25,10 +25,10 @@ pub fn find_one(q_year: String, q_month: String, q_day: String) -> Option<Calend
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.first::<CalendarData>(&mut conn) {
-        Ok(row) => Some(row),
+    match query.first::<CalendarData>(&mut conn).optional() {
+        Ok(row) => row,
         Err(e) => {
-            debug!("find_one {}", e);
+            error!("{}", SecurityError::SQLError(e));
             None
         }
     }
@@ -38,24 +38,26 @@ pub fn create(data: NewCalendarData) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    let cnt = insert_into(table).values(data).execute(&mut conn)?;
-
-    Ok(cnt)
+    match insert_into(table).values(data).execute(&mut conn){
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e))
+    }
 }
 
 pub fn modify(data: CalendarData) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    let cnt = update(table)
+    match update(table)
         .filter(row_id.eq(data.row_id.clone()))
         .set(data)
-        .execute(&mut conn)?;
-
-    Ok(cnt)
+        .execute(&mut conn){
+            Ok(cnt) => Ok(cnt),
+            Err(e) => Err(SecurityError::SQLError(e))
+        }
 }
 
-pub fn read_by_work_day_first(q_year: String, q_month: String) -> Option<CalendarData> {
+pub fn find_one_by_work_day_first(q_year: String, q_month: String) -> Option<CalendarData> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
@@ -89,10 +91,10 @@ pub fn read_by_work_day_first(q_year: String, q_month: String) -> Option<Calenda
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.get_result::<CalendarData>(&mut conn) {
-        Ok(row) => Some(row),
+    match query.get_result::<CalendarData>(&mut conn).optional() {
+        Ok(row) => row,
         Err(e) => {
-            debug!("read_by_work_day_first {}", e);
+            error!("{}", SecurityError::SQLError(e));
             None
         }
     }

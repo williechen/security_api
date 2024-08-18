@@ -7,13 +7,12 @@ use log::{debug, error, info};
 use rand::{thread_rng, Rng};
 use retry::delay::{jitter, Exponential};
 use retry::retry;
-use serde_json::Value;
 
 use super::{
     dao,
     model::{NewSecurityTask, SecurityTask},
 };
-use crate::response_data::model::NewResponseData;
+use crate::response_data::model::{NewResponseData, SecurityPriceTpex1, SecurityPriceTpex2, SecurityPriceTwse};
 use crate::security_error::SecurityError;
 use crate::{
     daily_task::model::DailyTask,
@@ -21,7 +20,7 @@ use crate::{
     security_temp::{self, model::SecurityTemp},
 };
 
-pub fn insert_task_data(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+pub fn insert_task_data(task: &DailyTask) -> Result<(), SecurityError> {
     info!(target: "security_api", "call daily_task.temp_to_task");
 
     let twse_list = security_temp::dao::find_all_by_twse(&task);
@@ -52,7 +51,7 @@ fn loop_data_temp_data(
     data: &SecurityTemp,
     task: &DailyTask,
     item_index: i32,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), SecurityError> {
     let q_year = task.open_date_year.clone();
     let q_month = task.open_date_month.clone();
     let q_day = task.open_date_day.clone();
@@ -236,68 +235,93 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
     let market_type = security.market_type.clone();
     let ref_market_type = market_type.as_str();
 
+    let y = security.open_date_year.clone().parse::<i32>().unwrap();
+    let m = security.open_date_month.clone();
+    let tw_ym = format!("{0}/{1}",y-1911, m);
+
     match ref_market_type {
         "上市" => {
-            let data = retry(retry_strategy, || {
+            match retry(retry_strategy, || {
                 response_data::service::get_twse_avg_json(&security)
-            })?;
+            }){
+                Ok(res) => {
+                    match serde_json::from_str::<SecurityPriceTwse>(&res){
+                        Ok(price) => {
+                            let stat = price.stat;
+                            let date = &price.data[0][1];
 
-            let json_value: Value = serde_json::from_str(&data)?;
-            match json_value.get("stat") {
-                Some(t) => {
-                    if "OK" == t.as_str().unwrap_or("") {
-                        add_res_data(&security, &data);
-                        update_data(&security, true);
-                    } else {
-                        update_data(&security, false);
+                            if "OK" == stat && date.starts_with(&tw_ym) {
+                                add_res_data(&security, res);
+                                update_data(&security, true);
+                            } else {
+                                update_data(&security, false);
+                            }
+
+                            return Ok(())
+                        },
+                        Err(e) => return Err(SecurityError::JsonError(e))
                     }
-                }
-                None => update_data(&security, false),
-            };
+                },
+                Err(e) => return Err(SecurityError::BaseError(e.error))
+            }
         }
         "上櫃" => {
-            let data = retry(retry_strategy, || {
+            match retry(retry_strategy, || {
                 response_data::service::get_tpex1_json(&security)
-            })?;
+            }){
+                Ok(res) => {
+                    match serde_json::from_str::<SecurityPriceTpex1>(&res){
+                        Ok(price) => {
+                            let cnt = price.i_total_records;
+                            let date = &price.aa_data[0][1];
 
-            let json_value: Value = serde_json::from_str(&data)?;
-            match json_value.get("iTotalRecords") {
-                Some(t) => {
-                    if 0 < t.as_i64().unwrap_or(0) {
-                        add_res_data(&security, &data);
-                        update_data(&security, true);
-                    } else {
-                        update_data(&security, false);
+                            if cnt > 0 && date.starts_with(&tw_ym) {
+                                add_res_data(&security, res);
+                                update_data(&security, true);
+                            } else {
+                                update_data(&security, false);
+                            }
+
+                            return Ok(())
+                        },
+                        Err(e) => return Err(SecurityError::JsonError(e))
                     }
-                }
-                None => update_data(&security, false),
-            };
+                },
+                Err(e) => return Err(SecurityError::BaseError(e.error))
+            }
         }
         "興櫃" => {
-            let data = retry(retry_strategy, || {
+            match retry(retry_strategy, || {
                 response_data::service::get_tpex2_html(&security)
-            })?;
+            }){
+                Ok(res) => {
+                    match serde_json::from_str::<SecurityPriceTpex2>(&res){
+                        Ok(price) => {
+                            let cnt = price.i_total_records;
+                            let date = &price.aa_data[0][1];
 
-            let json_value: Value = serde_json::from_str(&data)?;
-            match json_value.get("iTotalRecords") {
-                Some(t) => {
-                    if 0 < t.as_i64().unwrap_or(0) {
-                        add_res_data(&security, &data);
-                        update_data(&security, true);
-                    } else {
-                        update_data(&security, false);
-                    }
-                }
-                None => update_data(&security, false),
-            };
+                            if cnt > 0 && date.starts_with(&tw_ym) {
+                                add_res_data(&security, res);
+                                update_data(&security, true);
+                            } else {
+                                update_data(&security, false);
+                            }
+
+                            return Ok(())
+                        },
+                        Err(e) => return Err(SecurityError::JsonError(e))
+                    };
+                },
+                Err(e) => return Err(SecurityError::BaseError(e.error))
+            }
         }
-        _ => (),
+        _ => ()
     }
 
     Ok(())
 }
 
-fn add_res_data(security: &SecurityTask, html: &String) {
+fn add_res_data(security: &SecurityTask, html: String) {
     let res_data = response_data::dao::find_one_by_min(&security);
     if res_data.is_none() {
         let new_res_data = NewResponseData {
@@ -305,7 +329,7 @@ fn add_res_data(security: &SecurityTask, html: &String) {
             open_date_month: security.clone().open_date_month,
             open_date_day: security.clone().open_date_day,
             exec_code: security.clone().security_code,
-            data_content: html.to_string(),
+            data_content: html,
             created_date: Local::now().naive_local(),
             updated_date: Local::now().naive_local(),
         };
@@ -317,7 +341,7 @@ fn add_res_data(security: &SecurityTask, html: &String) {
             open_date_month: security.clone().open_date_month,
             open_date_day: security.clone().open_date_day,
             exec_code: res_data.clone().unwrap().exec_code,
-            data_content: html.to_string(),
+            data_content: html,
             created_date: res_data.clone().unwrap().created_date,
             updated_date: Local::now().naive_local(),
         };

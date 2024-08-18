@@ -12,10 +12,11 @@ use serde_json::json;
 use crate::{
     daily_task::model::DailyTask,
     response_data::{dao, model::NewResponseData},
+    security_error::SecurityError,
     security_task::model::SecurityTask,
 };
 
-pub fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+pub fn get_security_all_code(task: &DailyTask) -> Result<(), SecurityError> {
     info!(target: "security_api", "call daily_task.get_security_all_code");
 
     let q_year = task.clone().open_date_year;
@@ -25,19 +26,23 @@ pub fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::error:
 
     let data = dao::find_one(q_year, q_month, q_day, q_exec_code);
     if data.is_none() {
-        let content = get_web_security_data()?;
+        match get_web_security_data() {
+            Ok(content) => {
+                let new_response_data = NewResponseData {
+                    exec_code: "security".to_string(),
+                    data_content: content,
+                    open_date_year: task.clone().open_date_year,
+                    open_date_month: task.clone().open_date_month,
+                    open_date_day: task.clone().open_date_day,
+                    created_date: Local::now().naive_local(),
+                    updated_date: Local::now().naive_local(),
+                };
 
-        let new_response_data = NewResponseData {
-            exec_code: "security".to_string(),
-            data_content: content,
-            open_date_year: task.clone().open_date_year,
-            open_date_month: task.clone().open_date_month,
-            open_date_day: task.clone().open_date_day,
-            created_date: Local::now().naive_local(),
-            updated_date: Local::now().naive_local(),
-        };
-
-        dao::create(new_response_data)?;
+                dao::create(new_response_data)?;
+                return Ok(());
+            }
+            Err(e) => return Err(SecurityError::BaseError(e)),
+        }
     }
 
     Ok(())

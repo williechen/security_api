@@ -8,13 +8,12 @@ use log::{debug, info};
 use scraper::{Html, Selector};
 
 use crate::{
-    daily_task::model::DailyTask, repository::Repository, response_data,
-    security_temp::model::NewSecurityTemp,
+    daily_task::model::DailyTask, repository::Repository, response_data, security_error::SecurityError, security_temp::model::NewSecurityTemp
 };
 
 use super::dao;
 
-pub fn delete_temp() -> Result<(), Box<dyn std::error::Error>> {
+pub fn delete_temp() -> Result<(), SecurityError> {
     info!(target: "security_api", "call daily_task.delete_temp");
 
     dao::remove_all()?;
@@ -22,7 +21,7 @@ pub fn delete_temp() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn get_security_to_temp(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+pub fn get_security_to_temp(task: &DailyTask) -> Result<(), SecurityError> {
     info!(target: "security_api", "call daily_task.get_security_to_temp");
     let dao = Repository::new();
     let mut conn = dao.connection;
@@ -35,7 +34,7 @@ pub fn get_security_to_temp(task: &DailyTask) -> Result<(), Box<dyn std::error::
     let data = response_data::dao::find_one(q_year, q_month, q_day, q_exec_code);
     if data.is_some() {
         let data_content = data.unwrap().data_content;
-        conn.transaction(|trax_conn| insert_temp_data(trax_conn, data_content, &task))?;
+        conn.transaction::<_, SecurityError, _>(|trax_conn| insert_temp_data(trax_conn, data_content, &task))?;
     }
 
     Ok(())
@@ -45,7 +44,7 @@ fn insert_temp_data(
     transaction: &mut PgConnection,
     data_content: String,
     task: &DailyTask,
-) -> Result<(), diesel::result::Error> {
+) -> Result<(), SecurityError> {
     let rows = parse_table_data(data_content).unwrap();
     for row in rows {
         debug!(target: "security_api", "ROW: {:?}", &row);
@@ -59,7 +58,7 @@ fn loop_data_temp(
     transaction: &mut PgConnection,
     content: HashMap<String, String>,
     task: &DailyTask,
-) -> Result<(), diesel::result::Error> {
+) -> Result<(), SecurityError> {
     let q_year = task.clone().open_date_year;
     let q_month = task.clone().open_date_month;
     let q_day = task.clone().open_date_day;

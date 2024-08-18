@@ -3,7 +3,7 @@ use chrono::{Datelike, Local};
 use diesel::dsl::insert_into;
 use diesel::sql_types::VarChar;
 use diesel::{sql_query, update, ExpressionMethods, QueryDsl, RunQueryDsl, OptionalExtension};
-use log::debug;
+use log::{debug, error};
 
 use crate::repository::Repository;
 use crate::schema::daily_task::dsl::daily_task as table;
@@ -55,7 +55,7 @@ pub fn find_all() -> Vec<DailyTask> {
     match query.load::<DailyTask>(&mut conn){
         Ok(rows) => rows,
         Err(e) => {
-            debug!("find_all Error => {0}", e);
+            error!("{}", SecurityError::SQLError(e));
             Vec::new()
         },
     }
@@ -82,7 +82,7 @@ pub fn find_one(
     match query.first::<DailyTask>(&mut conn).optional(){
         Ok(row) => row,
         Err(e) =>{
-            debug!("find_one Error => {0}", e);
+            error!("{}", SecurityError::SQLError(e));
             None
         }
     }
@@ -92,24 +92,26 @@ pub fn create(data: NewDailyTask) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    let cnt = insert_into(table).values(data).execute(&mut conn)?;
-
-    Ok(cnt)
+    match insert_into(table).values(data).execute(&mut conn){
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e))
+    }
 }
 
 pub fn modify(data: DailyTask) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    let cnt = update(table)
+    match update(table)
         .filter(open_date_year.eq(data.open_date_year.clone()))
         .filter(open_date_month.eq(data.open_date_month.clone()))
         .filter(open_date_day.eq(data.open_date_day.clone()))
         .filter(job_code.eq(data.job_code.clone()))
         .set(data)
-        .execute(&mut conn)?;
-
-    Ok(cnt)
+        .execute(&mut conn){
+            Ok(cnt) => Ok(cnt),
+            Err(e) => Err(SecurityError::SQLError(e))
+        }
 }
 
 pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
@@ -146,7 +148,7 @@ pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
     match query.get_result::<DailyTask>(&mut conn).optional() {
         Ok(row) => row,
         Err(e) => {
-            debug!("find_one_by_exec_asc {}", e);
+            error!("{}", SecurityError::SQLError(e));
             None
         }
     }
@@ -186,7 +188,7 @@ pub fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
     match query.get_result::<DailyTask>(&mut conn).optional() {
         Ok(row) => row,
         Err(e) => {
-            debug!("find_one_by_exec_desc {}", e);
+            error!("{}", SecurityError::SQLError(e));
             None
         }
     }
@@ -228,7 +230,7 @@ pub fn find_all_by_exec_desc(q_year: String, q_month: String) -> Vec<DailyTask> 
     match query.get_results::<DailyTask>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("find_all_by_exec_desc {}", e);
+            error!("{}", SecurityError::SQLError(e));
             Vec::new()
         }
     }
@@ -270,7 +272,7 @@ pub fn find_all_by_exec_asc(q_year: String, q_month: String) -> Vec<DailyTask> {
     match query.get_results::<DailyTask>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("find_all_by_exec_asc {}", e);
+            error!("{}", SecurityError::SQLError(e));
             Vec::new()
         }
     }

@@ -6,13 +6,12 @@ use log::{debug, error, info};
 use rand::{thread_rng, Rng};
 
 use crate::{
-    daily_task::model::NewDailyTask, listen_flow, response_data, security_price, security_task,
-    security_temp,
+    daily_task::model::NewDailyTask, listen_flow, response_data, security_error::SecurityError, security_price, security_task, security_temp
 };
 
 use super::{dao, model::DailyTask};
 
-pub fn insert_task_data() -> Result<(), Box<dyn std::error::Error>> {
+pub fn insert_task_data() -> Result<(), SecurityError> {
     let task_list = dao::find_all();
     for data in task_list {
         debug!(target: "security_api", "DailyTask: {}", &data);
@@ -39,7 +38,7 @@ pub fn insert_task_data() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn exec_daily_task() -> Result<(), Box<dyn std::error::Error>> {
+pub fn exec_daily_task() -> Result<(), SecurityError> {
     let mut exec_task = dao::find_one_by_exec_desc("security".to_string());
     while exec_task.is_some() {
         let e_open_date = start_open_data("security", &exec_task.clone().unwrap());

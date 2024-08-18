@@ -2,13 +2,14 @@
 
 use bigdecimal::Zero;
 use diesel::{delete, insert_into, update, ExpressionMethods, QueryDsl, RunQueryDsl};
-use log::debug;
+use log::{debug, error};
 
 use crate::repository::Repository;
 use crate::schema::listen_flow::dsl::listen_flow as table;
 use crate::schema::listen_flow::{
     flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5, pid, row_id,
 };
+use crate::security_error::SecurityError;
 
 use super::model::{ListenFlow, NewListenFlow};
 
@@ -45,34 +46,45 @@ pub fn find_all(data: ListenFlow) -> Vec<ListenFlow> {
     match query.load::<ListenFlow>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
-            debug!("find_all {}", e);
+            error!("{}", SecurityError::SQLError(e));
             Vec::new()
         }
     }
 }
 
-pub fn create(data: NewListenFlow) -> Result<usize, diesel::result::Error> {
+pub fn create(data: NewListenFlow) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    insert_into(table).values(data).execute(&mut conn)
+    match insert_into(table).values(data).execute(&mut conn) {
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e)),
+    }
 }
 
-pub fn modify(data: ListenFlow) -> Result<usize, diesel::result::Error> {
+pub fn modify(data: ListenFlow) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    update(table)
+    match update(table)
         .filter(row_id.eq(data.row_id.clone()))
         .set(data)
         .execute(&mut conn)
+    {
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e)),
+    }
 }
 
-pub fn remove_all(q_flow_code: &str) -> Result<usize, diesel::result::Error> {
+pub fn remove_all(q_flow_code: &str) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    delete(table)
+    match delete(table)
         .filter(flow_code.eq(q_flow_code))
         .execute(&mut conn)
+    {
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e)),
+    }
 }

@@ -5,9 +5,9 @@ use std::cmp::max;
 use log::info;
 
 use super::{dao, model::SecurityTask};
-use crate::daily_task::model::DailyTask;
+use crate::{daily_task::model::DailyTask, security_error::SecurityError};
 
-pub fn update_task_data(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
+pub fn update_task_data(task: &DailyTask) -> Result<(), SecurityError> {
     info!(target: "security_api", "call daily_task.task_range");
 
     let twse_list = dao::find_all_by_twse(&task);
@@ -37,7 +37,7 @@ pub fn update_task_data(task: &DailyTask) -> Result<(), Box<dyn std::error::Erro
 fn loop_data_task_data(
     security: SecurityTask,
     item_index: i32,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), SecurityError> {
     if security.sort_no != item_index {
         let mut new_data = security.clone();
         new_data.sort_no = item_index;
