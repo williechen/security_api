@@ -2,7 +2,9 @@
 
 use diesel::query_dsl::methods::FilterDsl;
 use diesel::sql_types::VarChar;
-use diesel::{delete, insert_into, sql_query, ExpressionMethods, PgConnection, RunQueryDsl, OptionalExtension};
+use diesel::{
+    delete, insert_into, sql_query, ExpressionMethods, OptionalExtension, PgConnection, RunQueryDsl,
+};
 use log::{debug, error};
 
 use crate::daily_task::model::DailyTask;
@@ -54,8 +56,8 @@ pub fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTemp> {
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.load::<SecurityTemp>(&mut conn){
-        Ok(rows)=>rows,
+    match query.load::<SecurityTemp>(&mut conn) {
+        Ok(rows) => rows,
         Err(e) => {
             error!("{}", SecurityError::SQLError(e));
             Vec::new()
@@ -102,8 +104,8 @@ pub fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTemp> {
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.load::<SecurityTemp>(&mut conn){
-        Ok(rows)=>rows,
+    match query.load::<SecurityTemp>(&mut conn) {
+        Ok(rows) => rows,
         Err(e) => {
             error!("{}", SecurityError::SQLError(e));
             Vec::new()
@@ -141,13 +143,10 @@ pub fn find_one(
     }
 }
 
-pub fn create(
-    conn: &mut PgConnection,
-    data: NewSecurityTemp,
-) -> Result<usize, SecurityError> {
-    match insert_into(table).values(data).execute(conn){
+pub fn create(conn: &mut PgConnection, data: NewSecurityTemp) -> Result<usize, SecurityError> {
+    match insert_into(table).values(data).execute(conn) {
         Ok(cnt) => Ok(cnt),
-        Err(e)=>Err(SecurityError::SQLError(e))
+        Err(e) => Err(SecurityError::SQLError(e)),
     }
 }
 
@@ -155,8 +154,8 @@ pub fn remove_all() -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    match delete(table).execute(&mut conn){
+    match delete(table).execute(&mut conn) {
         Ok(cnt) => Ok(cnt),
-        Err(e)=>Err(SecurityError::SQLError(e))
+        Err(e) => Err(SecurityError::SQLError(e)),
     }
 }

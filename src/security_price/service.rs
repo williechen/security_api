@@ -10,14 +10,12 @@ use log::{debug, info};
 use regex::Regex;
 
 use crate::daily_task::model::DailyTask;
+use crate::repository::Repository;
 use crate::response_data::model::{SecurityPriceTpex1, SecurityPriceTpex2, SecurityPriceTwse};
 use crate::security_error::SecurityError;
-use crate::repository::Repository;
 
 use super::dao;
-use super::model::{
-    NewSecurityPrice, ResposePrice, SecurityPrice
-};
+use super::model::{NewSecurityPrice, ResposePrice, SecurityPrice};
 
 pub fn get_security_to_price(task: &DailyTask) -> Result<(), SecurityError> {
     info!(target: "security_api", "call daily_task.get_security_to_price");

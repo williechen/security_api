@@ -2,7 +2,7 @@
 
 use diesel::{
     insert_into, query_dsl::methods::FilterDsl, sql_query, sql_types::VarChar, update,
-    ExpressionMethods, RunQueryDsl,OptionalExtension
+    ExpressionMethods, OptionalExtension, RunQueryDsl,
 };
 use log::{debug, error};
 
@@ -38,9 +38,9 @@ pub fn create(data: NewCalendarData) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    match insert_into(table).values(data).execute(&mut conn){
+    match insert_into(table).values(data).execute(&mut conn) {
         Ok(cnt) => Ok(cnt),
-        Err(e) => Err(SecurityError::SQLError(e))
+        Err(e) => Err(SecurityError::SQLError(e)),
     }
 }
 
@@ -51,10 +51,11 @@ pub fn modify(data: CalendarData) -> Result<usize, SecurityError> {
     match update(table)
         .filter(row_id.eq(data.row_id.clone()))
         .set(data)
-        .execute(&mut conn){
-            Ok(cnt) => Ok(cnt),
-            Err(e) => Err(SecurityError::SQLError(e))
-        }
+        .execute(&mut conn)
+    {
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e)),
+    }
 }
 
 pub fn find_one_by_work_day_first(q_year: String, q_month: String) -> Option<CalendarData> {

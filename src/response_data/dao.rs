@@ -96,9 +96,9 @@ pub fn create(data: NewResponseData) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    match insert_into(table).values(data).execute(&mut conn){
+    match insert_into(table).values(data).execute(&mut conn) {
         Ok(cnt) => Ok(cnt),
-        Err(e) => Err(SecurityError::SQLError(e))
+        Err(e) => Err(SecurityError::SQLError(e)),
     }
 }
 
@@ -109,8 +109,9 @@ pub fn modify(data: ResponseData) -> Result<usize, SecurityError> {
     match update(table)
         .filter(row_id.eq(data.row_id.clone()))
         .set(data)
-        .execute(&mut conn){
-            Ok(cnt) => Ok(cnt),
-            Err(e) => Err(SecurityError::SQLError(e))
-        }
+        .execute(&mut conn)
+    {
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e)),
+    }
 }

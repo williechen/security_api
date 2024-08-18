@@ -25,7 +25,8 @@ pub fn init_calendar_data() -> Result<(), SecurityError> {
                 }
             }
 
-            let first_date = dao::find_one_by_work_day_first(format!("{:04}", y), format!("{:02}", m));
+            let first_date =
+                dao::find_one_by_work_day_first(format!("{:04}", y), format!("{:02}", m));
             if first_date.is_some() {
                 update_first_date(first_date.unwrap())?;
             }
@@ -55,7 +56,8 @@ pub fn insert_calendar_data(open_next_year: bool) -> Result<(), SecurityError> {
             }
         }
 
-        let first_date = dao::find_one_by_work_day_first(format!("{:04}", year), format!("{:02}", m));
+        let first_date =
+            dao::find_one_by_work_day_first(format!("{:04}", year), format!("{:02}", m));
         if first_date.is_some() {
             update_first_date(first_date.unwrap())?;
         }

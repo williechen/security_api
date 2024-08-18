@@ -12,7 +12,9 @@ use super::{
     dao,
     model::{NewSecurityTask, SecurityTask},
 };
-use crate::response_data::model::{NewResponseData, SecurityPriceTpex1, SecurityPriceTpex2, SecurityPriceTwse};
+use crate::response_data::model::{
+    NewResponseData, SecurityPriceTpex1, SecurityPriceTpex2, SecurityPriceTwse,
+};
 use crate::security_error::SecurityError;
 use crate::{
     daily_task::model::DailyTask,
@@ -237,15 +239,15 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
 
     let y = security.open_date_year.clone().parse::<i32>().unwrap();
     let m = security.open_date_month.clone();
-    let tw_ym = format!("{0}/{1}",y-1911, m);
+    let tw_ym = format!("{0}/{1}", y - 1911, m);
 
     match ref_market_type {
         "上市" => {
             match retry(retry_strategy, || {
                 response_data::service::get_twse_avg_json(&security)
-            }){
+            }) {
                 Ok(res) => {
-                    match serde_json::from_str::<SecurityPriceTwse>(&res){
+                    match serde_json::from_str::<SecurityPriceTwse>(&res) {
                         Ok(price) => {
                             let stat = price.stat;
                             let date = &price.data[0][1];
@@ -257,20 +259,20 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                                 update_data(&security, false);
                             }
 
-                             return Ok(());
-                        },
-                        Err(e) =>  return Err(SecurityError::JsonError(e))
+                            return Ok(());
+                        }
+                        Err(e) => return Err(SecurityError::JsonError(e)),
                     };
-                },
-                Err(e) =>  return Err(SecurityError::BaseError(e.error))
+                }
+                Err(e) => return Err(SecurityError::BaseError(e.error)),
             };
         }
         "上櫃" => {
             match retry(retry_strategy, || {
                 response_data::service::get_tpex1_json(&security)
-            }){
+            }) {
                 Ok(res) => {
-                    match serde_json::from_str::<SecurityPriceTpex1>(&res){
+                    match serde_json::from_str::<SecurityPriceTpex1>(&res) {
                         Ok(price) => {
                             let cnt = price.i_total_records;
                             let date = &price.aa_data[0][1];
@@ -282,20 +284,20 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                                 update_data(&security, false);
                             }
 
-                             return Ok(());
-                        },
-                        Err(e) =>  return Err(SecurityError::JsonError(e))
+                            return Ok(());
+                        }
+                        Err(e) => return Err(SecurityError::JsonError(e)),
                     };
-                },
-                Err(e) =>  return Err(SecurityError::BaseError(e.error))
+                }
+                Err(e) => return Err(SecurityError::BaseError(e.error)),
             };
         }
         "興櫃" => {
             match retry(retry_strategy, || {
                 response_data::service::get_tpex2_html(&security)
-            }){
+            }) {
                 Ok(res) => {
-                    match serde_json::from_str::<SecurityPriceTpex2>(&res){
+                    match serde_json::from_str::<SecurityPriceTpex2>(&res) {
                         Ok(price) => {
                             let cnt = price.i_total_records;
                             let date = &price.aa_data[0][1];
@@ -307,15 +309,15 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                                 update_data(&security, false);
                             }
 
-                             return Ok(());
-                        },
-                        Err(e) =>  return Err(SecurityError::JsonError(e))
+                            return Ok(());
+                        }
+                        Err(e) => return Err(SecurityError::JsonError(e)),
                     };
-                },
-                Err(e) =>  return Err(SecurityError::BaseError(e.error))
+                }
+                Err(e) => return Err(SecurityError::BaseError(e.error)),
             };
         }
-        _ => ()
+        _ => (),
     }
 
     Ok(())

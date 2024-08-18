@@ -2,7 +2,7 @@
 use chrono::{Datelike, Local};
 use diesel::dsl::insert_into;
 use diesel::sql_types::VarChar;
-use diesel::{sql_query, update, ExpressionMethods, QueryDsl, RunQueryDsl, OptionalExtension};
+use diesel::{sql_query, update, ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl};
 use log::{debug, error};
 
 use crate::repository::Repository;
@@ -52,14 +52,13 @@ pub fn find_all() -> Vec<DailyTask> {
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.load::<DailyTask>(&mut conn){
+    match query.load::<DailyTask>(&mut conn) {
         Ok(rows) => rows,
         Err(e) => {
             error!("{}", SecurityError::SQLError(e));
             Vec::new()
-        },
+        }
     }
-
 }
 
 pub fn find_one(
@@ -79,9 +78,9 @@ pub fn find_one(
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
-    match query.first::<DailyTask>(&mut conn).optional(){
+    match query.first::<DailyTask>(&mut conn).optional() {
         Ok(row) => row,
-        Err(e) =>{
+        Err(e) => {
             error!("{}", SecurityError::SQLError(e));
             None
         }
@@ -92,9 +91,9 @@ pub fn create(data: NewDailyTask) -> Result<usize, SecurityError> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    match insert_into(table).values(data).execute(&mut conn){
+    match insert_into(table).values(data).execute(&mut conn) {
         Ok(cnt) => Ok(cnt),
-        Err(e) => Err(SecurityError::SQLError(e))
+        Err(e) => Err(SecurityError::SQLError(e)),
     }
 }
 
@@ -108,10 +107,11 @@ pub fn modify(data: DailyTask) -> Result<usize, SecurityError> {
         .filter(open_date_day.eq(data.open_date_day.clone()))
         .filter(job_code.eq(data.job_code.clone()))
         .set(data)
-        .execute(&mut conn){
-            Ok(cnt) => Ok(cnt),
-            Err(e) => Err(SecurityError::SQLError(e))
-        }
+        .execute(&mut conn)
+    {
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e)),
+    }
 }
 
 pub fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {

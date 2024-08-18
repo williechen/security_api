@@ -192,13 +192,10 @@ pub fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<Re
     }
 }
 
-pub fn create(
-    conn: &mut PgConnection,
-    data: NewSecurityPrice,
-) -> Result<usize, SecurityError> {
-    match insert_into(table).values(data).execute(conn){
+pub fn create(conn: &mut PgConnection, data: NewSecurityPrice) -> Result<usize, SecurityError> {
+    match insert_into(table).values(data).execute(conn) {
         Ok(cnt) => Ok(cnt),
-        Err(e) => Err(SecurityError::SQLError(e))
+        Err(e) => Err(SecurityError::SQLError(e)),
     }
 }
 
@@ -209,8 +206,9 @@ pub fn modify(data: SecurityPrice) -> Result<usize, SecurityError> {
     match update(table)
         .filter(row_id.eq(data.row_id.clone()))
         .set(data)
-        .execute(&mut conn){
-            Ok(cnt) => Ok(cnt),
-        Err(e) => Err(SecurityError::SQLError(e))
-        }
+        .execute(&mut conn)
+    {
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e)),
+    }
 }

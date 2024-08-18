@@ -6,7 +6,8 @@ use log::{debug, error, info};
 use rand::{thread_rng, Rng};
 
 use crate::{
-    daily_task::model::NewDailyTask, listen_flow, response_data, security_error::SecurityError, security_price, security_task, security_temp
+    daily_task::model::NewDailyTask, listen_flow, response_data, security_error::SecurityError,
+    security_price, security_task, security_temp,
 };
 
 use super::{dao, model::DailyTask};

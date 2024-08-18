@@ -8,7 +8,8 @@ use log::{debug, info};
 use scraper::{Html, Selector};
 
 use crate::{
-    daily_task::model::DailyTask, repository::Repository, response_data, security_error::SecurityError, security_temp::model::NewSecurityTemp
+    daily_task::model::DailyTask, repository::Repository, response_data,
+    security_error::SecurityError, security_temp::model::NewSecurityTemp,
 };
 
 use super::dao;
@@ -34,7 +35,9 @@ pub fn get_security_to_temp(task: &DailyTask) -> Result<(), SecurityError> {
     let data = response_data::dao::find_one(q_year, q_month, q_day, q_exec_code);
     if data.is_some() {
         let data_content = data.unwrap().data_content;
-        conn.transaction::<_, SecurityError, _>(|trax_conn| insert_temp_data(trax_conn, data_content, &task))?;
+        conn.transaction::<_, SecurityError, _>(|trax_conn| {
+            insert_temp_data(trax_conn, data_content, &task)
+        })?;
     }
 
     Ok(())

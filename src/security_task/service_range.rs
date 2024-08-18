@@ -34,10 +34,7 @@ pub fn update_task_data(task: &DailyTask) -> Result<(), SecurityError> {
     Ok(())
 }
 
-fn loop_data_task_data(
-    security: SecurityTask,
-    item_index: i32,
-) -> Result<(), SecurityError> {
+fn loop_data_task_data(security: SecurityTask, item_index: i32) -> Result<(), SecurityError> {
     if security.sort_no != item_index {
         let mut new_data = security.clone();
         new_data.sort_no = item_index;
