@@ -257,13 +257,13 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                                 update_data(&security, false);
                             }
 
-                            return Ok(())
+                             return Ok(());
                         },
-                        Err(e) => return Err(SecurityError::JsonError(e))
-                    }
+                        Err(e) =>  return Err(SecurityError::JsonError(e))
+                    };
                 },
-                Err(e) => return Err(SecurityError::BaseError(e.error))
-            }
+                Err(e) =>  return Err(SecurityError::BaseError(e.error))
+            };
         }
         "上櫃" => {
             match retry(retry_strategy, || {
@@ -282,13 +282,13 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                                 update_data(&security, false);
                             }
 
-                            return Ok(())
+                             return Ok(());
                         },
-                        Err(e) => return Err(SecurityError::JsonError(e))
-                    }
+                        Err(e) =>  return Err(SecurityError::JsonError(e))
+                    };
                 },
-                Err(e) => return Err(SecurityError::BaseError(e.error))
-            }
+                Err(e) =>  return Err(SecurityError::BaseError(e.error))
+            };
         }
         "興櫃" => {
             match retry(retry_strategy, || {
@@ -307,13 +307,13 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                                 update_data(&security, false);
                             }
 
-                            return Ok(())
+                             return Ok(());
                         },
-                        Err(e) => return Err(SecurityError::JsonError(e))
+                        Err(e) =>  return Err(SecurityError::JsonError(e))
                     };
                 },
-                Err(e) => return Err(SecurityError::BaseError(e.error))
-            }
+                Err(e) =>  return Err(SecurityError::BaseError(e.error))
+            };
         }
         _ => ()
     }
