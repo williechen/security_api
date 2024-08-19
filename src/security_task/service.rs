@@ -268,7 +268,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                         }
                         Err(e) => {
                             error!("{}", SecurityError::JsonError(e));
-                            return Ok(())
+                            return Ok(());
                         }
                     };
                 }
@@ -301,7 +301,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                         }
                         Err(e) => {
                             error!("{}", SecurityError::JsonError(e));
-                            return Ok(())
+                            return Ok(());
                         }
                     };
                 }
@@ -334,7 +334,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                         }
                         Err(e) => {
                             error!("{}", SecurityError::JsonError(e));
-                            return Ok(())
+                            return Ok(());
                         }
                     };
                 }
