@@ -266,7 +266,10 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
 
                             return Ok(());
                         }
-                        Err(e) => return Err(SecurityError::JsonError(e)),
+                        Err(e) => {
+                            error!("{}", SecurityError::JsonError(e));
+                            return Ok(())
+                        }
                     };
                 }
                 Err(e) => return Err(SecurityError::BaseError(e.error)),
@@ -296,7 +299,10 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
 
                             return Ok(());
                         }
-                        Err(e) => return Err(SecurityError::JsonError(e)),
+                        Err(e) => {
+                            error!("{}", SecurityError::JsonError(e));
+                            return Ok(())
+                        }
                     };
                 }
                 Err(e) => return Err(SecurityError::BaseError(e.error)),
@@ -326,7 +332,10 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
 
                             return Ok(());
                         }
-                        Err(e) => return Err(SecurityError::JsonError(e)),
+                        Err(e) => {
+                            error!("{}", SecurityError::JsonError(e));
+                            return Ok(())
+                        }
                     };
                 }
                 Err(e) => return Err(SecurityError::BaseError(e.error)),
