@@ -252,9 +252,9 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                             let stat = price.stat;
                             let mut date = "0/00".to_string();
                             if !price.data.is_empty() {
-                               if price.data[0].first().is_some() {
-                                date = price.data[0][0].clone();
-                               }
+                                if price.data[0].first().is_some() {
+                                    date = price.data[0][0].clone();
+                                }
                             }
 
                             if "OK" == stat && date.starts_with(&tw_ym) {
@@ -282,9 +282,9 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                             let cnt = price.i_total_records;
                             let mut date = "0/00".to_string();
                             if !price.aa_data.is_empty() {
-                               if price.aa_data[0].first().is_some() {
-                                date = price.aa_data[0][0].clone();
-                               }
+                                if price.aa_data[0].first().is_some() {
+                                    date = price.aa_data[0][0].clone();
+                                }
                             }
 
                             if cnt > 0 && date.starts_with(&tw_ym) {
@@ -312,9 +312,9 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                             let cnt = price.i_total_records;
                             let mut date = "0/00".to_string();
                             if !price.aa_data.is_empty() {
-                               if price.aa_data[0].first().is_some() {
-                                date = price.aa_data[0][0].clone();
-                               }
+                                if price.aa_data[0].first().is_some() {
+                                    date = price.aa_data[0][0].clone();
+                                }
                             }
 
                             if cnt > 0 && date.starts_with(&tw_ym) {
