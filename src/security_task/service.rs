@@ -239,7 +239,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
 
     let y = security.open_date_year.clone().parse::<i32>().unwrap();
     let m = security.open_date_month.clone();
-    let tw_ym = format!("{0}/{1}", y - 1911, m);
+    let tw_ym = format!("{0}/{1:02}", y - 1911, m);
 
     match ref_market_type {
         "上市" => {
@@ -250,7 +250,12 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                     match serde_json::from_str::<SecurityPriceTwse>(&res) {
                         Ok(price) => {
                             let stat = price.stat;
-                            let date = &price.data[0][1];
+                            let mut date = "0/00".to_string();
+                            if !price.data.is_empty() {
+                               if price.data[0].first().is_some() {
+                                date = price.data[0][0].clone();
+                               }
+                            }
 
                             if "OK" == stat && date.starts_with(&tw_ym) {
                                 add_res_data(&security, res);
@@ -275,7 +280,12 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                     match serde_json::from_str::<SecurityPriceTpex1>(&res) {
                         Ok(price) => {
                             let cnt = price.i_total_records;
-                            let date = &price.aa_data[0][1];
+                            let mut date = "0/00".to_string();
+                            if !price.aa_data.is_empty() {
+                               if price.aa_data[0].first().is_some() {
+                                date = price.aa_data[0][0].clone();
+                               }
+                            }
 
                             if cnt > 0 && date.starts_with(&tw_ym) {
                                 add_res_data(&security, res);
@@ -300,7 +310,12 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                     match serde_json::from_str::<SecurityPriceTpex2>(&res) {
                         Ok(price) => {
                             let cnt = price.i_total_records;
-                            let date = &price.aa_data[0][1];
+                            let mut date = "0/00".to_string();
+                            if !price.aa_data.is_empty() {
+                               if price.aa_data[0].first().is_some() {
+                                date = price.aa_data[0][0].clone();
+                               }
+                            }
 
                             if cnt > 0 && date.starts_with(&tw_ym) {
                                 add_res_data(&security, res);
