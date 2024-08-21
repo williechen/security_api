@@ -39,16 +39,12 @@ pub fn find_all() -> Vec<DailyTask> {
                       AND dt.open_date_day = cd.ce_day
                       AND dt.job_code = ts.job_code
              )
-              AND cd.ce_year = $1
-              AND cd.ce_month = $2
-              AND cd.ce_day = $3
+              AND concat(cd.ce_year,cd.ce_month,cd.ce_day) <= $1
               AND cd.date_status = 'O'
             ORDER BY cd.ce_year desc, cd.ce_month desc, cd.ce_day desc, ts.sort_no  
             "#,
     )
-    .bind::<VarChar, _>(format!("{:04}", now.year()))
-    .bind::<VarChar, _>(format!("{:02}", now.month()))
-    .bind::<VarChar, _>(format!("{:02}", now.day()));
+    .bind::<VarChar, _>(format!("{:04}{:02}{:02}", now.year(), now.month(), now.day()));
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
