@@ -39,7 +39,7 @@ pub fn find_all() -> Vec<DailyTask> {
                       AND dt.open_date_day = cd.ce_day
                       AND dt.job_code = ts.job_code
              )
-              AND concat(cd.ce_year,cd.ce_month,cd.ce_day) <= $1
+              AND concat(cd.ce_year,cd.ce_month,cd.ce_day) = $1
               AND cd.date_status = 'O'
             ORDER BY cd.ce_year desc, cd.ce_month desc, cd.ce_day desc, ts.sort_no  
             "#,
