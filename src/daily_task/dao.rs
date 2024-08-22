@@ -44,7 +44,12 @@ pub fn find_all() -> Vec<DailyTask> {
             ORDER BY cd.ce_year desc, cd.ce_month desc, cd.ce_day desc, ts.sort_no  
             "#,
     )
-    .bind::<VarChar, _>(format!("{:04}{:02}{:02}", now.year(), now.month(), now.day()));
+    .bind::<VarChar, _>(format!(
+        "{:04}{:02}{:02}",
+        now.year(),
+        now.month(),
+        now.day()
+    ));
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
