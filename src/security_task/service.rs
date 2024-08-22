@@ -180,7 +180,7 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
 }
 
 fn sleep_time(seconds: i64, old_market_type: String, new_market_type: String) -> u64 {
-    info!("{0},{1},{2}", seconds, old_market_type, new_market_type);
+    debug!("{0},{1},{2}", seconds, old_market_type, new_market_type);
     match (old_market_type.as_ref(), new_market_type.as_ref()) {
         ("上市", "上櫃") => {
             if 4 - seconds > 0 {
