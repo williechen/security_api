@@ -261,6 +261,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                                 add_res_data(&security, res);
                                 update_data(&security, true);
                             } else {
+                                info!("{0}", res);
                                 update_data(&security, false);
                             }
 
@@ -294,6 +295,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                                 add_res_data(&security, res);
                                 update_data(&security, true);
                             } else {
+                                info!("{0}", res);
                                 update_data(&security, false);
                             }
 
@@ -327,6 +329,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                                 add_res_data(&security, res);
                                 update_data(&security, true);
                             } else {
+                                info!("{0}", res);
                                 update_data(&security, false);
                             }
 
