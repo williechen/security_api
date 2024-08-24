@@ -55,7 +55,7 @@ fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
         .get("https://isin.twse.com.tw/isin/class_main.jsp")
         .timeout(Duration::from_secs(20))
         .send()?;
-    info!(target: "security_api", "{:?}", &res.url().to_string());
+    debug!(target: "security_api", "{:?}", &res.url().to_string());
 
     let big5_text = res.bytes()?;
     let utf8_text = encoding_rs::BIG5.decode(&big5_text);
@@ -124,7 +124,7 @@ pub fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::err
         .query(&[("_", &task.exec_seed)])
         .timeout(Duration::from_secs(4))
         .send()?;
-    info!(target: "security_api",  "{:?}", &res.url().to_string());
+    debug!(target: "security_api",  "{:?}", &res.url().to_string());
 
     let json = res.text()?;
     debug!(target: "security_api",  "{:?}", &json);
@@ -148,7 +148,7 @@ pub fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error:
         .query(&[("_", &task.exec_seed)])
         .timeout(Duration::from_secs(4))
         .send()?;
-    info!(target: "security_api", "{:?}", &res.url().to_string());
+    debug!(target: "security_api", "{:?}", &res.url().to_string());
 
     let json = res.text()?;
     debug!(target: "security_api",  "{:?}", &json);
@@ -211,7 +211,7 @@ pub fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::error:
         .form(&params)
         .timeout(Duration::from_secs(4))
         .send()?;
-    info!(target: "security_api", "{:?}", &res.url().to_string());
+    debug!(target: "security_api", "{:?}", &res.url().to_string());
 
     let text = res.text()?;
     debug!(target: "security_api",  "{:?}", &text);
