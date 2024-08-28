@@ -250,10 +250,11 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                     match serde_json::from_str::<SecurityPriceTwse>(&res) {
                         Ok(price) => {
                             let stat = price.stat;
-                            let mut date = "0/00".to_string();
-                            if !price.data.is_empty() {
-                                if price.data[0].first().is_some() {
-                                    date = price.data[0][0].clone();
+                            let mut date = "000/00/00".to_string();
+                            if price.data.is_some() {
+                                let row = price.data.clone().unwrap();
+                                if row.first().is_some() {
+                                    date = row[0][0].clone();
                                 }
                             }
 

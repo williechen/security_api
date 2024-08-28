@@ -55,13 +55,15 @@ fn loop_data_res(data: ResposePrice) -> Result<(), SecurityError> {
         "上市" => match serde_json::from_str::<SecurityPriceTwse>(&data_content) {
             Ok(data_row) => {
                 conn.transaction::<_, SecurityError, _>(|trax_conn| {
-                    for row in data_row.data {
-                        if re.is_match(&row[1]) {
-                            let price_date = row[0].trim().replace("＊", "");
-                            let price_close =
-                                BigDecimal::from_str(&row[1].replace(",", "")).unwrap();
+                    if data_row.data.is_some() {
+                        for row in data_row.data.unwrap() {
+                            if re.is_match(&row[1]) {
+                                let price_date = row[0].trim().replace("＊", "");
+                                let price_close =
+                                    BigDecimal::from_str(&row[1].replace(",", "")).unwrap();
 
-                            loop_data_price(trax_conn, price_date, price_close, data.clone())?;
+                                loop_data_price(trax_conn, price_date, price_close, data.clone())?;
+                            }
                         }
                     }
                     Ok(())

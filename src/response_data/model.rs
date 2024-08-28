@@ -56,12 +56,12 @@ impl std::fmt::Display for ResponseData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityPriceTwse {
     pub stat: String,
-    pub date: String,
-    pub title: String,
-    pub fields: Vec<String>,
-    pub data: Vec<Vec<String>>,
-    pub notes: Vec<String>,
-    pub hints: String,
+    pub date: Option<String>,
+    pub title: Option<String>,
+    pub fields: Option<Vec<String>>,
+    pub data: Option<Vec<Vec<String>>>,
+    pub notes: Option<Vec<String>>,
+    pub hints: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
