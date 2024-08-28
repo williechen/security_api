@@ -83,16 +83,16 @@ fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), SecurityErr
     let now = NaiveDate::from_ymd_opt(2024, 5, 17).unwrap();
     // 指定日期
     let this_date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
-    let this_tw_month = format!("{0:04}{1:02}", year, month);
+    let this_tw_date = format!("{0:04}{1:02}{2:02}", year, month, day);
     // 收盤價資料
     let price_data =
         security_price::dao::find_all_by_date(year.to_string(), month.to_string(), day.to_string());
-    let max_price_month = security_price::dao::find_one_by_maxdate().unwrap();
+    let max_price_date = security_price::dao::find_one_by_maxdate().unwrap();
 
     // 如果是假日
     if (this_date.weekday().number_from_monday() == 6 && price_data.len() == 0)
         || (this_date.weekday().number_from_monday() == 7 && price_data.len() == 0)
-        || (this_tw_month <= max_price_month.price_date && price_data.len() == 0)
+        || (this_tw_date <= max_price_date.price_date && price_data.len() == 0)
     {
         let calendar_data = NewCalendarData {
             ce_year: format!("{:04}", year),

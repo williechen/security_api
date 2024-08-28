@@ -136,7 +136,7 @@ pub fn find_one_by_maxdate() -> Option<MaxPriceDate> {
 
     let query = sql_query(
         r#"
-        SELECT MAX(concat(open_date_year, open_date_month)) AS price_date
+        SELECT COALESCE(MAX(concat(open_date_year, open_date_month, RIGHT(price_date, 2))), '19981231') AS price_date
           FROM security_price sp
         WHERE sp.price_date not like '%月平均收盤價%'
         "#,
