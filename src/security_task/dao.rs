@@ -148,7 +148,7 @@ pub fn find_all_by_times(q_year: String, q_month: String, q_day: String) -> Vec<
         .filter(open_date_year.eq(q_year))
         .filter(open_date_month.eq(q_month))
         .filter(open_date_day.eq(q_day))
-        .filter(exec_count.eq(0))
+        .filter(exec_count.le(3))
         .filter(is_enabled.eq(1))
         .order(sort_no.asc());
 
