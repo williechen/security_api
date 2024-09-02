@@ -1,6 +1,6 @@
 [package]
 name = "security_api"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -11,7 +11,7 @@ bigdecimal = "0.4"
 
 chrono = "0.4"
 
-diesel = { version = "2.2.2", features = ["postgres", "r2d2", "chrono" , "numeric"] }
+diesel = { version = "2.2", features = ["postgres", "r2d2", "chrono" , "numeric"] }
 dotenvy = "0.15"
 
 encoding_rs = "0.8"
@@ -19,7 +19,7 @@ encoding_rs = "0.8"
 log = "0.4"
 log4rs = "1.3"
 
-rand = "0.8.5"
+rand = "0.8"
 
 reqwest = { version = "0.12", features = ["json", "blocking"] }
 
@@ -27,7 +27,7 @@ regex = "1.10"
 
 retry="2.0"
 
-scraper = "0.20.0"
+scraper = "0.20"
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
