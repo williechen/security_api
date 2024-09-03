@@ -1,6 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 use chrono::{Datelike, Local};
-use sqlx::{postgres::PgRow, PgConnection, Row};
+use sqlx::{postgres::PgRow, Row};
 use tracing::{event, Level};
 
 use crate::repository::Repository;
@@ -46,28 +46,20 @@ pub async fn modify(data: DailyTask) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r"
         UPDATE daily_task 
-           SET open_date_year = $1
-             , open_date_month = $2
-             , open_date_day = $3
-             , job_code = $4
-             , exec_status = $5
-             , updated_date = $6
-         WHERE open_date_year = $7
-           AND open_date_month = $8
-           AND open_date_day = $9
-           AND job_code = $10
+           SET exec_status = $1
+             , updated_date = $2
+         WHERE open_date_year = $3
+           AND open_date_month = $4
+           AND open_date_day = $5
+           AND job_code = $6
     ",
     )
-    .bind(&data.open_date_year)
-    .bind(&data.open_date_month)
-    .bind(&data.open_date_day)
-    .bind(&data.job_code)
     .bind(data.exec_status)
     .bind(Local::now())
-    .bind(&data.open_date_year)
-    .bind(&data.open_date_month)
-    .bind(&data.open_date_day)
-    .bind(&data.job_code)
+    .bind(data.open_date_year)
+    .bind(data.open_date_month)
+    .bind(data.open_date_day)
+    .bind(data.job_code)
     .execute(&conn)
     .await
     {
@@ -130,211 +122,239 @@ pub async fn find_all() -> Vec<DailyTask> {
     }
 }
 
-pub async fn read_all_by_sql(
-    transaction: &mut PgConnection,
-    sql: &str,
-) -> Result<(usize, Vec<DailyTask>), sqlx::Error> {
-    match sqlx::query(sql)
-        .map(|row: PgRow| DailyTask {
-            row_id: row.get("row_id"),
-            open_date: row.get("open_date"),
-            job_code: row.get("job_code"),
-            exec_status: row.get("exec_status"),
-        })
-        .fetch_all(transaction)
-        .await
-    {
-        Ok(rows) => Ok((rows.len(), rows)),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "daily_task.read_all_by_sql: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-pub async fn read(
-    transaction: &mut PgConnection,
-    row_id: &str,
+pub async fn find_one(
+    q_year: String,
+    q_month: String,
+    q_day: String,
+    q_job_code: String,
 ) -> Result<Option<DailyTask>, sqlx::Error> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
     match sqlx::query(
-        r#"
+        r"
         SELECT row_id
-             , open_date
+             , open_date_year
+             , open_date_month
+             , open_date_day
              , job_code
              , exec_status
-             , created_date
-             , updated_date
           FROM daily_task
-         WHERE row_id = $1 "#,
+         WHERE open_date_year = $1
+           AND open_date_month = $2
+           And open_date_day = $3
+           And job_code = $4
+    ",
     )
-    .bind(row_id)
+    .bind(q_year)
+    .bind(q_month)
+    .bind(q_day)
+    .bind(q_job_code)
     .map(|row: PgRow| DailyTask {
         row_id: row.get("row_id"),
-        open_date: row.get("open_date"),
         job_code: row.get("job_code"),
         exec_status: row.get("exec_status"),
+        open_date_year: row.get("exec_status"),
+        open_date_month: row.get("exec_status"),
+        open_date_day: row.get("exec_status"),
     })
-    .fetch_one(transaction)
+    .fetch_one(&conn)
     .await
     {
         Ok(row) => Ok(Some(row)),
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "daily_task.read: {}", &e);
+            event!(target: "security_api", Level::ERROR, "daily_task.find_one: {}", &e);
             Err(e)
         }
     }
 }
 
-pub async fn create(transaction: &mut PgConnection, data: DailyTask) -> Result<u64, sqlx::Error> {
+pub async fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
     match sqlx::query(
-        r#" 
-        INSERT INTO daily_task(open_date
-             , job_code
-             , exec_status
-             , created_date
-             , updated_date
-        ) VALUES ($1, $2, $3, $4, $5)  "#,
-    )
-    .bind(data.open_date)
-    .bind(data.job_code)
-    .bind(data.exec_status)
-    .bind(Local::now().naive_local())
-    .bind(Local::now().naive_local())
-    .execute(transaction)
-    .await
-    {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "daily_task.create: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-pub async fn update(transaction: &mut PgConnection, data: DailyTask) -> Result<u64, sqlx::Error> {
-    match sqlx::query(
-        r#" UPDATE daily_task
-            SET open_date = $1
-              , job_code = $2
-              , exec_status = $3
-              , updated_date = $4
-            WHERE row_id = $5
-          "#,
-    )
-    .bind(data.open_date)
-    .bind(data.job_code)
-    .bind(data.exec_status)
-    .bind(Local::now().naive_local())
-    .bind(data.row_id)
-    .execute(transaction)
-    .await
-    {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "daily_task.update: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-pub async fn delete(transaction: &mut PgConnection, data: DailyTask) -> Result<u64, sqlx::Error> {
-    match sqlx::query(r#" DELETE FROM daily_task WHERE row_id = $1 "#)
-        .bind(data.row_id)
-        .execute(transaction)
-        .await
-    {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "daily_task.delete: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-pub async fn read_all_by_daily(
-    transaction: &mut PgConnection,
-    ce_year: &str,
-    ce_month: &str,
-    orderby: &str,
-) -> Result<Vec<DailyTaskInfo>, sqlx::Error> {
-    match sqlx::query(&format!(
-        r#"
-        SELECT dt.row_id
-             , dt.job_code
-             , dt.open_date
-             , CONCAT(cd.ce_year, '/', cd.ce_month, '/', cd.ce_day) AS ce_date
-             , CONCAT(cd.tw_year, '/', cd.ce_month) AS tw_date
-             , ts.wait_type
-             , ts.wait_number
-             , dt.exec_status
+        r"
+        SELECT distinct '' AS row_id
+                 , '' AS job_code 
+                 , '' AS exec_status
+                 , now() AS created_date
+                 , now() AS updated_date 
+                 , dt.open_date_year
+                 , dt.open_date_month
+                 , dt.open_date_day
           FROM daily_task dt
-          JOIN calendar_data cd
-            ON dt.open_date = CONCAT(cd.ce_year, cd.ce_month, cd.ce_day)
-          JOIN task_setting ts
-            ON dt.job_code = ts.job_code
-           AND cd.group_task = ts.group_code
-         WHERE cd.ce_year = $1
-           AND cd.ce_month = $2
-           AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
-         ORDER BY {}, ts.sort_no
-         "#,
-        orderby
-    ))
-    .bind(ce_year)
-    .bind(ce_month)
-    .map(|row: PgRow| DailyTaskInfo {
-        row_id: row.get("row_id"),
-        job_code: row.get("job_code"),
-        exec_status: row.get("exec_status"),
-        open_date: row.get("open_date"),
-        ce_date: row.get("ce_date"),
-        tw_date: row.get("tw_date"),
-        wait_type: row.get("wait_type"),
-        wait_number: row.get("wait_number"),
-    })
-    .fetch_all(transaction)
-    .await
-    {
-        Ok(row) => Ok(row),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "daily_task.read_all_by_daily: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-pub async fn read_by_exec(
-    transaction: &mut PgConnection,
-    flow_code: &str,
-    orderby: &str,
-) -> Result<Vec<String>, sqlx::Error> {
-    match sqlx::query(&format!(
-        r#"
-        SELECT distinct dt.open_date
-          FROM daily_task dt
-          JOIN calendar_data cd
-            ON dt.open_date = CONCAT(cd.ce_year, cd.ce_month, cd.ce_day)
          WHERE dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
            AND NOT EXISTS (
                SELECT 1 
                  FROM listen_flow lf
                 WHERE lf.flow_code = $1
-                  AND lf.flow_param1 = cd.ce_year
-                  AND lf.flow_param2 = cd.ce_month
+                  AND lf.flow_param1 = dt.open_date_year
+                  AND lf.flow_param2 = dt.open_date_month
             )
-         ORDER BY {}
-         "#,
-        orderby
-    ))
+         ORDER BY dt.open_date_year, dt.open_date_month, dt.open_date_day
+         Limit 1
+    ",
+    )
     .bind(flow_code)
-    .map(|row: PgRow| row.get("open_date"))
-    .fetch_all(transaction)
+    .map(|row: PgRow| DailyTask {
+        row_id: row.get("row_id"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
+        job_code: row.get("job_code"),
+        exec_status: row.get("exec_status"),
+    })
+    .fetch_optional(&conn)
     .await
     {
-        Ok(row) => Ok(row),
+        Ok(row) => row,
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "daily_task.read_all_by_daily: {}", &e);
-            Err(e)
+            event!(target: "security_api", Level::ERROR, "daily_task.find_one_by_exec_asc: {}", &e);
+            None
         }
     }
 }
+
+pub async fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
+    match sqlx::query(
+        r"
+        SELECT distinct '' AS row_id
+                 , '' AS job_code 
+                 , '' AS exec_status
+                 , now() AS created_date
+                 , now() AS updated_date 
+                 , dt.open_date_year
+                 , dt.open_date_month
+                 , dt.open_date_day
+          FROM daily_task dt
+         WHERE dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
+           AND NOT EXISTS (
+               SELECT 1 
+                 FROM listen_flow lf
+                WHERE lf.flow_code = $1
+                  AND lf.flow_param1 = dt.open_date_year
+                  AND lf.flow_param2 = dt.open_date_month
+            )
+         ORDER BY dt.open_date_year desc, dt.open_date_month desc, dt.open_date_day desc
+         Limit 1
+    ",
+    )
+    .bind(flow_code)
+    .map(|row: PgRow| DailyTask {
+        row_id: row.get("row_id"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
+        job_code: row.get("job_code"),
+        exec_status: row.get("exec_status"),
+    })
+    .fetch_optional(&conn)
+    .await
+    {
+        Ok(row) => row,
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "daily_task.find_one_by_exec_desc: {}", &e);
+            None
+        }
+    }
+}
+
+pub async fn find_all_by_exec_asc(q_year: String, q_month: String) -> Vec<DailyTask> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
+    match sqlx::query(
+        r"
+        SELECT dt.row_id
+             , dt.open_date_year
+             , dt.open_date_month
+             , dt.open_date_day
+             , dt.job_code
+             , dt.exec_status
+          FROM daily_task dt
+          JOIN calendar_data cd
+            ON dt.open_date_year = cd.ce_year
+           AND dt.open_date_month = cd.ce_month
+           AND dt.open_date_day = cd.ce_day
+          JOIN task_setting ts
+            ON ts.group_code = cd.group_task 
+           AND ts.job_code = dt.job_code
+         WHERE dt.open_date_year = $1
+           AND dt.open_date_month = $2
+           AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
+         ORDER BY dt.open_date_year, dt.open_date_month, dt.open_date_day,ts.sort_no
+    ",
+    )
+    .bind(q_year)
+    .bind(q_month)
+    .map(|row: PgRow| DailyTask {
+        row_id: row.get("row_id"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
+        job_code: row.get("job_code"),
+        exec_status: row.get("exec_status"),
+    })
+    .fetch_all(&conn)
+    .await
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "daily_task.find_all_by_exec_asc: {}", &e);
+            Vec::new()
+        }
+    }
+}
+
+pub async fn find_all_by_exec_desc(q_year: String, q_month: String) -> Vec<DailyTask> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
+    match sqlx::query(
+        r"
+        SELECT dt.row_id
+             , dt.open_date_year
+             , dt.open_date_month
+             , dt.open_date_day
+             , dt.job_code
+             , dt.exec_status
+          FROM daily_task dt
+          JOIN calendar_data cd
+            ON dt.open_date_year = cd.ce_year
+           AND dt.open_date_month = cd.ce_month
+           AND dt.open_date_day = cd.ce_day
+          JOIN task_setting ts
+            ON ts.group_code = cd.group_task 
+           AND ts.job_code = dt.job_code
+         WHERE dt.open_date_year = $1
+           AND dt.open_date_month = $2
+           AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
+         ORDER BY dt.open_date_year desc, dt.open_date_month desc, dt.open_date_day desc,ts.sort_no
+    ",
+    )
+    .bind(q_year)
+    .bind(q_month)
+    .map(|row: PgRow| DailyTask {
+        row_id: row.get("row_id"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
+        job_code: row.get("job_code"),
+        exec_status: row.get("exec_status"),
+    })
+    .fetch_all(&conn)
+    .await
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "daily_task.find_all_by_exec_desc: {}", &e);
+            Vec::new()
+        }
+    }
+}
+
+

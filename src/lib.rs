@@ -12,39 +12,39 @@ mod security_task;
 mod security_temp;
 mod task_setting;
 
-pub fn add_init_year() -> Result<(), SecurityError> {
-    calendar_data::service::init_calendar_data()?;
+pub async fn add_init_year() -> Result<(), sqlx::Error> {
+    calendar_data::service::init_calendar_data().await?;
     Ok(())
 }
 
-pub fn add_next_year() -> Result<(), SecurityError> {
+pub async fn add_next_year() -> Result<(), sqlx::Error> {
     let now = Local::now().date_naive();
     if 10 == now.month() && 1 == now.day() {
-        calendar_data::service::insert_calendar_data(true)?;
-        calendar_data::service::insert_calendar_data(false)?;
+        calendar_data::service::insert_calendar_data(true).await?;
+        calendar_data::service::insert_calendar_data(false).await?;
     } else {
-        calendar_data::service::insert_calendar_data(false)?;
+        calendar_data::service::insert_calendar_data(false).await?;
     }
     Ok(())
 }
 
-pub fn add_daily_task() -> Result<(), SecurityError> {
-    daily_task::service::insert_task_data()?;
+pub async fn add_daily_task() -> Result<(), sqlx::Error> {
+    daily_task::service::insert_task_data().await?;
     Ok(())
 }
 
-pub fn run_daily_task(is_renew: bool) -> Result<(), SecurityError> {
+pub async fn run_daily_task(is_renew: bool) -> Result<(), sqlx::Error> {
     if is_renew {
         listen_flow::service::delete_flow_data("security");
     }
-    daily_task::service::exec_daily_task()?;
+    daily_task::service::exec_daily_task().await?;
     Ok(())
 }
 
-pub fn run_price_task(is_renew: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run_price_task(is_renew: bool) -> Result<(), Box<dyn std::error::Error>> {
     if is_renew {
         listen_flow::service::delete_flow_data("price");
     }
-    daily_task::service::exec_price_task()?;
+    daily_task::service::exec_price_task().await?;
     Ok(())
 }

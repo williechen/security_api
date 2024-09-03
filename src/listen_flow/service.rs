@@ -1,146 +1,80 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use crate::repository::Repository;
-
 use super::{dao, model::ListenFlow};
 
 pub async fn read_flow_data(
-    db_url: &str,
     flow_code: &str,
     flow_param1: &str,
     flow_param2: &str,
 ) -> Vec<ListenFlow> {
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.acquire().await.unwrap();
+    let listen_flow = ListenFlow {
+        row_id: String::new(),
+        flow_code: flow_code.to_string(),
+        flow_param1: Some(flow_param1.to_string()),
+        flow_param2: Some(flow_param2.to_string()),
+        flow_param3: None,
+        flow_param4: None,
+        flow_param5: None,
+        pid: 0,
+        pstatus: String::new(),
+    };
 
-    let mut listen_flow = ListenFlow::new();
-    listen_flow.flow_code = Some(flow_code.to_string());
-    listen_flow.flow_param1 = Some(flow_param1.to_string());
-    listen_flow.flow_param2 = Some(flow_param2.to_string());
-
-    dao::read_all(&mut transaction, &listen_flow).await.unwrap()
+    dao::find_all(listen_flow).await
 }
 
-pub async fn delete_flow_data(db_url: &str, flow_code: &str) {
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.acquire().await.unwrap();
-
-    dao::delete(&mut *transaction, flow_code).await.unwrap();
+pub async fn delete_flow_data(flow_code: &str) {
+    dao::remove_all(flow_code).await.unwrap();
 }
 
-pub async fn insert_flow_data1(db_url: &str, pid: i32, flow_code: &str, flow_param1: &str) {
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.acquire().await.unwrap();
+pub async fn insert_flow_data2(pid: i32, flow_code: &str, flow_param1: &str, flow_param2: &str) {
+    let listen_flow = ListenFlow {
+        row_id: String::new(),
+        flow_code: flow_code.to_string(),
+        flow_param1: Some(flow_param1.to_string()),
+        flow_param2: Some(flow_param2.to_string()),
+        flow_param3: None,
+        flow_param4: None,
+        flow_param5: None,
+        pid,
+        pstatus: String::new(),
+    };
 
-    let mut listen_flow = ListenFlow::new();
-    listen_flow.pid = Some(pid);
-    listen_flow.flow_code = Some(flow_code.to_string());
-    listen_flow.flow_param1 = Some(flow_param1.to_string());
+    let flows = dao::find_all(listen_flow).await;
+    if flows.len() <= 0 {
+        let new_listen_flow = ListenFlow {
+            row_id: String::new(),
+            flow_code: flow_code.to_string(),
+            flow_param1: Some(flow_param1.to_string()),
+            flow_param2: Some(flow_param2.to_string()),
+            flow_param3: None,
+            flow_param4: None,
+            flow_param5: None,
+            pid,
+            pstatus: "WAIT".to_string(),
+        };
 
-    let cnt = dao::read_all(&mut transaction, &listen_flow).await.unwrap();
-    if cnt.len() <= 0 {
-        dao::create(&mut *transaction, listen_flow).await.unwrap();
+        dao::create(new_listen_flow).await.unwrap();
     }
 }
 
-pub async fn insert_flow_data2(
-    db_url: &str,
-    pid: i32,
-    flow_code: &str,
-    flow_param1: &str,
-    flow_param2: &str,
-) {
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.acquire().await.unwrap();
+pub async fn modify_flow_data2(pid: i32, flow_code: &str, flow_param1: &str, flow_param2: &str) {
+    let listen_flow = ListenFlow {
+        row_id: String::new(),
+        flow_code: flow_code.to_string(),
+        flow_param1: Some(flow_param1.to_string()),
+        flow_param2: Some(flow_param2.to_string()),
+        flow_param3: None,
+        flow_param4: None,
+        flow_param5: None,
+        pid,
+        pstatus: String::new(),
+    };
 
-    let mut listen_flow = ListenFlow::new();
-    listen_flow.pid = Some(pid);
-    listen_flow.flow_code = Some(flow_code.to_string());
-    listen_flow.flow_param1 = Some(flow_param1.to_string());
-    listen_flow.flow_param2 = Some(flow_param2.to_string());
+    let flows = dao::find_all(listen_flow).await;
+    for flow in flows {
+        let mut new_flow = flow;
+        new_flow.pstatus = "EXIT".to_string();
 
-    let cnt = dao::read_all(&mut transaction, &listen_flow).await.unwrap();
-    if cnt.len() <= 0 {
-        dao::create(&mut *transaction, listen_flow).await.unwrap();
-    }
-}
-
-pub async fn insert_flow_data3(
-    db_url: &str,
-    pid: i32,
-    flow_code: &str,
-    flow_param1: &str,
-    flow_param2: &str,
-    flow_param3: &str,
-) {
-    let pool = Repository::new(db_url).await;
-    let mut transaction: sqlx::pool::PoolConnection<sqlx::Postgres> =
-        pool.connection.acquire().await.unwrap();
-
-    let mut listen_flow = ListenFlow::new();
-    listen_flow.pid = Some(pid);
-    listen_flow.flow_code = Some(flow_code.to_string());
-    listen_flow.flow_param1 = Some(flow_param1.to_string());
-    listen_flow.flow_param2 = Some(flow_param2.to_string());
-    listen_flow.flow_param3 = Some(flow_param3.to_string());
-
-    let cnt = dao::read_all(&mut transaction, &listen_flow).await.unwrap();
-    if cnt.len() <= 0 {
-        dao::create(&mut *transaction, listen_flow).await.unwrap();
-    }
-}
-
-pub async fn insert_flow_data4(
-    db_url: &str,
-    pid: i32,
-    flow_code: &str,
-    flow_param1: &str,
-    flow_param2: &str,
-    flow_param3: &str,
-    flow_param4: &str,
-) {
-    let pool = Repository::new(db_url).await;
-    let mut transaction: sqlx::pool::PoolConnection<sqlx::Postgres> =
-        pool.connection.acquire().await.unwrap();
-
-    let mut listen_flow = ListenFlow::new();
-    listen_flow.pid = Some(pid);
-    listen_flow.flow_code = Some(flow_code.to_string());
-    listen_flow.flow_param1 = Some(flow_param1.to_string());
-    listen_flow.flow_param2 = Some(flow_param2.to_string());
-    listen_flow.flow_param3 = Some(flow_param3.to_string());
-    listen_flow.flow_param4 = Some(flow_param4.to_string());
-
-    let cnt = dao::read_all(&mut transaction, &listen_flow).await.unwrap();
-    if cnt.len() <= 0 {
-        dao::create(&mut *transaction, listen_flow).await.unwrap();
-    }
-}
-
-pub async fn insert_flow_data5(
-    db_url: &str,
-    pid: i32,
-    flow_code: &str,
-    flow_param1: &str,
-    flow_param2: &str,
-    flow_param3: &str,
-    flow_param4: &str,
-    flow_param5: &str,
-) {
-    let pool = Repository::new(db_url).await;
-    let mut transaction = pool.connection.acquire().await.unwrap();
-
-    let mut listen_flow = ListenFlow::new();
-    listen_flow.pid = Some(pid);
-    listen_flow.flow_code = Some(flow_code.to_string());
-    listen_flow.flow_param1 = Some(flow_param1.to_string());
-    listen_flow.flow_param2 = Some(flow_param2.to_string());
-    listen_flow.flow_param3 = Some(flow_param3.to_string());
-    listen_flow.flow_param4 = Some(flow_param4.to_string());
-    listen_flow.flow_param5 = Some(flow_param5.to_string());
-
-    let cnt = dao::read_all(&mut transaction, &listen_flow).await.unwrap();
-    if cnt.len() <= 0 {
-        dao::create(&mut *transaction, listen_flow).await.unwrap();
+        dao::modify(new_flow).await.unwrap();
     }
 }
