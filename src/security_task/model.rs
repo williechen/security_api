@@ -2,17 +2,18 @@
 
 #[derive(Debug, Clone)]
 pub struct SecurityTask {
-    pub row_id: Option<String>,
-    pub open_date: Option<String>,
-    pub security_code: Option<String>,
-    pub security_name: Option<String>,
-    pub market_type: Option<String>,
-    pub issue_date: Option<String>,
-    pub security_date: Option<String>,
-    pub security_seed: Option<String>,
-    pub exec_count: Option<i32>,
-    pub is_enabled: Option<i32>,
-    pub sort_no: Option<i32>,
+    pub row_id: String,
+    pub open_date_year: String,
+    pub open_date_month: String,
+    pub open_date_day: String,
+    pub security_code: String,
+    pub security_name: String,
+    pub market_type: String,
+    pub issue_date: String,
+    pub exec_seed: String,
+    pub exec_count: i32,
+    pub is_enabled: i32,
+    pub sort_no: i32,
 }
 
 impl SecurityTask {
