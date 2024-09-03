@@ -1,7 +1,8 @@
 #![warn(clippy::all, clippy::pedantic)]
 
+use std::env;
+
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use tracing::{event, Level};
 
 #[derive(Debug, Clone)]
 pub struct Repository {
@@ -9,18 +10,13 @@ pub struct Repository {
 }
 
 impl Repository {
-    pub async fn new(db_url: &str) -> Self {
-        let db_pool = match PgPoolOptions::new()
-            .max_connections(5)
-            .connect(db_url)
-            .await
-        {
-            Ok(pool) => pool,
-            Err(e) => {
-                event!(target: "security_api", Level::ERROR, "init db_pool {}", &e);
-                panic!("Couldn't establish DB connection: {}", &e)
-            }
-        };
+    pub async fn new() -> Self {
+        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+        let db_pool = PgPoolOptions::new()
+            .connect(&database_url)
+            .await.expect(&format!("Error connecting to {}", database_url));
+
         Repository {
             connection: db_pool,
         }

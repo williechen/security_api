@@ -1,77 +1,133 @@
 #![warn(clippy::all, clippy::pedantic)]
-use chrono::Local;
+use chrono::{Datelike, Local};
 use sqlx::{postgres::PgRow, PgConnection, Row};
 use tracing::{event, Level};
 
-use super::model::{DailyTask, DailyTaskInfo};
+use crate::repository::Repository;
 
-pub async fn read_all(
-    transaction: &mut PgConnection,
-    data: DailyTask,
-) -> Result<(usize, Vec<DailyTask>), sqlx::Error> {
-    let mut select_str = r#" 
-        SELECT row_id
-             , open_date
-             , job_code
-             , exec_status
-             , created_date
-             , updated_date
-          FROM daily_task
-    "#
-    .to_string();
+use super::model::DailyTask;
 
-    let mut index = 0;
-    if data.open_date.is_some() {
-        select_str.push_str(&where_append("open_date", "=", &mut index));
-    }
-    if data.job_code.is_some() {
-        select_str.push_str(&where_append("job_code", "=", &mut index));
-    }
-    if data.exec_status.is_some() {
-        select_str.push_str(&where_append("exec_status", "=", &mut index));
-    }
+pub async fn create(data: DailyTask) -> Result<u64, sqlx::Error> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
 
-    let mut query = sqlx::query(&select_str);
-
-    if data.open_date.is_some() {
-        query = query.bind(data.open_date.clone());
-    }
-    if data.job_code.is_some() {
-        query = query.bind(data.job_code.clone());
-    }
-    if data.exec_status.is_some() {
-        query = query.bind(data.exec_status.clone());
-    }
-
-    match query
-        .map(|row: PgRow| DailyTask {
-            row_id: row.get("row_id"),
-            open_date: row.get("open_date"),
-            job_code: row.get("job_code"),
-            exec_status: row.get("exec_status"),
-        })
-        .fetch_all(transaction)
-        .await
+    match sqlx::query(
+        r"
+        INSERT INTO daily_task(
+            open_date_year
+          , open_date_month
+          , open_date_day
+          , job_code
+          , exec_status
+          , created_date
+          , updated_date
+        ) VALUES ( $1, $2, $3, $4, $5, $6, $7 )
+    ",
+    )
+    .bind(data.open_date_year)
+    .bind(data.open_date_month)
+    .bind(data.open_date_day)
+    .bind(data.job_code)
+    .bind(data.exec_status)
+    .bind(Local::now())
+    .bind(Local::now())
+    .execute(&conn)
+    .await
     {
-        Ok(rows) => Ok((rows.len(), rows)),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "daily_task.read_all: {}", &e);
-            Err(e)
-        }
+        Ok(cnt) => Ok(cnt.rows_affected()),
+        Err(e) => Err(e),
     }
 }
 
-fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
-    let plus;
-    if *index <= 0 {
-        plus = " WHERE ";
-    } else {
-        plus = " AND ";
+pub async fn modify(data: DailyTask) -> Result<u64, sqlx::Error> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
+    match sqlx::query(
+        r"
+        UPDATE daily_task 
+           SET open_date_year = $1
+             , open_date_month = $2
+             , open_date_day = $3
+             , job_code = $4
+             , exec_status = $5
+             , updated_date = $6
+         WHERE open_date_year = $7
+           AND open_date_month = $8
+           AND open_date_day = $9
+           AND job_code = $10
+    ",
+    )
+    .bind(&data.open_date_year)
+    .bind(&data.open_date_month)
+    .bind(&data.open_date_day)
+    .bind(&data.job_code)
+    .bind(data.exec_status)
+    .bind(Local::now())
+    .bind(&data.open_date_year)
+    .bind(&data.open_date_month)
+    .bind(&data.open_date_day)
+    .bind(&data.job_code)
+    .execute(&conn)
+    .await
+    {
+        Ok(cnt) => Ok(cnt.rows_affected()),
+        Err(e) => Err(e),
     }
+}
 
-    *index = *index + 1;
+pub async fn find_all() -> Vec<DailyTask> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
 
-    format!(" {} {} {} ${} ", plus, field, conditional, index)
+    let now = Local::now();
+
+    match sqlx::query(
+        r"
+        SELECT '' AS row_id
+             , cd.ce_year AS open_date_year
+             , cd.ce_month AS open_date_month
+             , cd.ce_day AS open_date_day
+             , ts.job_code 
+             , 'WAIT' AS exec_status
+          FROM calendar_data cd
+          JOIN task_setting ts
+            ON cd.group_task = ts.group_code
+         WHERE NOT EXISTS (
+               SELECT 1 
+                 FROM daily_task dt
+                WHERE dt.open_date_year = cd.ce_year 
+                  AND dt.open_date_month = cd.ce_month
+                  AND dt.open_date_day = cd.ce_day
+                  AND dt.job_code = ts.job_code
+         )
+           AND concat(cd.ce_year,cd.ce_month,cd.ce_day) = $1
+           AND cd.date_status = 'O'
+         ORDER BY cd.ce_year desc, cd.ce_month desc, cd.ce_day desc, ts.sort_no ",
+    )
+    .bind(format!(
+        "{:04}{:02}{:02}",
+        now.year(),
+        now.month(),
+        now.day()
+    ))
+    .map(|row: PgRow| DailyTask {
+        row_id: row.get("row_id"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
+        job_code: row.get("job_code"),
+        exec_status: row.get("exec_status"),
+    })
+    .fetch_all(&conn)
+    .await
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "daily_task.find_all: {}", &e);
+            Vec::new()
+        }
+    }
 }
 
 pub async fn read_all_by_sql(
