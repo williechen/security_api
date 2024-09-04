@@ -70,7 +70,7 @@ pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
                         panic!("daily_task.get_web_security Error {}", &e)
                     }
                 },
-                "res_to_temp" => match security_temp::service::get_security_to_temp(&task) {
+                "res_to_temp" => match security_temp::service::get_security_to_temp(&task).await {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
                         event!(target: "security_api", Level::INFO,"daily_task.res_to_temp Done");
@@ -96,7 +96,7 @@ pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
 
                     security_task::service_range::update_task_data(&task)?;
                 }
-                "delete_temp" => match security_temp::service::delete_temp() {
+                "delete_temp" => match security_temp::service::delete_temp().await {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
                         event!(target: "security_api", Level::INFO, "daily_task.delete_temp Done");

@@ -4,164 +4,118 @@ use chrono::Local;
 use sqlx::{postgres::PgRow, PgConnection, Row};
 use tracing::{event, Level};
 
+use crate::{daily_task::model::DailyTask, repository::Repository};
+
 use super::model::SecurityTemp;
 
-pub async fn read_all(
-    transaction: &mut PgConnection,
-    data: SecurityTemp,
-) -> Result<(usize, Vec<SecurityTemp>), sqlx::Error> {
-    let mut select_str = r#" 
-        SELECT row_id
-             , open_date
-             , international_code
-             , security_code
-             , security_name
-             , market_type
-             , security_type
-             , industry_type
-             , issue_date
-             , cfi_code
-             , remark
-             , created_date
-             , updated_date
-          FROM security_temp
-    "#
-    .to_string();
-
-    let mut index = 0;
-    if data.open_date.is_some() {
-        select_str.push_str(&where_append("open_date", "=", &mut index));
-    }
-    if data.security_code.is_some() {
-        select_str.push_str(&where_append("security_code", "=", &mut index));
-    }
-    if data.security_name.is_some() {
-        select_str.push_str(&where_append("security_name", "like", &mut index));
-    }
-    if data.market_type.is_some() {
-        select_str.push_str(&where_append("market_type", "like", &mut index));
-    }
-    if data.security_type.is_some() {
-        select_str.push_str(&where_append("security_type", "like", &mut index));
-    }
-    if data.issue_date.is_some() {
-        select_str.push_str(&where_append("issue_date", ">=", &mut index));
-    }
-
-    let mut query = sqlx::query(&select_str);
-
-    if data.open_date.is_some() {
-        query = query.bind(data.open_date.clone());
-    }
-    if data.security_code.is_some() {
-        query = query.bind(data.security_code.clone());
-    }
-    if data.security_name.is_some() {
-        query = query.bind(data.security_name.clone());
-    }
-    if data.market_type.is_some() {
-        query = query.bind(data.market_type.clone());
-    }
-    if data.security_type.is_some() {
-        query = query.bind(data.security_type.clone());
-    }
-    if data.issue_date.is_some() {
-        query = query.bind(data.issue_date.clone());
-    }
-
-    match query
-        .map(|row: PgRow| SecurityTemp {
-            row_id: row.get("row_id"),
-            open_date: row.get("open_date"),
-            international_code: row.get("international_code"),
-            security_code: row.get("security_code"),
-            security_name: row.get("security_name"),
-            market_type: row.get("market_type"),
-            security_type: row.get("security_type"),
-            industry_type: row.get("industry_type"),
-            issue_date: row.get("issue_date"),
-            cfi_code: row.get("cfi_code"),
-            remark: row.get("remark"),
-        })
-        .fetch_all(transaction)
-        .await
-    {
-        Ok(rows) => Ok((rows.len(), rows)),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_temp.read_all: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
-    let plus;
-    if *index <= 0 {
-        plus = " WHERE ";
-    } else {
-        plus = " AND ";
-    }
-
-    *index = *index + 1;
-
-    format!(" {} {} {} ${} ", plus, field, conditional, index)
-}
-
-pub async fn read_all_by_sql(
-    transaction: &mut PgConnection,
-    sql: &str,
-) -> Result<(usize, Vec<SecurityTemp>), sqlx::Error> {
-    match sqlx::query(sql)
-        .map(|row: PgRow| SecurityTemp {
-            row_id: row.get("row_id"),
-            open_date: row.get("open_date"),
-            international_code: row.get("international_code"),
-            security_code: row.get("security_code"),
-            security_name: row.get("security_name"),
-            market_type: row.get("market_type"),
-            security_type: row.get("security_type"),
-            industry_type: row.get("industry_type"),
-            issue_date: row.get("issue_date"),
-            cfi_code: row.get("cfi_code"),
-            remark: row.get("remark"),
-        })
-        .fetch_all(transaction)
-        .await
-    {
-        Ok(rows) => Ok((rows.len(), rows)),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_temp.read_all_by_sql: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-pub async fn read(
-    transaction: &mut PgConnection,
-    row_id: &str,
-) -> Result<Option<SecurityTemp>, sqlx::Error> {
+pub async fn create(trax_conn: &mut PgConnection, data: SecurityTemp) -> Result<u64, sqlx::Error> {
     match sqlx::query(
-        r#"
-        SELECT row_id
-             , open_date
-             , international_code
-             , security_code
-             , security_name
-             , market_type
-             , security_type
-             , industry_type
-             , issue_date
-             , cfi_code
-             , remark
-             , created_date
-             , updated_date
-          FROM security_temp
-         WHERE row_id = $1 "#,
+        r"
+        INSERT INTO security_temp(
+            open_date_year
+          , open_date_month
+          , open_date_day
+          , international_code 
+          , security_code 
+          , security_name 
+          , market_type 
+          , security_type 
+          , industry_type 
+          , issue_date 
+          , cfi_code 
+          , remark 
+          , created_date
+          , updated_date
+        ) VALUES ( $1, $2, $3, $4, $5, $6, $7, 
+         $8, $9, $10, $11, $12, $13, $14 )
+    ",
     )
-    .bind(row_id)
+    .bind(data.open_date_year)
+    .bind(data.open_date_month)
+    .bind(data.open_date_day)
+    .bind(data.international_code)
+    .bind(data.security_code)
+    .bind(data.security_name)
+    .bind(data.market_type)
+    .bind(data.security_type)
+    .bind(data.industry_type)
+    .bind(data.issue_date)
+    .bind(data.cfi_code)
+    .bind(data.remark)
+    .bind(Local::now())
+    .bind(Local::now())
+    .execute(trax_conn)
+    .await
+    {
+        Ok(cnt) => Ok(cnt.rows_affected()),
+        Err(e) => Err(e),
+    }
+}
+
+pub async fn remove_all() -> Result<u64, sqlx::Error> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
+    match sqlx::query(
+        r"
+        DELETE FROM security_temp 
+         WHERE 1=1
+    ",
+    )
+    .execute(&conn)
+    .await
+    {
+        Ok(cnt) => Ok(cnt.rows_affected()),
+        Err(e) => Err(e),
+    }
+}
+
+pub async fn find_one(
+    q_year: String,
+    q_month: String,
+    q_day: String,
+    q_security_code: String,
+    q_market_type: String,
+    q_issue_date: String,
+) -> Option<SecurityTemp> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
+    match sqlx::query(
+        r"
+        SELECT row_id
+             , open_date_year
+             , open_date_month
+             , open_date_day
+             , international_code 
+             , security_code 
+             , security_name 
+             , market_type 
+             , security_type 
+             , industry_type 
+             , issue_date 
+             , cfi_code 
+             , remark 
+          FROM security_temp st
+         WHERE open_date_year = $1
+           AND open_date_month = $2
+           AND open_date_day = $3
+           AND security_code = $4
+           AND market_type = $5
+           AND issue_date = $6
+          ",
+    )
+    .bind(q_year)
+    .bind(q_month)
+    .bind(q_day)
+    .bind(q_security_code)
+    .bind(q_market_type)
+    .bind(q_issue_date)
     .map(|row: PgRow| SecurityTemp {
         row_id: row.get("row_id"),
-        open_date: row.get("open_date"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
         international_code: row.get("international_code"),
         security_code: row.get("security_code"),
         security_name: row.get("security_name"),
@@ -172,129 +126,133 @@ pub async fn read(
         cfi_code: row.get("cfi_code"),
         remark: row.get("remark"),
     })
-    .fetch_one(transaction)
+    .fetch_optional(&conn)
     .await
     {
-        Ok(row) => Ok(Some(row)),
+        Ok(row) => row,
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_temp.read: {}", &e);
-            Err(e)
+            event!(target: "security_api", Level::ERROR, "security_temp.find_one: {}", &e);
+            None
         }
     }
 }
 
-pub async fn create(
-    transaction: &mut PgConnection,
-    data: SecurityTemp,
-) -> Result<u64, sqlx::Error> {
-    match sqlx::query(
-        r#" 
-        INSERT INTO security_temp(open_date
-            , international_code
-            , security_code
-            , security_name
-            , market_type
-            , security_type
-            , industry_type
-            , issue_date
-            , cfi_code
-            , remark
-            , created_date
-            , updated_date
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)  "#,
+pub async fn find_all_by_twse(task: DailyTask) -> Vec<SecurityTemp> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
+    let q_year = task.clone().open_date_year;
+    let q_month = task.clone().open_date_month;
+    let q_day = task.clone().open_date_day;
+    let q_open_date = format!("{0}{1}{2}", q_year, q_month, q_day);
+    let q_issue_date = format!("{0}/{1}/{2}", q_year, q_month, q_day);
+
+    match sqlx::query(r"
+        SELECT row_id
+             , open_date_year
+             , open_date_month
+             , open_date_day
+             , international_code
+             , security_code
+             , security_name
+             , market_type
+             , security_type
+             , industry_type
+             , issue_date
+             , cfi_code
+             , remark
+          FROM security_temp 
+         WHERE CONCAT(open_date_year, open_date_month, open_date_day) >= $1
+           AND issue_date <= $2
+           AND market_type in ('上市')
+           AND security_type in ('ETF', 'ETN', '股票', '特別股')
+         ORDER BY security_code, issue_date, market_type, security_type
+          ",
     )
-    .bind(data.open_date)
-    .bind(data.international_code)
-    .bind(data.security_code)
-    .bind(data.security_name)
-    .bind(data.market_type)
-    .bind(data.security_type)
-    .bind(data.industry_type)
-    .bind(data.issue_date)
-    .bind(data.cfi_code)
-    .bind(data.remark)
-    .bind(Local::now().naive_local())
-    .bind(Local::now().naive_local())
-    .execute(transaction)
+    .bind(q_open_date)
+    .bind(q_issue_date)
+    .map(|row: PgRow| SecurityTemp {
+        row_id: row.get("row_id"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
+        international_code: row.get("international_code"),
+        security_code: row.get("security_code"),
+        security_name: row.get("security_name"),
+        market_type: row.get("market_type"),
+        security_type: row.get("security_type"),
+        industry_type: row.get("industry_type"),
+        issue_date: row.get("issue_date"),
+        cfi_code: row.get("cfi_code"),
+        remark: row.get("remark"),
+    })
+    .fetch_all(&conn)
     .await
     {
-        Ok(row) => Ok(row.rows_affected()),
+        Ok(rows) => rows,
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_temp.create: {}", &e);
-            Err(e)
+            event!(target: "security_api", Level::ERROR, "security_temp.find_one: {}", &e);
+            Vec::new()
         }
     }
 }
 
-pub async fn update(
-    transaction: &mut PgConnection,
-    data: SecurityTemp,
-) -> Result<u64, sqlx::Error> {
-    match sqlx::query(
-        r#" UPDATE security_temp
-            SET open_date= $1
-            , international_code = $2
-            , security_code = $3
-            , security_name = $4
-            , market_type = $5 
-            , security_type = $6
-            , industry_type = $7
-            , issue_date = $8
-            , cfi_code = $9
-            , remark = $10
-            , updated_date = $11
-            WHERE row_id = $12
-          "#,
+pub async fn find_all_by_tpex(task: DailyTask) -> Vec<SecurityTemp> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
+    let q_year = task.clone().open_date_year;
+    let q_month = task.clone().open_date_month;
+    let q_day = task.clone().open_date_day;
+    let q_open_date = format!("{0}{1}{2}", q_year, q_month, q_day);
+    let q_issue_date = format!("{0}/{1}/{2}", q_year, q_month, q_day);
+
+    match sqlx::query(r"
+        SELECT row_id
+             , open_date_year
+             , open_date_month
+             , open_date_day
+             , international_code
+             , security_code
+             , security_name
+             , market_type
+             , security_type
+             , industry_type
+             , issue_date
+             , cfi_code
+             , remark
+          FROM security_temp 
+         WHERE CONCAT(open_date_year, open_date_month, open_date_day) >= $1
+           AND issue_date <= $2
+           AND market_type in ('上櫃', '興櫃')
+           AND security_type in ('ETF', 'ETN', '股票', '特別股')
+         ORDER BY security_code, issue_date, market_type, security_type
+          ",
     )
-    .bind(data.open_date)
-    .bind(data.international_code)
-    .bind(data.security_code)
-    .bind(data.security_name)
-    .bind(data.market_type)
-    .bind(data.security_type)
-    .bind(data.industry_type)
-    .bind(data.issue_date)
-    .bind(data.cfi_code)
-    .bind(data.remark)
-    .bind(Local::now().naive_local())
-    .bind(data.row_id)
-    .execute(transaction)
+    .bind(q_open_date)
+    .bind(q_issue_date)
+    .map(|row: PgRow| SecurityTemp {
+        row_id: row.get("row_id"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
+        international_code: row.get("international_code"),
+        security_code: row.get("security_code"),
+        security_name: row.get("security_name"),
+        market_type: row.get("market_type"),
+        security_type: row.get("security_type"),
+        industry_type: row.get("industry_type"),
+        issue_date: row.get("issue_date"),
+        cfi_code: row.get("cfi_code"),
+        remark: row.get("remark"),
+    })
+    .fetch_all(&conn)
     .await
     {
-        Ok(row) => Ok(row.rows_affected()),
+        Ok(rows) => rows,
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_temp.update: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-pub async fn delete(
-    transaction: &mut PgConnection,
-    data: SecurityTemp,
-) -> Result<u64, sqlx::Error> {
-    match sqlx::query(r#" DELETE FROM security_temp WHERE row_id = $1 "#)
-        .bind(data.row_id)
-        .execute(transaction)
-        .await
-    {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_temp.delete: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-pub async fn truncate(transaction: &mut PgConnection) -> Result<u64, sqlx::Error> {
-    match sqlx::query(r#" DELETE FROM security_temp WHERE 1=1 "#)
-        .execute(transaction)
-        .await
-    {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_temp.truncate: {}", &e);
-            Err(e)
+            event!(target: "security_api", Level::ERROR, "security_temp.find_one: {}", &e);
+            Vec::new()
         }
     }
 }
