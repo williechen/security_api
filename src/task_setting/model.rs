@@ -11,20 +11,6 @@ pub struct TaskSetting {
     pub sort_no: Option<i32>,
 }
 
-impl TaskSetting {
-    pub fn new() -> Self {
-        TaskSetting {
-            row_id: None,
-            group_code: None,
-            job_code: None,
-            wait_type: None,
-            wait_number: None,
-            is_enabled: None,
-            sort_no: None,
-        }
-    }
-}
-
 impl std::fmt::Display for TaskSetting {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         let row_id = self.row_id.clone().unwrap_or(String::from(""));

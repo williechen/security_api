@@ -1,331 +1,225 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use std::str::FromStr;
-
 use chrono::Local;
 use sqlx::{postgres::PgRow, PgConnection, Row};
 use tracing::{event, Level};
 
+use crate::repository::Repository;
+
 use super::model::{ResposePrice, SecurityPrice};
 
-pub async fn read_all(
-    transaction: &mut PgConnection,
-    data: &SecurityPrice,
-) -> Result<(usize, Vec<SecurityPrice>), sqlx::Error> {
-    let mut select_str = r#" 
-        SELECT row_id
-             , open_date
-             , security_code
-             , security_name
-             , price_date
-             , price_close
-             , price_avg
-             , price_hight
-             , price_hight_avg
-             , price_lowest
-             , price_lowest_avg
-             , created_date
-             , updated_date
-          FROM security_price
-    "#
-    .to_string();
-
-    let mut index = 0;
-    if data.open_date.is_some() {
-        select_str.push_str(&where_append("open_date", "=", &mut index));
-    }
-    if data.security_code.is_some() {
-        select_str.push_str(&where_append("security_code", "=", &mut index));
-    }
-    if data.price_date.is_some() {
-        select_str.push_str(&where_append("price_date", "=", &mut index));
-    }
-
-    let mut query = sqlx::query(&select_str);
-
-    if data.open_date.is_some() {
-        query = query.bind(data.open_date.clone());
-    }
-    if data.security_code.is_some() {
-        query = query.bind(data.security_code.clone());
-    }
-    if data.price_date.is_some() {
-        query = query.bind(data.price_date.clone());
-    }
-
-    match query
-        .map(|row: PgRow| SecurityPrice {
-            row_id: row.get("row_id"),
-            open_date: row.get("open_date"),
-            security_code: row.get("security_code"),
-            security_name: row.get("security_name"),
-            price_date: row.get("price_date"),
-            price_close: to_big_decimal(row.get("price_close")),
-            price_avg: to_big_decimal(row.get("price_avg")),
-            price_hight: to_big_decimal(row.get("price_hight")),
-            price_hight_avg: to_big_decimal(row.get("price_hight_avg")),
-            price_lowest: to_big_decimal(row.get("price_lowest")),
-            price_lowest_avg: to_big_decimal(row.get("price_lowest_avg")),
-        })
-        .fetch_all(transaction)
-        .await
-    {
-        Ok(rows) => Ok((rows.len(), rows)),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_price.read_all: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
-    let plus;
-    if *index <= 0 {
-        plus = " WHERE ";
-    } else {
-        plus = " AND ";
-    }
-
-    *index = *index + 1;
-
-    format!(" {} {} {} ${} ", plus, field, conditional, index)
-}
-
-pub async fn read_all_by_sql(
-    transaction: &mut PgConnection,
-    sql: &str,
-) -> Result<(usize, Vec<SecurityPrice>), sqlx::Error> {
-    match sqlx::query(sql)
-        .map(|row: PgRow| SecurityPrice {
-            row_id: row.get("row_id"),
-            open_date: row.get("open_date"),
-            security_code: row.get("security_code"),
-            security_name: row.get("security_name"),
-            price_date: row.get("price_date"),
-            price_close: to_big_decimal(row.get("price_close")),
-            price_avg: to_big_decimal(row.get("price_avg")),
-            price_hight: to_big_decimal(row.get("price_hight")),
-            price_hight_avg: to_big_decimal(row.get("price_hight_avg")),
-            price_lowest: to_big_decimal(row.get("price_lowest")),
-            price_lowest_avg: to_big_decimal(row.get("price_lowest_avg")),
-        })
-        .fetch_all(transaction)
-        .await
-    {
-        Ok(rows) => Ok((rows.len(), rows)),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_price.read_all_by_sql: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-pub async fn read(
-    transaction: &mut PgConnection,
-    row_id: &str,
-) -> Result<Option<SecurityPrice>, sqlx::Error> {
+pub async fn create(trax_conn: &mut PgConnection, data: SecurityPrice) -> Result<u64, sqlx::Error> {
     match sqlx::query(
-        r#"
-        SELECT row_id
-             , open_date
-             , security_code
-             , security_name
-             , price_date
-             , price_close
-             , price_avg
-             , price_hight
-             , price_hight_avg
-             , price_lowest
-             , price_lowest_avg
-             , created_date
-             , updated_date
-          FROM security_price
-         WHERE row_id = $1 "#,
+        r"
+        INSERT INTO security_price(
+            open_date_year
+          , open_date_month
+          , open_date_day
+          , security_code 
+          , security_name 
+          , price_date 
+          , price_close 
+          , price_avg 
+          , price_hight 
+          , price_hight_avg 
+          , price_lowest 
+          , price_lowest_avg 
+          , created_date
+          , updated_date
+        ) VALUES ( $1, $2, $3, $4, $5, $6, $7, 
+         $8, $9, $10, $11, $12, $13, $14 )
+    ",
     )
-    .bind(row_id)
-    .map(|row: PgRow| SecurityPrice {
-        row_id: row.get("row_id"),
-        open_date: row.get("open_date"),
-        security_code: row.get("security_code"),
-        security_name: row.get("security_name"),
-        price_date: row.get("price_date"),
-        price_close: to_big_decimal(row.get("price_close")),
-        price_avg: to_big_decimal(row.get("price_avg")),
-        price_hight: to_big_decimal(row.get("price_hight")),
-        price_hight_avg: to_big_decimal(row.get("price_hight_avg")),
-        price_lowest: to_big_decimal(row.get("price_lowest")),
-        price_lowest_avg: to_big_decimal(row.get("price_lowest_avg")),
-    })
-    .fetch_one(transaction)
-    .await
-    {
-        Ok(row) => Ok(Some(row)),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_price.read: {}", &e);
-            Err(e)
-        }
-    }
-}
-
-pub async fn create(
-    transaction: &mut PgConnection,
-    data: SecurityPrice,
-) -> Result<u64, sqlx::Error> {
-    match sqlx::query(
-        r#" 
-        INSERT INTO security_price(open_date
-            , security_code
-            , security_name
-            , price_date
-            , price_close
-            , price_avg
-            , price_hight
-            , price_hight_avg
-            , price_lowest
-            , price_lowest_avg
-            , created_date
-            , updated_date
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)  "#,
-    )
-    .bind(data.open_date)
+    .bind(data.open_date_year)
+    .bind(data.open_date_month)
+    .bind(data.open_date_day)
     .bind(data.security_code)
     .bind(data.security_name)
     .bind(data.price_date)
-    .bind(to_sql_big_decimal(data.price_close))
-    .bind(to_sql_big_decimal(data.price_avg))
-    .bind(to_sql_big_decimal(data.price_hight))
-    .bind(to_sql_big_decimal(data.price_hight_avg))
-    .bind(to_sql_big_decimal(data.price_lowest))
-    .bind(to_sql_big_decimal(data.price_lowest_avg))
-    .bind(Local::now().naive_local())
-    .bind(Local::now().naive_local())
-    .execute(transaction)
+    .bind(data.price_close)
+    .bind(data.price_avg)
+    .bind(data.price_hight)
+    .bind(data.price_hight_avg)
+    .bind(data.price_lowest)
+    .bind(data.price_lowest_avg)
+    .bind(Local::now())
+    .bind(Local::now())
+    .execute(trax_conn)
     .await
     {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_price.create: {}", &e);
-            Err(e)
-        }
+        Ok(cnt) => Ok(cnt.rows_affected()),
+        Err(e) => Err(e),
     }
 }
 
-pub async fn update(
-    transaction: &mut PgConnection,
-    data: SecurityPrice,
-) -> Result<u64, sqlx::Error> {
+pub async fn modify(data: SecurityPrice) -> Result<u64, sqlx::Error> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
     match sqlx::query(
-        r#" 
-        UPDATE security_price
-            SET open_date= $1
-              , security_code = $2
-              , security_name = $3
-              , price_date = $4
-              , price_close = $5
-              , price_avg = $6
-              , price_hight = $7
-              , price_hight_avg = $8
-              , price_lowest = $9
-              , price_lowest_avg =$10
-              , updated_date = $11
-            WHERE row_id = $12
-        "#,
+        r"
+        UPDATE security_price 
+           SET open_date_year = $1
+             , open_date_month = $2
+             , open_date_day = $3
+             , security_code = $4
+             , security_name = $5
+             , price_date = $6
+             , price_close = $7
+             , price_avg = $8
+             , price_hight = $9
+             , price_hight_avg = $10
+             , price_lowest = $11
+             , price_lowest_avg = $12
+             , updated_date = $13
+         WHERE row_id = $14
+    ",
     )
-    .bind(data.open_date)
+    .bind(data.open_date_year)
+    .bind(data.open_date_month)
+    .bind(data.open_date_day)
     .bind(data.security_code)
     .bind(data.security_name)
     .bind(data.price_date)
-    .bind(to_sql_big_decimal(data.price_close))
-    .bind(to_sql_big_decimal(data.price_avg))
-    .bind(to_sql_big_decimal(data.price_hight))
-    .bind(to_sql_big_decimal(data.price_hight_avg))
-    .bind(to_sql_big_decimal(data.price_lowest))
-    .bind(to_sql_big_decimal(data.price_lowest_avg))
-    .bind(Local::now().naive_local())
+    .bind(data.price_close)
+    .bind(data.price_avg)
+    .bind(data.price_hight)
+    .bind(data.price_hight_avg)
+    .bind(data.price_lowest)
+    .bind(data.price_lowest_avg)
+    .bind(Local::now())
     .bind(data.row_id)
-    .execute(transaction)
+    .execute(&conn)
     .await
     {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_price.update: {}", &e);
-            Err(e)
-        }
+        Ok(cnt) => Ok(cnt.rows_affected()),
+        Err(e) => Err(e),
     }
 }
 
-pub async fn delete(
-    transaction: &mut PgConnection,
-    data: SecurityPrice,
-) -> Result<u64, sqlx::Error> {
-    match sqlx::query(r#" DELETE FROM security_price WHERE row_id = $1 "#)
-        .bind(data.row_id)
-        .execute(transaction)
-        .await
-    {
-        Ok(row) => Ok(row.rows_affected()),
-        Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_price.delete: {}", &e);
-            Err(e)
-        }
-    }
-}
+pub async fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<ResposePrice> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
 
-pub async fn read_all_by_res(
-    transaction: &mut PgConnection,
-    ce_year: &str,
-    ce_month: &str,
-    ce_day: &str,
-) -> Result<Vec<ResposePrice>, sqlx::Error> {
     match sqlx::query(
-        r#"
+        r" 
         SELECT rd.data_content
-             , st.open_date
+             , st.open_date_year
+             , st.open_date_month
+             , st.open_date_day
              , st.security_code
              , st.security_name
              , st.market_type
           FROM response_data rd
           JOIN security_task st
             ON rd.exec_code = st.security_code
-           AND rd.open_date = st.open_date
-          JOIN calendar_data cd
-            ON CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) = rd.open_date
-         WHERE cd.ce_year = $1
-           AND cd.ce_month = $2
-           AND cd.ce_day >= $3 
-         ORDER BY st.open_date, st.security_code
-         "#,
+           AND rd.open_date_year = st.open_date_year
+           AND rd.open_date_month = st.open_date_month
+           AND rd.open_date_day = st.open_date_day
+         WHERE rd.open_date_year = $1
+           AND rd.open_date_month = $2
+           AND rd.open_date_day >= $3 
+         ORDER BY rd.open_date_year, rd.open_date_month, rd.open_date_day, st.security_code
+    ",
     )
-    .bind(ce_year)
-    .bind(ce_month)
-    .bind(ce_day)
+    .bind(q_year)
+    .bind(q_month)
+    .bind(q_day)
     .map(|row: PgRow| ResposePrice {
-        open_date: row.get("open_date"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
         security_code: row.get("security_code"),
         security_name: row.get("security_name"),
         market_type: row.get("market_type"),
         data_content: row.get("data_content"),
     })
-    .fetch_all(transaction)
+    .fetch_all(&conn)
     .await
     {
-        Ok(row) => Ok(row),
+        Ok(rows) => rows,
         Err(e) => {
             event!(target: "security_api", Level::ERROR, "security_price.read_all_by_res: {}", &e);
-            Err(e)
+            Vec::new()
         }
     }
 }
 
-pub async fn read_all_by_code(
-    transaction: &mut PgConnection,
-    open_date: &str,
-    security_code: &str,
-) -> Result<Vec<SecurityPrice>, sqlx::Error> {
+pub async fn find_all(
+    q_year: String,
+    q_month: String,
+    q_day: String,
+    q_security_code: String,
+) -> Vec<SecurityPrice> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
     match sqlx::query(
-        r#"
+        r" 
         SELECT sp.row_id
-             , sp.open_date
+             , sp.open_date_year
+             , sp.open_date_month
+             , sp.open_date_day
+             , sp.security_code 
+             , sp.security_name 
+             , sp.price_date 
+             , sp.price_close 
+             , sp.price_avg 
+             , sp.price_hight 
+             , sp.price_hight_avg 
+             , sp.price_lowest 
+             , sp.price_lowest_avg 
+          FROM security_price sp
+         WHERE sp.open_date_year = $1
+           AND sp.open_date_month = $2
+           AND sp.open_date_day = $3
+           AND sp.security_code = $4
+    ",
+    )
+    .bind(q_year)
+    .bind(q_month)
+    .bind(q_day)
+    .bind(q_security_code)
+    .map(|row: PgRow| SecurityPrice {
+        row_id: row.get("row_id"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
+        security_code: row.get("security_code"),
+        security_name: row.get("security_name"),
+        price_date: row.get("price_date"),
+        price_close: row.get("price_close"),
+        price_avg: row.get("price_avg"),
+        price_hight: row.get("price_hight"),
+        price_hight_avg: row.get("price_hight_avg"),
+        price_lowest: row.get("price_lowest"),
+        price_lowest_avg: row.get("price_lowest_avg"),
+    })
+    .fetch_all(&conn)
+    .await
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "security_price.find_all: {}", &e);
+            Vec::new()
+        }
+    }
+}
+
+pub async fn find_all_by_code(
+    q_open_date: String,
+    q_price_date: String,
+    q_security_code: String,
+) -> Vec<SecurityPrice> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
+    match sqlx::query(
+        r" 
+        SELECT sp.row_id
+             , sp.open_date_year
+             , sp.open_date_month
+             , sp.open_date_day
              , sp.security_code
              , sp.security_name
              , sp.price_date
@@ -338,47 +232,56 @@ pub async fn read_all_by_code(
              , sp.created_date
              , sp.updated_date
           FROM security_price sp
-          JOIN calendar_data cd
-            ON CONCAT(cd.tw_year, '/', cd.ce_month, '/', cd.ce_day) = sp.price_date
-         WHERE CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) <= $1
-           AND sp.security_code = $2
-         ORDER BY sp.open_date, sp.security_code
-        "#,
+          WHERE sp.price_date <= $1
+            AND sp.price_date !='月平均收盤價' 
+            AND sp.security_code = $2
+            AND concat(sp.open_date_year, sp.open_date_month, sp.open_date_day) <= $3
+         ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.price_date, sp.security_code
+    ",
     )
-    .bind(open_date)
-    .bind(security_code)
+    .bind(q_open_date)
+    .bind(q_price_date)
+    .bind(q_security_code)
     .map(|row: PgRow| SecurityPrice {
         row_id: row.get("row_id"),
-        open_date: row.get("open_date"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
         security_code: row.get("security_code"),
         security_name: row.get("security_name"),
         price_date: row.get("price_date"),
-        price_close: to_big_decimal(row.get("price_close")),
-        price_avg: to_big_decimal(row.get("price_avg")),
-        price_hight: to_big_decimal(row.get("price_hight")),
-        price_hight_avg: to_big_decimal(row.get("price_hight_avg")),
-        price_lowest: to_big_decimal(row.get("price_lowest")),
-        price_lowest_avg: to_big_decimal(row.get("price_lowest_avg")),
+        price_close: row.get("price_close"),
+        price_avg: row.get("price_avg"),
+        price_hight: row.get("price_hight"),
+        price_hight_avg: row.get("price_hight_avg"),
+        price_lowest: row.get("price_lowest"),
+        price_lowest_avg: row.get("price_lowest_avg"),
     })
-    .fetch_all(transaction)
+    .fetch_all(&conn)
     .await
     {
-        Ok(row) => Ok(row),
+        Ok(rows) =>rows,
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_price.read_all_by_code: {}", &e);
-            Err(e)
+            event!(target: "security_api", Level::ERROR, "security_price.find_all_by_code: {}", &e);
+            Vec::new()
         }
     }
 }
 
-pub async fn read_all_by_date(
-    transaction: &mut PgConnection,
-    open_date: &str,
-) -> Result<Vec<SecurityPrice>, sqlx::Error> {
+pub async fn find_all_by_date(
+    q_year: String,
+    q_month: String,
+    q_day: String,
+) -> Vec<SecurityPrice> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
     match sqlx::query(
-        r#"
+        r" 
         SELECT sp.row_id
-             , sp.open_date
+             , sp.open_date_year
+             , sp.open_date_month
+             , sp.open_date_day
              , sp.security_code
              , sp.security_name
              , sp.price_date
@@ -391,41 +294,60 @@ pub async fn read_all_by_date(
              , sp.created_date
              , sp.updated_date
           FROM security_price sp
-          JOIN calendar_data cd
-            ON CONCAT(cd.tw_year, '/', cd.ce_month, '/', cd.ce_day) = sp.price_date
-         WHERE CONCAT(cd.ce_year, cd.ce_month, cd.ce_day) = $1
-         ORDER BY sp.open_date, sp.security_code
-        "#,
+          WHERE sp.price_date = $1
+         ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.price_date, sp.security_code
+    ",
     )
-    .bind(open_date)
+    .bind(format!(
+        "{0}/{1:02}/{2:02}",
+        (q_year.parse::<i32>().unwrap() - 1911),
+        q_month.parse::<i32>().unwrap(),
+        q_day.parse::<i32>().unwrap()
+    ))
     .map(|row: PgRow| SecurityPrice {
         row_id: row.get("row_id"),
-        open_date: row.get("open_date"),
+        open_date_year: row.get("open_date_year"),
+        open_date_month: row.get("open_date_month"),
+        open_date_day: row.get("open_date_day"),
         security_code: row.get("security_code"),
         security_name: row.get("security_name"),
         price_date: row.get("price_date"),
-        price_close: to_big_decimal(row.get("price_close")),
-        price_avg: to_big_decimal(row.get("price_avg")),
-        price_hight: to_big_decimal(row.get("price_hight")),
-        price_hight_avg: to_big_decimal(row.get("price_hight_avg")),
-        price_lowest: to_big_decimal(row.get("price_lowest")),
-        price_lowest_avg: to_big_decimal(row.get("price_lowest_avg")),
+        price_close: row.get("price_close"),
+        price_avg: row.get("price_avg"),
+        price_hight: row.get("price_hight"),
+        price_hight_avg: row.get("price_hight_avg"),
+        price_lowest: row.get("price_lowest"),
+        price_lowest_avg: row.get("price_lowest_avg"),
     })
-    .fetch_all(transaction)
+    .fetch_all(&conn)
     .await
     {
-        Ok(row) => Ok(row),
+        Ok(rows) =>rows,
         Err(e) => {
-            event!(target: "security_api", Level::ERROR, "security_price.read: {}", &e);
-            Err(e)
+            event!(target: "security_api", Level::ERROR, "security_price.find_all_by_code: {}", &e);
+            Vec::new()
         }
     }
 }
 
-fn to_sql_big_decimal(val: Option<bigdecimal::BigDecimal>) -> sqlx::types::BigDecimal {
-    sqlx::types::BigDecimal::from_str(&val.unwrap().to_string()).unwrap()
-}
+pub async fn find_one_by_maxdate() -> String {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
 
-fn to_big_decimal(val: sqlx::types::BigDecimal) -> Option<bigdecimal::BigDecimal> {
-    Some(bigdecimal::BigDecimal::from_str(&val.to_string()).unwrap())
+    match sqlx::query(
+        r" 
+        SELECT COALESCE(MAX(concat(open_date_year, open_date_month, RIGHT(price_date, 2))), '19981231') AS price_date
+          FROM security_price sp
+        WHERE sp.price_date not like '%月平均收盤價%'
+    ",
+    )
+    .fetch_one(&conn)
+    .await
+    {
+        Ok(row) =>row.get("price_date"),
+        Err(e) => {
+            event!(target: "security_api", Level::ERROR, "security_price.find_one_by_maxdate: {}", &e);
+            String::new()
+        }
+    }
 }

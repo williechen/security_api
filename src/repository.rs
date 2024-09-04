@@ -15,7 +15,8 @@ impl Repository {
 
         let db_pool = PgPoolOptions::new()
             .connect(&database_url)
-            .await.expect(&format!("Error connecting to {}", database_url));
+            .await
+            .expect(&format!("Error connecting to {}", database_url));
 
         Repository {
             connection: db_pool,

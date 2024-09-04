@@ -28,14 +28,7 @@ impl std::fmt::Display for CalendarData {
             date_status: {5},
             group_task: {6}
             "#,
-            row_id,
-            ce_year,
-            tw_year,
-            ce_month,
-            ce_day,
-            date_status,
-            group_task
+            row_id, ce_year, tw_year, ce_month, ce_day, date_status, group_task
         )
     }
 }
-

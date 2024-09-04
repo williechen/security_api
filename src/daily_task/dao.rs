@@ -356,5 +356,3 @@ pub async fn find_all_by_exec_desc(q_year: String, q_month: String) -> Vec<Daily
         }
     }
 }
-
-

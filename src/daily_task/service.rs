@@ -6,15 +6,9 @@ use rand::{thread_rng, Rng};
 use tokio::time::{self, sleep};
 use tracing::{event, Level};
 
-use crate::{
-    listen_flow, response_data, security_price, security_task,
-    security_temp,
-};
+use crate::{listen_flow, response_data, security_price, security_task, security_temp};
 
-use super::{
-    dao,
-    model::DailyTask,
-};
+use super::{dao, model::DailyTask};
 
 pub async fn insert_task_data() -> Result<(), sqlx::Error> {
     let task_list = dao::find_all().await;
@@ -45,9 +39,10 @@ pub async fn insert_task_data() -> Result<(), sqlx::Error> {
 pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
     let mut exec_task = dao::find_one_by_exec_desc("security".to_string()).await;
     while exec_task.is_some() {
-        let e_open_date = start_open_data("security", &exec_task.clone().unwrap());
+        let e_open_date = start_open_data("security", &exec_task.clone().unwrap()).await;
 
-        let task_list = dao::find_all_by_exec_desc(e_open_date.0.clone(), e_open_date.1.clone()).await;
+        let task_list =
+            dao::find_all_by_exec_desc(e_open_date.0.clone(), e_open_date.1.clone()).await;
         for task in task_list {
             event!(target: "security_api", Level::DEBUG, "DailyTaskInfo: {:?}", &task);
             update_task_status(&task, "OPEN");
@@ -64,7 +59,7 @@ pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
 
             // 執行任務
             match ref_job_code {
-                "get_web_security" => match response_data::service::get_security_all_code(&task) {
+                "get_web_security" => match response_data::service::get_security_all_code(&task).await {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
                         event!(target: "security_api", Level::INFO, "daily_task.get_web_security Done");
@@ -138,9 +133,10 @@ pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
 pub async fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
     let mut exec_task = dao::find_one_by_exec_asc("price".to_string()).await;
     while exec_task.is_some() {
-        let e_open_date = start_open_data("price", &exec_task.clone().unwrap());
+        let e_open_date = start_open_data("price", &exec_task.clone().unwrap()).await;
 
-        let task_list = dao::find_all_by_exec_asc(e_open_date.0.clone(), e_open_date.1.clone()).await;
+        let task_list =
+            dao::find_all_by_exec_asc(e_open_date.0.clone(), e_open_date.1.clone()).await;
         for task in task_list {
             event!(target: "security_api", Level::DEBUG, "DailyTaskInfo {:?}", &task);
             update_task_status(&task, "OPEN");
@@ -157,7 +153,7 @@ pub async fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
 
             // 執行任務
             match ref_job_code {
-                "res_price" => match security_price::service::get_security_to_price(&task) {
+                "res_price" => match security_price::service::get_security_to_price(&task).await {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
                         event!(target: "security_api", Level::INFO,  "daily_task.res_price Done");
@@ -165,10 +161,9 @@ pub async fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                     Err(e) => {
                         update_task_status(&task, "EXEC");
                         event!(target: "security_api", Level::ERROR,  "daily_task.res_price {}", &e);
-                        panic!("daily_task.res_price Error {}", &e)
                     }
                 },
-                "price_value" => match security_price::service::get_calculator_to_price(&task) {
+                "price_value" => match security_price::service::get_calculator_to_price(&task).await {
                     Ok(_) => {
                         update_task_status(&task, "EXIT");
                         event!(target: "security_api", Level::INFO,  "daily_task.price_value Done");
@@ -176,7 +171,6 @@ pub async fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                     Err(e) => {
                         update_task_status(&task, "EXEC");
                         event!(target: "security_api", Level::ERROR,  "daily_task.price_value {}", &e);
-                        panic!("daily_task.price_value Error {}", &e)
                     }
                 },
                 _ => {

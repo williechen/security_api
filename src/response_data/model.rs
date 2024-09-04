@@ -77,4 +77,3 @@ pub struct SecurityPriceTpex2 {
     pub year: String,
     pub month: String,
 }
-
