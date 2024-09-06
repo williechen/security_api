@@ -127,7 +127,7 @@ pub async fn find_one(
     q_month: String,
     q_day: String,
     q_job_code: String,
-) -> Result<Option<DailyTask>, sqlx::Error> {
+) -> Option<DailyTask> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
@@ -158,13 +158,13 @@ pub async fn find_one(
         open_date_month: row.get("exec_status"),
         open_date_day: row.get("exec_status"),
     })
-    .fetch_one(&conn)
+    .fetch_optional(&conn)
     .await
     {
-        Ok(row) => Ok(Some(row)),
+        Ok(row) => row,
         Err(e) => {
             event!(target: "security_api", Level::ERROR, "daily_task.find_one: {}", &e);
-            Err(e)
+            None
         }
     }
 }

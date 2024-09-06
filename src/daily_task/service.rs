@@ -19,7 +19,7 @@ pub async fn insert_task_data() -> Result<(), sqlx::Error> {
         let q_day = data.open_date_day.clone();
         let q_job_code = data.job_code.clone();
 
-        let task = dao::find_one(q_year, q_month, q_day, q_job_code).await?;
+        let task = dao::find_one(q_year, q_month, q_day, q_job_code).await;
         if task.is_none() {
             let new_date = DailyTask {
                 row_id: String::new(),
@@ -58,17 +58,19 @@ pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
 
             // 執行任務
             match ref_job_code {
-                "get_web_security" => match response_data::service::get_security_all_code(&task).await {
-                    Ok(_) => {
-                        update_task_status(&task, "EXIT").await;
-                        event!(target: "security_api", Level::INFO, "daily_task.get_web_security Done");
+                "get_web_security" => {
+                    match response_data::service::get_security_all_code(&task).await {
+                        Ok(_) => {
+                            update_task_status(&task, "EXIT").await;
+                            event!(target: "security_api", Level::INFO, "daily_task.get_web_security Done");
+                        }
+                        Err(e) => {
+                            update_task_status(&task, "EXEC").await;
+                            event!(target: "security_api", Level::ERROR, "daily_task.get_web_security {}", &e);
+                            panic!("daily_task.get_web_security Error {}", &e)
+                        }
                     }
-                    Err(e) => {
-                        update_task_status(&task, "EXEC").await;
-                        event!(target: "security_api", Level::ERROR, "daily_task.get_web_security {}", &e);
-                        panic!("daily_task.get_web_security Error {}", &e)
-                    }
-                },
+                }
                 "res_to_temp" => match security_temp::service::get_security_to_temp(&task).await {
                     Ok(_) => {
                         update_task_status(&task, "EXIT").await;
@@ -162,16 +164,18 @@ pub async fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                         event!(target: "security_api", Level::ERROR,  "daily_task.res_price {}", &e);
                     }
                 },
-                "price_value" => match security_price::service::get_calculator_to_price(&task).await {
-                    Ok(_) => {
-                        update_task_status(&task, "EXIT").await;
-                        event!(target: "security_api", Level::INFO,  "daily_task.price_value Done");
+                "price_value" => {
+                    match security_price::service::get_calculator_to_price(&task).await {
+                        Ok(_) => {
+                            update_task_status(&task, "EXIT").await;
+                            event!(target: "security_api", Level::INFO,  "daily_task.price_value Done");
+                        }
+                        Err(e) => {
+                            update_task_status(&task, "EXEC").await;
+                            event!(target: "security_api", Level::ERROR,  "daily_task.price_value {}", &e);
+                        }
                     }
-                    Err(e) => {
-                        update_task_status(&task, "EXEC").await;
-                        event!(target: "security_api", Level::ERROR,  "daily_task.price_value {}", &e);
-                    }
-                },
+                }
                 _ => {
                     event!(target: "security_api", Level::INFO,  "price_task.other_job: {0} {1}", &job_code, &open_date)
                 }

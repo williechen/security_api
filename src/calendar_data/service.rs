@@ -83,7 +83,8 @@ async fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), sqlx:
     let this_tw_date = format!("{0:04}{1:02}{2:02}", year, month, day);
     // 收盤價資料
     let price_data =
-        security_price::dao::find_all_by_date(year.to_string(), month.to_string(), day.to_string()).await;
+        security_price::dao::find_all_by_date(year.to_string(), month.to_string(), day.to_string())
+            .await;
     let max_price_date = security_price::dao::find_one_by_maxdate().await;
 
     // 如果是假日

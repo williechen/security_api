@@ -10,7 +10,12 @@ use tracing::{event, Level};
 
 use super::{dao, model::SecurityTask};
 use crate::{
-    daily_task::model::DailyTask, response_data::{self, model::{ResponseData, SecurityPriceTpex1, SecurityPriceTpex2, SecurityPriceTwse}}, security_temp::{self, model::SecurityTemp}
+    daily_task::model::DailyTask,
+    response_data::{
+        self,
+        model::{ResponseData, SecurityPriceTpex1, SecurityPriceTpex2, SecurityPriceTwse},
+    },
+    security_temp::{self, model::SecurityTemp},
 };
 
 pub async fn insert_task_data(task: &DailyTask) -> Result<(), sqlx::Error> {
@@ -127,7 +132,8 @@ pub async fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Er
                         (end_time - start_time).num_seconds(),
                         old_market_type,
                         market_type,
-                    ))).await;
+                    )))
+                    .await;
 
                     index += 1;
                     old_market_type = security.market_type.clone();
@@ -151,7 +157,8 @@ pub async fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Er
                             (end_time - start_time).num_seconds(),
                             old_market_type,
                             market_type,
-                        ))).await;
+                        )))
+                        .await;
                         index += 1;
                         old_market_type = security.market_type.clone();
                     }
@@ -238,7 +245,9 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
         "上市" => {
             match Retry::spawn(retry_strategy.clone(), || async {
                 response_data::service::get_twse_avg_json(&security).await
-            }).await {
+            })
+            .await
+            {
                 Ok(res) => {
                     match serde_json::from_str::<SecurityPriceTwse>(&res) {
                         Ok(price) => {
@@ -273,7 +282,9 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
         "上櫃" => {
             match Retry::spawn(retry_strategy.clone(), || async {
                 response_data::service::get_tpex1_json(&security).await
-            }).await {
+            })
+            .await
+            {
                 Ok(res) => {
                     match serde_json::from_str::<SecurityPriceTpex1>(&res) {
                         Ok(price) => {
@@ -307,7 +318,9 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
         "興櫃" => {
             match Retry::spawn(retry_strategy.clone(), || async {
                 response_data::service::get_tpex2_html(&security).await
-            }).await {
+            })
+            .await
+            {
                 Ok(res) => {
                     match serde_json::from_str::<SecurityPriceTpex2>(&res) {
                         Ok(price) => {

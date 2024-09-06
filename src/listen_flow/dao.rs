@@ -25,7 +25,7 @@ pub async fn create(data: ListenFlow) -> Result<u64, sqlx::Error> {
           , pstatus
           , created_date
           , updated_date
-        ) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8 )
+        ) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
     ",
     )
     .bind(data.flow_code)

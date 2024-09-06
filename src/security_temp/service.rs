@@ -74,7 +74,8 @@ async fn loop_data_temp(
         q_security_code,
         q_market_type,
         q_issue_date,
-    ).await;
+    )
+    .await;
     if data.is_none() {
         let security_temp = SecurityTemp {
             row_id: String::new(),

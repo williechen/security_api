@@ -147,7 +147,8 @@ pub async fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTemp> {
     let q_open_date = format!("{0}{1}{2}", q_year, q_month, q_day);
     let q_issue_date = format!("{0}/{1}/{2}", q_year, q_month, q_day);
 
-    match sqlx::query(r"
+    match sqlx::query(
+        r"
         SELECT row_id
              , open_date_year
              , open_date_month
@@ -207,7 +208,8 @@ pub async fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTemp> {
     let q_open_date = format!("{0}{1}{2}", q_year, q_month, q_day);
     let q_issue_date = format!("{0}/{1}/{2}", q_year, q_month, q_day);
 
-    match sqlx::query(r"
+    match sqlx::query(
+        r"
         SELECT row_id
              , open_date_year
              , open_date_month

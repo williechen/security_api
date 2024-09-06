@@ -13,7 +13,7 @@ pub struct Repository {
 impl Repository {
     pub async fn new() -> Self {
         dotenv().ok();
-        
+
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
         let db_pool = PgPoolOptions::new()
