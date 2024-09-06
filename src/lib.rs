@@ -35,7 +35,7 @@ pub async fn add_daily_task() -> Result<(), sqlx::Error> {
 
 pub async fn run_daily_task(is_renew: bool) -> Result<(), sqlx::Error> {
     if is_renew {
-        listen_flow::service::delete_flow_data("security");
+        listen_flow::service::delete_flow_data("security").await;
     }
     daily_task::service::exec_daily_task().await?;
     Ok(())
@@ -43,7 +43,7 @@ pub async fn run_daily_task(is_renew: bool) -> Result<(), sqlx::Error> {
 
 pub async fn run_price_task(is_renew: bool) -> Result<(), Box<dyn std::error::Error>> {
     if is_renew {
-        listen_flow::service::delete_flow_data("price");
+        listen_flow::service::delete_flow_data("price").await;
     }
     daily_task::service::exec_price_task().await?;
     Ok(())

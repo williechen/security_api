@@ -1,7 +1,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 use chrono::Local;
-use sqlx::{postgres::PgRow, PgConnection, Row};
+use sqlx::{postgres::PgRow, Row};
 use tracing::{event, Level};
 
 use crate::{daily_task::model::DailyTask, repository::Repository};
@@ -9,6 +9,9 @@ use crate::{daily_task::model::DailyTask, repository::Repository};
 use super::model::SecurityTask;
 
 pub async fn create(data: SecurityTask) -> Result<u64, sqlx::Error> {
+    let dao = Repository::new().await;
+    let conn = dao.connection;
+
     match sqlx::query(
         r"
         INSERT INTO security_task(
@@ -42,7 +45,7 @@ pub async fn create(data: SecurityTask) -> Result<u64, sqlx::Error> {
     .bind(data.sort_no)
     .bind(Local::now())
     .bind(Local::now())
-    .execute(trax_conn)
+    .execute(&conn)
     .await
     {
         Ok(cnt) => Ok(cnt.rows_affected()),

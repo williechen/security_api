@@ -127,7 +127,7 @@ pub async fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Er
                         (end_time - start_time).num_seconds(),
                         old_market_type,
                         market_type,
-                    )));
+                    ))).await;
 
                     index += 1;
                     old_market_type = security.market_type.clone();
@@ -151,7 +151,7 @@ pub async fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Er
                             (end_time - start_time).num_seconds(),
                             old_market_type,
                             market_type,
-                        )));
+                        ))).await;
                         index += 1;
                         old_market_type = security.market_type.clone();
                     }
@@ -161,7 +161,7 @@ pub async fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Er
                     }
                 }
             } else {
-                update_data(&security.clone(), true);
+                update_data(&security.clone(), true).await;
                 index += 1;
             }
         }
@@ -252,11 +252,11 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
                             }
 
                             if "OK" == stat && date.starts_with(&tw_ym) {
-                                add_res_data(&security, res);
-                                update_data(&security, true);
+                                add_res_data(&security, res).await;
+                                update_data(&security, true).await;
                             } else {
                                 event!(target: "security_api", Level::INFO,"{0}", res);
-                                update_data(&security, false);
+                                update_data(&security, false).await;
                             }
 
                             return Ok(());
@@ -286,11 +286,11 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
                             }
 
                             if cnt > 0 && date.starts_with(&tw_ym) {
-                                add_res_data(&security, res);
-                                update_data(&security, true);
+                                add_res_data(&security, res).await;
+                                update_data(&security, true).await;
                             } else {
                                 event!(target: "security_api", Level::INFO, "{0}", res);
-                                update_data(&security, false);
+                                update_data(&security, false).await;
                             }
 
                             return Ok(());
@@ -320,11 +320,11 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
                             }
 
                             if cnt > 0 && date.starts_with(&tw_ym) {
-                                add_res_data(&security, res);
-                                update_data(&security, true);
+                                add_res_data(&security, res).await;
+                                update_data(&security, true).await;
                             } else {
                                 event!(target: "security_api", Level::INFO, "{0}", res);
-                                update_data(&security, false);
+                                update_data(&security, false).await;
                             }
 
                             return Ok(());
