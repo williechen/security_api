@@ -15,7 +15,7 @@ pub async fn create(data: CalendarData) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r"
         INSERT INTO calendar_data(
-            ce_year, ce_month, ce_day, data_status, group_task, created_date, updated_date
+            ce_year, ce_month, ce_day, date_status, group_task, created_date, updated_date
         ) VALUES ( $1, $2, $3, $4, $5, $6, $7 )
     ",
     )
@@ -44,7 +44,7 @@ pub async fn modify(data: CalendarData) -> Result<u64, sqlx::Error> {
            SET ce_year = $1
              , ce_month = $2
              , ce_day = $3
-             , data_status = $4
+             , date_status = $4
              , group_task = $5
              , updated_date = $6
          WHERE row_id = $7
