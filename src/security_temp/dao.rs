@@ -137,7 +137,7 @@ pub async fn find_one(
     }
 }
 
-pub async fn find_all_by_twse(task: DailyTask) -> Vec<SecurityTemp> {
+pub async fn find_all_by_twse(task: &DailyTask) -> Vec<SecurityTemp> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
@@ -197,7 +197,7 @@ pub async fn find_all_by_twse(task: DailyTask) -> Vec<SecurityTemp> {
     }
 }
 
-pub async fn find_all_by_tpex(task: DailyTask) -> Vec<SecurityTemp> {
+pub async fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTemp> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 

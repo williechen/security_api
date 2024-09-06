@@ -16,60 +16,42 @@ pub struct SecurityTask {
     pub sort_no: i32,
 }
 
-impl SecurityTask {
-    pub fn new() -> Self {
-        SecurityTask {
-            row_id: None,
-            open_date: None,
-            security_code: None,
-            security_name: None,
-            market_type: None,
-            issue_date: None,
-            security_date: None,
-            security_seed: None,
-            exec_count: None,
-            is_enabled: None,
-            sort_no: None,
-        }
-    }
-}
-
 impl std::fmt::Display for SecurityTask {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone().unwrap_or(String::from(""));
-        let open_date = self.open_date.clone().unwrap_or(String::from(""));
-        let security_code = self.security_code.clone().unwrap_or(String::from(""));
-        let security_name = self.security_name.clone().unwrap_or(String::from(""));
-        let market_type = self.market_type.clone().unwrap_or(String::from(""));
-        let issue_date = self.issue_date.clone().unwrap_or(String::from(""));
-        let security_date = self.security_date.clone().unwrap_or(String::from(""));
-        let security_seed = self.security_seed.clone().unwrap_or(String::from(""));
-        let exec_count = self.exec_count.unwrap_or(0);
-        let is_enabled = self.is_enabled.unwrap_or(0);
-        let sort_no = self.sort_no.unwrap_or(0);
-
+        let row_id = self.row_id.clone();
+        let open_date_year = self.open_date_year.clone();
+        let open_date_month = self.open_date_month.clone();
+        let open_date_day = self.open_date_day.clone();
+        let security_code = self.security_code.clone();
+        let security_name = self.security_name.clone();
+        let market_type = self.market_type.clone();
+        let issue_date = self.issue_date.clone();
+        let exec_seed = self.exec_seed.clone();
+        let exec_count = self.exec_count;
+        let is_enabled = self.is_enabled;
+        let sort_no = self.sort_no;
         write!(
             f,
-            r#"{}, 
-            open_date: {}, 
-            security_code: {}, 
-            security_name: {}, 
-            market_type: {}, 
-            issue_date: {}, 
-            security_date: {}, 
-            security_seed: {}, 
-            exec_count: {}, 
-            is_enabled: {}, 
-            sort_no: {}
+            r#"{0}, 
+            open_date: {1}{2}{3}, 
+            security_code: {4}, 
+            security_name: {5}, 
+            market_type: {6}, 
+            issue_date: {7}, 
+            exec_seed: {8}, 
+            exec_count: {9}, 
+            is_enabled: {10}, 
+            sort_no: {11}
             "#,
             row_id,
-            open_date,
+            open_date_year,
+            open_date_month,
+            open_date_day,
             security_code,
             security_name,
             market_type,
             issue_date,
-            security_date,
-            security_seed,
+            exec_seed,
             exec_count,
             is_enabled,
             sort_no
