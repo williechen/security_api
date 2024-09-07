@@ -6,7 +6,7 @@ use crate::schema::security_price::{
     open_date_day, open_date_month, open_date_year, row_id, security_code,
 };
 use crate::security_error::SecurityError;
-use diesel::{insert_into, update, ExpressionMethods, OptionalExtension, PgConnection, QueryDsl};
+use diesel::{delete, insert_into, update, ExpressionMethods, OptionalExtension, PgConnection, QueryDsl};
 use diesel::{sql_query, sql_types::VarChar, RunQueryDsl};
 use log::{debug, error};
 
@@ -214,13 +214,12 @@ pub fn modify(data: SecurityPrice) -> Result<usize, SecurityError> {
     }
 }
 
-pub fn modify_by_code(conn: &mut PgConnection, data: SecurityPrice) -> Result<usize, SecurityError> {
+pub fn remove(conn: &mut PgConnection, q_year: String, q_month: String, q_security_code: String) -> Result<usize, SecurityError> {
 
-    match update(table)
-        .filter(open_date_year.eq(data.open_date_year.clone()))
-        .filter(open_date_month.eq(data.open_date_month.clone()))
-        .filter(security_code.eq(data.security_code.clone()))
-        .set(data)
+    match delete(table)
+        .filter(open_date_year.eq(q_year))
+        .filter(open_date_month.eq(q_month))
+        .filter(security_code.eq(q_security_code))
         .execute(conn)
     {
         Ok(cnt) => Ok(cnt),
