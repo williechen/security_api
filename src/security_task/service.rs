@@ -239,7 +239,6 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
 
     let y = security.open_date_year.clone().parse::<i32>().unwrap();
     let m = security.open_date_month.clone();
-    let ce_ym = format!("{0}/{1}", y, m);
     let tw_ym = format!("{0}/{1:02}", y - 1911, m);
 
     match ref_market_type {
@@ -261,7 +260,7 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
                                 }
                             }
 
-                            if "OK" == stat && (date.starts_with(&tw_ym) || date.starts_with(&ce_ym)) {
+                            if "OK" == stat && date.trim().starts_with(&tw_ym){
                                 add_res_data(&security, res).await;
                                 update_data(&security, true).await;
                             } else {
@@ -297,7 +296,7 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
                                 }
                             }
 
-                            if cnt > 0 && (date.starts_with(&tw_ym) || date.starts_with(&ce_ym)) {
+                            if cnt > 0 && date.trim().starts_with(&tw_ym) {
                                 add_res_data(&security, res).await;
                                 update_data(&security, true).await;
                             } else {
@@ -333,7 +332,7 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
                                 }
                             }
 
-                            if cnt > 0 && (date.starts_with(&tw_ym) || date.starts_with(&ce_ym)) {
+                            if cnt > 0 && date.trim().starts_with(&tw_ym) {
                                 add_res_data(&security, res).await;
                                 update_data(&security, true).await;
                             } else {
