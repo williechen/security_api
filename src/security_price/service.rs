@@ -34,15 +34,20 @@ pub fn get_security_to_price(task: &DailyTask) -> Result<(), SecurityError> {
         let q_security_code = price.security_code.clone();
 
         let month_prices = dao::find_all(q_year, q_month, q_day, q_security_code);
+        let is_create;
         if month_prices.len() <= 0 {
-            loop_data_res(price)?;
+            is_create = true;
+        } else {
+            is_create = false;
         }
+
+        loop_data_res(price, is_create)?;
     }
 
     Ok(())
 }
 
-fn loop_data_res(data: ResposePrice) -> Result<(), SecurityError> {
+fn loop_data_res(data: ResposePrice, is_create: bool ) -> Result<(), SecurityError> {
     let re = Regex::new(r"[0-9.,]+").unwrap();
 
     let market_type = data.market_type.clone();
@@ -62,7 +67,7 @@ fn loop_data_res(data: ResposePrice) -> Result<(), SecurityError> {
                                 let price_close =
                                     BigDecimal::from_str(&row[1].replace(",", "")).unwrap();
 
-                                loop_data_price(trax_conn, price_date, price_close, data.clone())?;
+                                loop_data_price(trax_conn, price_date, price_close, data.clone(), is_create)?;
                             }
                         }
                     }
@@ -80,7 +85,7 @@ fn loop_data_res(data: ResposePrice) -> Result<(), SecurityError> {
                             let price_close =
                                 BigDecimal::from_str(&row[6].replace(",", "")).unwrap();
 
-                            loop_data_price(trax_conn, price_date, price_close, data.clone())?;
+                            loop_data_price(trax_conn, price_date, price_close, data.clone(), is_create)?;
                         }
                     }
                     Ok(())
@@ -97,7 +102,7 @@ fn loop_data_res(data: ResposePrice) -> Result<(), SecurityError> {
                             let price_close =
                                 BigDecimal::from_str(&row[5].replace(",", "")).unwrap();
 
-                            loop_data_price(trax_conn, price_date, price_close, data.clone())?;
+                            loop_data_price(trax_conn, price_date, price_close, data.clone(), is_create)?;
                         }
                     }
                     Ok(())
@@ -115,6 +120,7 @@ fn loop_data_price(
     price_date: String,
     price_close: BigDecimal,
     data: ResposePrice,
+    is_create: bool
 ) -> Result<(), SecurityError> {
     if price_close > BigDecimal::zero() {
         let price = NewSecurityPrice {
@@ -133,7 +139,11 @@ fn loop_data_price(
             created_date: Local::now().naive_local(),
             updated_date: Local::now().naive_local(),
         };
+        if is_create{
         dao::create(trax_conn, price)?;
+        } else {
+            dao::modify_by_code(trax_conn, price)?
+        }
     }
 
     Ok(())

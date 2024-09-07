@@ -24,7 +24,7 @@ pub fn find_all(
     let query = table
         .filter(open_date_year.eq(q_year))
         .filter(open_date_month.eq(q_month))
-        .filter(open_date_day.ge(q_day))
+        .filter(open_date_day.le(q_day))
         .filter(security_code.eq(q_security_code));
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
@@ -208,6 +208,20 @@ pub fn modify(data: SecurityPrice) -> Result<usize, SecurityError> {
         .filter(row_id.eq(data.row_id.clone()))
         .set(data)
         .execute(&mut conn)
+    {
+        Ok(cnt) => Ok(cnt),
+        Err(e) => Err(SecurityError::SQLError(e)),
+    }
+}
+
+pub fn modify_by_code(conn: &mut PgConnection, data: SecurityPrice) -> Result<usize, SecurityError> {
+
+    match update(table)
+        .filter(open_date_year.eq(data.open_date_year.clone()))
+        .filter(open_date_month.eq(data.open_date_month.clone()))
+        .filter(security_code.eq(data.security_code.clone()))
+        .set(data)
+        .execute(conn)
     {
         Ok(cnt) => Ok(cnt),
         Err(e) => Err(SecurityError::SQLError(e)),
