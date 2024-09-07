@@ -10,15 +10,15 @@ async fn main() {
         std::env::var("RUST_LOG").unwrap_or_else(|_| "security_api=info,sqlx=error".to_owned());
 
     // console log
-    let (_console_non_blocking, _guard) = tracing_appender::non_blocking(std::io::stdout());
+    let (console_non_blocking, _guard) = tracing_appender::non_blocking(std::io::stdout());
     // log file
     let file_appender = tracing_appender::rolling::hourly("logs", "security_api.log");
-    let (file_non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    let (_file_non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
     tracing_subscriber::fmt()
         .json()
         .with_env_filter(log_filter)
-        .with_writer(file_non_blocking)
+        .with_writer(console_non_blocking)
         .init();
 
     let args: Vec<String> = env::args().collect();
