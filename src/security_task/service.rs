@@ -258,7 +258,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                                 }
                             }
 
-                            if "OK" == stat && date.starts_with(&tw_ym) {
+                            if "OK" == stat && date.trim().starts_with(&tw_ym) {
                                 add_res_data(&security, res);
                                 update_data(&security, true);
                             } else {
@@ -285,14 +285,14 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                     match serde_json::from_str::<SecurityPriceTpex1>(&res) {
                         Ok(price) => {
                             let cnt = price.i_total_records;
-                            let mut date = "0/00".to_string();
+                            let mut date = "000/00/00".to_string();
                             if !price.aa_data.is_empty() {
                                 if price.aa_data[0].first().is_some() {
                                     date = price.aa_data[0][0].clone();
                                 }
                             }
 
-                            if cnt > 0 && date.starts_with(&tw_ym) {
+                            if cnt > 0 && date.trim().starts_with(&tw_ym) {
                                 add_res_data(&security, res);
                                 update_data(&security, true);
                             } else {
@@ -319,14 +319,14 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                     match serde_json::from_str::<SecurityPriceTpex2>(&res) {
                         Ok(price) => {
                             let cnt = price.i_total_records;
-                            let mut date = "0/00".to_string();
+                            let mut date = "000/00/00".to_string();
                             if !price.aa_data.is_empty() {
                                 if price.aa_data[0].first().is_some() {
                                     date = price.aa_data[0][0].clone();
                                 }
                             }
 
-                            if cnt > 0 && date.starts_with(&tw_ym) {
+                            if cnt > 0 && date.trim().starts_with(&tw_ym) {
                                 add_res_data(&security, res);
                                 update_data(&security, true);
                             } else {
@@ -350,6 +350,8 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
 
     Ok(())
 }
+
+
 
 fn add_res_data(security: &SecurityTask, html: String) {
     let res_data = response_data::dao::find_one_by_min(&security);
