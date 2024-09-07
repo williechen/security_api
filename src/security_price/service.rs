@@ -34,19 +34,25 @@ pub async fn get_security_to_price(task: &DailyTask) -> Result<(), Box<dyn Error
         let q_day = price.open_date_day.clone();
         let q_security_code = price.security_code.clone();
 
-        let month_prices = dao::find_all(q_year.clone(), q_month.clone(), q_day, q_security_code.clone()).await;
+        let month_prices = dao::find_all(
+            q_year.clone(),
+            q_month.clone(),
+            q_day,
+            q_security_code.clone(),
+        )
+        .await;
         if month_prices.len() <= 0 {
             loop_data_res(price).await?;
         } else {
             let dao = Repository::new().await;
-            let mut conn = dao.connection.begin().await?; 
+            let mut conn = dao.connection.begin().await?;
 
-            match dao::remove(&mut conn, q_year, q_month, q_security_code).await{
+            match dao::remove(&mut conn, q_year, q_month, q_security_code).await {
                 Ok(_) => {
                     conn.commit().await?;
                     loop_data_res(price).await?;
-                },
-                Err(_) => conn.rollback().await?
+                }
+                Err(_) => conn.rollback().await?,
             };
         }
     }
@@ -65,14 +71,8 @@ async fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn Error>> {
             Ok(data_row) => {
                 if data_row.data.is_some() {
                     let mut conn = dao.connection.begin().await?;
-                    match loop_data_code(
-                        data_row.data.unwrap(),
-                        0,
-                        1,
-                        &mut conn,
-                        data.clone(),
-                    )
-                    .await
+                    match loop_data_code(data_row.data.unwrap(), 0, 1, &mut conn, data.clone())
+                        .await
                     {
                         Ok(_) => conn.commit().await?,
                         Err(_) => conn.rollback().await?,
@@ -84,9 +84,7 @@ async fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn Error>> {
         "上櫃" => match serde_json::from_str::<SecurityPriceTpex1>(&data_content) {
             Ok(data_row) => {
                 let mut conn = dao.connection.begin().await?;
-                match loop_data_code(data_row.aa_data, 0, 6, &mut conn, data.clone())
-                    .await
-                {
+                match loop_data_code(data_row.aa_data, 0, 6, &mut conn, data.clone()).await {
                     Ok(_) => conn.commit().await?,
                     Err(_) => conn.rollback().await?,
                 }
@@ -96,9 +94,7 @@ async fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn Error>> {
         "興櫃" => match serde_json::from_str::<SecurityPriceTpex2>(&data_content) {
             Ok(data_row) => {
                 let mut conn = dao.connection.begin().await?;
-                match loop_data_code(data_row.aa_data, 0, 5, &mut conn, data.clone())
-                    .await
-                {
+                match loop_data_code(data_row.aa_data, 0, 5, &mut conn, data.clone()).await {
                     Ok(_) => conn.commit().await?,
                     Err(_) => conn.rollback().await?,
                 }

@@ -260,7 +260,7 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
                                 }
                             }
 
-                            if "OK" == stat && date.trim().starts_with(&tw_ym){
+                            if "OK" == stat && date.trim().starts_with(&tw_ym) {
                                 add_res_data(&security, res).await;
                                 update_data(&security, true).await;
                             } else {

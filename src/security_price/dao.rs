@@ -97,10 +97,12 @@ pub async fn modify(data: SecurityPrice) -> Result<u64, sqlx::Error> {
     }
 }
 
-pub async fn remove(trax_conn: &mut PgConnection, q_year: String,
+pub async fn remove(
+    trax_conn: &mut PgConnection,
+    q_year: String,
     q_month: String,
-    q_security_code: String,) -> Result<u64, sqlx::Error> {
-
+    q_security_code: String,
+) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r"
         DELETE FROM security_price 
@@ -262,9 +264,9 @@ pub async fn find_all_by_code(
          ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.price_date, sp.security_code
     ",
     )
-    .bind(q_open_date)
     .bind(q_price_date)
     .bind(q_security_code)
+    .bind(q_open_date)
     .map(|row: PgRow| SecurityPrice {
         row_id: row.get("row_id"),
         open_date_year: row.get("open_date_year"),
