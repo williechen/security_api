@@ -44,14 +44,18 @@ pub fn get_security_to_price(task: &DailyTask) -> Result<(), SecurityError> {
         } else {
             let dao = Repository::new();
             let mut conn = dao.connection;
-            dao::remove(
-                &mut conn,
-                q_year.clone(),
-                q_month.clone(),
-                q_security_code.clone(),
-            )?;
+            conn.transaction::<_, SecurityError, _>(|trax_conn| {
+                dao::remove(
+                    trax_conn,
+                    q_year.clone(),
+                    q_month.clone(),
+                    q_security_code.clone(),
+                )?;
 
-            loop_data_res(price)?;
+                loop_data_res(price)?;
+
+                Ok(())
+            })?;
         }
     }
 
