@@ -136,11 +136,17 @@ fn loop_data_price(
     price_close: BigDecimal,
     data: ResposePrice,
 ) -> Result<(), SecurityError> {
+    
+    let mut new_price_date = price_date;
+    if "月平均收盤價" != new_price_date {
+        new_price_date = format!("{:0>9}", new_price_date);
+    }
+
     if price_close > BigDecimal::zero() {
         let price = NewSecurityPrice {
             security_code: data.security_code.clone(),
             security_name: data.security_name.clone(),
-            price_date: price_date,
+            price_date: new_price_date,
             price_close: price_close,
             price_avg: BigDecimal::zero(),
             price_hight: BigDecimal::zero(),
