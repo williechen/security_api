@@ -116,8 +116,12 @@ async fn loop_data_code(
     let re = Regex::new(r"[0-9.,]+").unwrap();
     for row in rows {
         if re.is_match(&row[price_index]) {
-            let price_date = row[date_index].trim().replace("＊", "");
             let price_close = BigDecimal::from_str(&row[price_index].replace(",", "")).unwrap();
+
+            let mut price_date = row[date_index].trim().replace("＊", "");
+            if "月平均收盤價" != price_date {
+                price_date = format!("{:0>9}", price_date);
+            }
 
             if price_close > BigDecimal::zero() {
                 let price = SecurityPrice {
