@@ -239,7 +239,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
 
     let y = security.open_date_year.clone().parse::<i32>().unwrap();
     let m = security.open_date_month.clone();
-    let tw_ym = format!("{0}/{1:02}", y - 1911, m);
+    let tw_ym = format!("{0}/{1}", y - 1911, m);
 
     match ref_market_type {
         "上市" => {
