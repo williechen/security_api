@@ -202,5 +202,5 @@ fn where_append(field: &str, conditional: &str, index: &mut i32) -> String {
 
     *index = *index + 1;
 
-    format!(" {} {} {} ${} ", plus, field, conditional, index)
+    format!(" {0} {1} {2} ${3} ", plus, field, conditional, index)
 }

@@ -324,7 +324,7 @@ pub async fn find_all_by_date(
     ",
     )
     .bind(format!(
-        "{0:03}/{1:02}/{2:02}",
+        "{0:04}/{1:02}/{2:02}",
         (q_year.parse::<i32>().unwrap() - 1911),
         q_month.parse::<i32>().unwrap(),
         q_day.parse::<i32>().unwrap()

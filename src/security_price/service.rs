@@ -120,7 +120,7 @@ async fn loop_data_code(
 
             let mut price_date = row[date_index].trim().replace("＊", "");
             if "月平均收盤價" != price_date {
-                price_date = format!("{:0>9}", price_date);
+                price_date = format!("{:0>10}", price_date);
             }
 
             if price_close > BigDecimal::zero() {

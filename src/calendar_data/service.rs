@@ -16,14 +16,14 @@ pub async fn init_calendar_data() -> Result<(), sqlx::Error> {
         for m in 1..=12 {
             let last_day = last_day_in_month(y, m).day();
             for d in 1..=last_day {
-                let this_date_str = format!("{:04}{:02}{:02}", y, m, d);
+                let this_date_str = format!("{0:04}{1:02}{2:02}", y, m, d);
                 if (max_date_str > this_date_str) && (min_date_str <= this_date_str) {
                     loop_date_calendar(y, m, d).await?;
                 }
             }
 
             let first_date =
-                dao::find_one_by_work_day_first(format!("{:04}", y), format!("{:02}", m)).await;
+                dao::find_one_by_work_day_first(format!("{0:04}", y), format!("{0:02}", m)).await;
             if first_date.is_some() {
                 update_first_date(first_date.unwrap()).await?;
             }
@@ -43,9 +43,9 @@ pub async fn insert_calendar_data(open_next_year: bool) -> Result<(), sqlx::Erro
     for m in 1..=12 {
         let last_day = last_day_in_month(year, m).day();
         for d in 1..=last_day {
-            let q_year = format!("{:04}", year);
-            let q_month = format!("{:02}", m);
-            let q_day = format!("{:02}", d);
+            let q_year = format!("{0:04}", year);
+            let q_month = format!("{0:02}", m);
+            let q_day = format!("{0:02}", d);
 
             let cal = dao::find_one(q_year, q_month, q_day).await;
             if cal.is_none() {
@@ -54,7 +54,7 @@ pub async fn insert_calendar_data(open_next_year: bool) -> Result<(), sqlx::Erro
         }
 
         let first_date =
-            dao::find_one_by_work_day_first(format!("{:04}", year), format!("{:02}", m)).await;
+            dao::find_one_by_work_day_first(format!("{0:04}", year), format!("{0:02}", m)).await;
         if first_date.is_some() {
             update_first_date(first_date.unwrap()).await?;
         }
@@ -94,9 +94,9 @@ async fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), sqlx:
     {
         let calendar_data = CalendarData {
             row_id: String::new(),
-            ce_year: format!("{:04}", year),
-            ce_month: format!("{:02}", month),
-            ce_day: format!("{:02}", day),
+            ce_year: format!("{0:04}", year),
+            ce_month: format!("{0:02}", month),
+            ce_day: format!("{0:02}", day),
             date_status: "S".to_string(),
             group_task: "STOP".to_string(),
         };
@@ -106,9 +106,9 @@ async fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), sqlx:
     } else if this_date < now {
         let calendar_data = CalendarData {
             row_id: String::new(),
-            ce_year: format!("{:04}", year),
-            ce_month: format!("{:02}", month),
-            ce_day: format!("{:02}", day),
+            ce_year: format!("{0:04}", year),
+            ce_month: format!("{0:02}", month),
+            ce_day: format!("{0:02}", day),
             date_status: "O".to_string(),
             group_task: "INIT".to_string(),
         };
@@ -117,9 +117,9 @@ async fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), sqlx:
     } else {
         let calendar_data = CalendarData {
             row_id: String::new(),
-            ce_year: format!("{:04}", year),
-            ce_month: format!("{:02}", month),
-            ce_day: format!("{:02}", day),
+            ce_year: format!("{0:04}", year),
+            ce_month: format!("{0:02}", month),
+            ce_day: format!("{0:02}", day),
             date_status: "O".to_string(),
             group_task: "SECURITY".to_string(),
         };

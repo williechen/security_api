@@ -289,7 +289,7 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
                     match serde_json::from_str::<SecurityPriceTpex1>(&res) {
                         Ok(price) => {
                             let cnt = price.i_total_records;
-                            let mut date = "0/00".to_string();
+                            let mut date = "000/00".to_string();
                             if !price.aa_data.is_empty() {
                                 if price.aa_data[0].first().is_some() {
                                     date = price.aa_data[0][0].clone();
@@ -325,7 +325,7 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
                     match serde_json::from_str::<SecurityPriceTpex2>(&res) {
                         Ok(price) => {
                             let cnt = price.i_total_records;
-                            let mut date = "0/00".to_string();
+                            let mut date = "000/00".to_string();
                             if !price.aa_data.is_empty() {
                                 if price.aa_data[0].first().is_some() {
                                     date = price.aa_data[0][0].clone();
