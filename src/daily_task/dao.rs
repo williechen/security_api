@@ -45,7 +45,7 @@ pub fn find_all() -> Vec<DailyTask> {
             "#,
     )
     .bind::<VarChar, _>(format!(
-        "{:04}{:02}{:02}",
+        "{0:04}{1:02}{2:02}",
         now.year(),
         now.month(),
         now.day()

@@ -139,7 +139,7 @@ fn loop_data_price(
     
     let mut new_price_date = price_date;
     if "月平均收盤價" != new_price_date {
-        new_price_date = format!("{:0>9}", new_price_date);
+        new_price_date = format!("{:0>10}", new_price_date);
     }
 
     if price_close > BigDecimal::zero() {
