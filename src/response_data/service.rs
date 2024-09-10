@@ -46,7 +46,7 @@ pub fn get_security_all_code(task: &DailyTask) -> Result<(), SecurityError> {
                 dao::create(new_response_data)?;
                 return Ok(());
             }
-            Err(e) => return Err(SecurityError::BaseError(e)),
+            Err(e) => return Err(SecurityError::BaseError(e.error)),
         }
     }
 
