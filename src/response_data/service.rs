@@ -6,6 +6,7 @@ use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
 use serde_json::json;
+use tokio_retry::{strategy::ExponentialBackoff, Retry};
 use tracing::{event, Level};
 
 use crate::{
@@ -22,14 +23,23 @@ pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::
     let q_day = task.clone().open_date_day;
     let q_exec_code = "security".to_string();
 
+    // 重試設定
+    let retry_strategy = ExponentialBackoff::from_millis(2000)
+        .max_delay(Duration::from_secs(10))
+        .take(5);
+
     let data = dao::find_one(q_year, q_month, q_day, q_exec_code).await;
     if data.is_none() {
-        match get_web_security_data().await {
-            Ok(content) => {
+        match Retry::spawn(retry_strategy.clone(), || async {
+            get_web_security_data().await
+        })
+        .await
+        {
+            Ok(res) => {
                 let new_response_data = ResponseData {
                     row_id: String::new(),
                     exec_code: "security".to_string(),
-                    data_content: content,
+                    data_content: res,
                     open_date_year: task.clone().open_date_year,
                     open_date_month: task.clone().open_date_month,
                     open_date_day: task.clone().open_date_day,
