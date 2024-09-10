@@ -46,17 +46,10 @@ pub fn exec_daily_task() -> Result<(), SecurityError> {
 
         let task_list = dao::find_all_by_exec_desc(e_open_date.0.clone(), e_open_date.1.clone());
         for task in task_list {
-            debug!(target: "security_api", "DailyTaskInfo: {:?}", &task);
+            info!(target: "security_api", "DailyTaskInfo: {0}", &task);
             update_task_status(&task, "OPEN");
 
             let job_code = task.job_code.clone();
-            let open_date = format!(
-                "{0}{1}{2}",
-                task.open_date_year.clone(),
-                task.open_date_month.clone(),
-                task.open_date_day.clone()
-            );
-
             let ref_job_code = job_code.as_str();
 
             // 執行任務
@@ -120,9 +113,7 @@ pub fn exec_daily_task() -> Result<(), SecurityError> {
                         panic!("daily_task.task_run Error {}", &e)
                     }
                 },
-                _ => {
-                    info!(target: "security_api", "daily_task.other_job: {0} {1}", &job_code, &open_date)
-                }
+                _ => debug!(target: "security_api", "daily_task.other_job: {0}", &job_code)
             };
         }
 
@@ -139,17 +130,10 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
 
         let task_list = dao::find_all_by_exec_asc(e_open_date.0.clone(), e_open_date.1.clone());
         for task in task_list {
-            debug!(target: "security_api", "DailyTaskInfo {:?}", &task);
+            info!(target: "security_api", "DailyTaskInfo {0}", &task);
             update_task_status(&task, "OPEN");
 
             let job_code = task.job_code.clone();
-            let open_date = format!(
-                "{0}{1}{2}",
-                task.open_date_year.clone(),
-                task.open_date_month.clone(),
-                task.open_date_day.clone()
-            );
-
             let ref_job_code = job_code.as_str();
 
             // 執行任務
@@ -176,9 +160,7 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                         panic!("daily_task.price_value Error {}", &e)
                     }
                 },
-                _ => {
-                    info!(target: "security_api", "price_task.other_job: {0} {1}", &job_code, &open_date)
-                }
+                _ => debug!(target: "security_api", "price_task.other_job: {0}", &job_code)
             };
         }
 

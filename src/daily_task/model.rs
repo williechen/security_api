@@ -42,12 +42,7 @@ impl std::fmt::Display for DailyTask {
 
         write!(
             f,
-            r#"{0}, 
-            open_date: {1}{2}{3},
-            job_code: {4}, 
-            exec_status: {5}
-            "#,
-            row_id, open_date_year, open_date_month, open_date_day, job_code, exec_status
-        )
+            "{0}, open_date: {1}{2}{3},job_code: {4}, exec_status: {5}",
+            row_id, open_date_year, open_date_month, open_date_day, job_code, exec_status)
     }
 }
