@@ -10,7 +10,7 @@ appenders:
 
   roll: #定义rooling_file的appenders
     kind: rolling_file
-    path: "log/security_api.log"
+    path: "logs/security_api.log"
     encoder: 
       pattern: "[ {d(%Y-%m-%dT%H:%M:%S%.6f)} {P} {h({l}):<5.5} {M} ]-> {m}{n}"
     policy:
@@ -22,7 +22,7 @@ appenders:
         kind: fixed_window
         base: 0
         count: 240
-        pattern: "log/security_api_{}.log"
+        pattern: "logs/security_api_{}.log"
 
 root:
   level: info
