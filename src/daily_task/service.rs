@@ -43,17 +43,10 @@ pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
         let task_list =
             dao::find_all_by_exec_desc(e_open_date.0.clone(), e_open_date.1.clone()).await;
         for task in task_list {
-            event!(target: "security_api", Level::DEBUG, "DailyTaskInfo: {:?}", &task);
+            event!(target: "security_api", Level::INFO, "DailyTaskInfo: {0}", &task);
             update_task_status(&task, "OPEN").await;
 
             let job_code = task.job_code.clone();
-            let open_date = format!(
-                "{0}{1}{2}",
-                task.open_date_year.clone(),
-                task.open_date_month.clone(),
-                task.open_date_day.clone()
-            );
-
             let ref_job_code = job_code.as_str();
 
             // 執行任務
@@ -119,9 +112,8 @@ pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
                         panic!("daily_task.task_run Error {}", &e)
                     }
                 },
-                _ => {
-                    event!(target: "security_api", Level::INFO, "daily_task.other_job: {0} {1}", &job_code, &open_date)
-                }
+                _ => event!(target: "security_api", Level::DEBUG, "daily_task.other_job: {0}", &job_code)
+        
             };
         }
 
@@ -139,17 +131,10 @@ pub async fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
         let task_list =
             dao::find_all_by_exec_asc(e_open_date.0.clone(), e_open_date.1.clone()).await;
         for task in task_list {
-            event!(target: "security_api", Level::DEBUG, "DailyTaskInfo {:?}", &task);
+            event!(target: "security_api", Level::INFO, "DailyTaskInfo {0}", &task);
             update_task_status(&task, "OPEN").await;
 
             let job_code = task.job_code.clone();
-            let open_date = format!(
-                "{0}{1}{2}",
-                task.open_date_year.clone(),
-                task.open_date_month.clone(),
-                task.open_date_day.clone()
-            );
-
             let ref_job_code = job_code.as_str();
 
             // 執行任務
@@ -176,9 +161,8 @@ pub async fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                 }
-                _ => {
-                    event!(target: "security_api", Level::INFO,  "price_task.other_job: {0} {1}", &job_code, &open_date)
-                }
+                _ => event!(target: "security_api", Level::DEBUG,  "price_task.other_job: {0}", &job_code)
+                
             };
         }
 
