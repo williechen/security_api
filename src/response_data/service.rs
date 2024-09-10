@@ -6,6 +6,8 @@ use chrono::Local;
 use log::{debug, info};
 use regex::Regex;
 use reqwest::blocking::Client;
+use retry::delay::{jitter, Exponential};
+use retry::retry;
 use scraper::{Html, Selector};
 use serde_json::json;
 
@@ -24,13 +26,16 @@ pub fn get_security_all_code(task: &DailyTask) -> Result<(), SecurityError> {
     let q_day = task.clone().open_date_day;
     let q_exec_code = "security".to_string();
 
+    // 重試設定
+    let retry_strategy = Exponential::from_millis(2000).map(jitter).take(5);
+
     let data = dao::find_one(q_year, q_month, q_day, q_exec_code);
     if data.is_none() {
-        match get_web_security_data() {
-            Ok(content) => {
+        match retry(retry_strategy, || get_web_security_data()) {
+            Ok(res) => {
                 let new_response_data = NewResponseData {
                     exec_code: "security".to_string(),
-                    data_content: content,
+                    data_content: res,
                     open_date_year: task.clone().open_date_year,
                     open_date_month: task.clone().open_date_month,
                     open_date_day: task.clone().open_date_day,
