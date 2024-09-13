@@ -60,7 +60,7 @@ fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
         .get("https://isin.twse.com.tw/isin/class_main.jsp")
         .timeout(Duration::from_secs(20))
         .send()?;
-    debug!(target: "security_api", "{:?}", &res.url().to_string());
+    info!(target: "security_api", "{:?}", &res.url().to_string());
 
     let big5_text = res.bytes()?;
     let utf8_text = encoding_rs::BIG5.decode(&big5_text);
