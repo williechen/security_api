@@ -76,6 +76,7 @@ pub async fn find_one(q_year: String, q_month: String, q_day: String) -> Option<
              , ce_year
              , ce_month
              , ce_day
+             , week_index
              , date_status
              , group_task
           FROM calendar_data
@@ -94,6 +95,7 @@ pub async fn find_one(q_year: String, q_month: String, q_day: String) -> Option<
         ce_day: row.get("ce_day"),
         date_status: row.get("date_status"),
         group_task: row.get("group_task"),
+        week_index: row.get("week_index"),
     })
     .fetch_optional(&conn)
     .await
@@ -116,6 +118,7 @@ pub async fn find_one_by_work_day_first(q_year: String, q_month: String) -> Opti
              , cd.ce_year
              , cd.ce_month
              , cd.ce_day
+             , week_index
              , cd.date_status
              , cd.group_task
           FROM calendar_data cd
@@ -143,6 +146,7 @@ pub async fn find_one_by_work_day_first(q_year: String, q_month: String) -> Opti
         ce_day: row.get("ce_day"),
         date_status: row.get("date_status"),
         group_task: row.get("group_task"),
+        week_index: row.get("week_index"),
     })
     .fetch_optional(&conn)
     .await
