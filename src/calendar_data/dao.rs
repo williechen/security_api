@@ -15,13 +15,14 @@ pub async fn create(data: CalendarData) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r"
         INSERT INTO calendar_data(
-            ce_year, ce_month, ce_day, date_status, group_task, created_date, updated_date
-        ) VALUES ( $1, $2, $3, $4, $5, $6, $7 )
+            ce_year, ce_month, ce_day, week_index, date_status, group_task, created_date, updated_date
+        ) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8 )
     ",
     )
     .bind(data.ce_year)
     .bind(data.ce_month)
     .bind(data.ce_day)
+    .bind(data.week_index)
     .bind(data.date_status)
     .bind(data.group_task)
     .bind(Local::now())

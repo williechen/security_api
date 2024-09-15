@@ -6,6 +6,7 @@ pub struct CalendarData {
     pub ce_year: String,
     pub ce_month: String,
     pub ce_day: String,
+    pub week_index: i32,
     pub date_status: String,
     pub group_task: String,
 }

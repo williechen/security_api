@@ -97,6 +97,7 @@ async fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), sqlx:
             ce_year: format!("{0:04}", year),
             ce_month: format!("{0:02}", month),
             ce_day: format!("{0:02}", day),
+            week_index: this_date.weekday().number_from_monday() as i32,
             date_status: "S".to_string(),
             group_task: "STOP".to_string(),
         };
@@ -109,6 +110,7 @@ async fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), sqlx:
             ce_year: format!("{0:04}", year),
             ce_month: format!("{0:02}", month),
             ce_day: format!("{0:02}", day),
+            week_index: this_date.weekday().number_from_monday() as i32,
             date_status: "O".to_string(),
             group_task: "INIT".to_string(),
         };
@@ -120,6 +122,7 @@ async fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), sqlx:
             ce_year: format!("{0:04}", year),
             ce_month: format!("{0:02}", month),
             ce_day: format!("{0:02}", day),
+            week_index: this_date.weekday().number_from_monday() as i32,
             date_status: "O".to_string(),
             group_task: "SECURITY".to_string(),
         };
