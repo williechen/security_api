@@ -11,6 +11,8 @@ diesel::table! {
         ce_month -> Varchar,
         /// 西元日
         ce_day -> Varchar,
+        ///
+        week_index -> Int4,
         /// 開市:O/休市:S
         date_status -> Varchar,
         /// 任務群組

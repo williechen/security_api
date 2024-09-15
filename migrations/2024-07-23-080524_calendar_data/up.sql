@@ -4,6 +4,7 @@ CREATE TABLE calendar_data (
     ce_year varchar not null default '1962',
     ce_month varchar not null default '01',
     ce_day varchar not null default '01',
+    week_index integer not null default 1,
     date_status varchar not null default 'O',
     group_task varchar not null default 'ALL',
     created_date timestamp not null default now(),

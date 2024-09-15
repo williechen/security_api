@@ -1,5 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 
+use bigdecimal::ToPrimitive;
 use chrono::{Datelike, Local, NaiveDate};
 
 use crate::{security_error::SecurityError, security_price};
@@ -98,6 +99,7 @@ fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), SecurityErr
             ce_year: format!("{0:04}", year),
             ce_month: format!("{0:02}", month),
             ce_day: format!("{0:02}", day),
+            week_index: this_date.weekday().number_from_monday().to_i32().unwrap(),
             date_status: "S".to_string(),
             group_task: "STOP".to_string(),
             created_date: Local::now().naive_local(),
@@ -111,6 +113,7 @@ fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), SecurityErr
             ce_year: format!("{0:04}", year),
             ce_month: format!("{0:02}", month),
             ce_day: format!("{0:02}", day),
+            week_index: this_date.weekday().number_from_monday().to_i32().unwrap(),
             date_status: "O".to_string(),
             group_task: "INIT".to_string(),
             created_date: Local::now().naive_local(),
@@ -123,6 +126,7 @@ fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), SecurityErr
             ce_year: format!("{0:04}", year),
             ce_month: format!("{0:02}", month),
             ce_day: format!("{0:02}", day),
+            week_index: this_date.weekday().number_from_monday().to_i32().unwrap(),
             date_status: "O".to_string(),
             group_task: "SECURITY".to_string(),
             created_date: Local::now().naive_local(),
