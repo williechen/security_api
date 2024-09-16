@@ -63,7 +63,7 @@ async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
         .timeout(Duration::from_secs(20))
         .send()
         .await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &res.url().to_string());
+    event!(target: "security_api", Level::INFO, "{:?}", &res.url().to_string());
 
     let big5_text = res.bytes().await?;
     let utf8_text = encoding_rs::BIG5.decode(&big5_text);
