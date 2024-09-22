@@ -130,7 +130,7 @@ pub async fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> 
         SELECT rd.data_content
              , st.open_date_year
              , st.open_date_month
-             , max(st.open_date_day) as open_date_day 
+             , MAX(st.open_date_day) AS open_date_day 
              , st.security_code
              , st.security_name
              , st.market_type
