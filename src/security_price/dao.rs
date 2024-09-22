@@ -172,7 +172,6 @@ pub async fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> 
 pub async fn find_all(
     q_year: String,
     q_month: String,
-    q_day: String,
     q_security_code: String,
 ) -> Vec<SecurityPrice> {
     let dao = Repository::new().await;
@@ -196,13 +195,11 @@ pub async fn find_all(
           FROM security_price sp
          WHERE sp.open_date_year = $1
            AND sp.open_date_month = $2
-           AND sp.open_date_day <= $3
-           AND sp.security_code = $4
+           AND sp.security_code = $3
     ",
     )
     .bind(q_year)
     .bind(q_month)
-    .bind(q_day)
     .bind(q_security_code)
     .map(|row: PgRow| SecurityPrice {
         row_id: row.get("row_id"),
