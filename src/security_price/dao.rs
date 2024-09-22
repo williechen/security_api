@@ -15,7 +15,6 @@ use super::model::{MaxPriceDate, NewSecurityPrice, ResposePrice, SecurityPrice};
 pub fn find_all(
     q_year: String,
     q_month: String,
-    q_day: String,
     q_security_code: String,
 ) -> Vec<SecurityPrice> {
     let dao = Repository::new();
@@ -24,7 +23,6 @@ pub fn find_all(
     let query = table
         .filter(open_date_year.eq(q_year))
         .filter(open_date_month.eq(q_month))
-        .filter(open_date_day.le(q_day))
         .filter(security_code.eq(q_security_code));
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));

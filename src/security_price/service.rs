@@ -30,13 +30,11 @@ pub fn get_security_to_price(task: &DailyTask) -> Result<(), SecurityError> {
 
         let q_year = price.open_date_year.clone();
         let q_month = price.open_date_month.clone();
-        let q_day = price.open_date_day.clone();
         let q_security_code = price.security_code.clone();
 
         let month_prices = dao::find_all(
             q_year.clone(),
             q_month.clone(),
-            q_day,
             q_security_code.clone(),
         );
         if month_prices.len() <= 0 {
