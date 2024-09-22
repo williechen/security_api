@@ -351,8 +351,6 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
     Ok(())
 }
 
-
-
 fn add_res_data(security: &SecurityTask, html: String) {
     let res_data = response_data::dao::find_one_by_min(&security);
     if res_data.is_none() {

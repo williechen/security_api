@@ -32,11 +32,7 @@ pub fn get_security_to_price(task: &DailyTask) -> Result<(), SecurityError> {
         let q_month = price.open_date_month.clone();
         let q_security_code = price.security_code.clone();
 
-        let month_prices = dao::find_all(
-            q_year.clone(),
-            q_month.clone(),
-            q_security_code.clone(),
-        );
+        let month_prices = dao::find_all(q_year.clone(), q_month.clone(), q_security_code.clone());
         if month_prices.len() <= 0 {
             loop_data_res(price)?;
         } else {
@@ -134,7 +130,6 @@ fn loop_data_price(
     price_close: BigDecimal,
     data: ResposePrice,
 ) -> Result<(), SecurityError> {
-    
     let mut new_price_date = price_date;
     if "月平均收盤價" != new_price_date {
         new_price_date = format!("{:0>10}", new_price_date);

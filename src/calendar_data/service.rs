@@ -112,7 +112,7 @@ fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), SecurityErr
             ce_year: format!("{0:04}", year),
             ce_month: format!("{0:02}", month),
             ce_day: format!("{0:02}", day),
-            week_index: this_date.weekday().number_from_monday() as i32, 
+            week_index: this_date.weekday().number_from_monday() as i32,
             date_status: "O".to_string(),
             group_task: "INIT".to_string(),
             created_date: Local::now().naive_local(),

@@ -2,21 +2,17 @@
 
 use crate::repository::Repository;
 use crate::schema::security_price::dsl::security_price as table;
-use crate::schema::security_price::{
-    open_date_day, open_date_month, open_date_year, row_id, security_code,
-};
+use crate::schema::security_price::{open_date_month, open_date_year, row_id, security_code};
 use crate::security_error::SecurityError;
-use diesel::{delete, insert_into, update, ExpressionMethods, OptionalExtension, PgConnection, QueryDsl};
+use diesel::{
+    delete, insert_into, update, ExpressionMethods, OptionalExtension, PgConnection, QueryDsl,
+};
 use diesel::{sql_query, sql_types::VarChar, RunQueryDsl};
 use log::{debug, error};
 
 use super::model::{MaxPriceDate, NewSecurityPrice, ResposePrice, SecurityPrice};
 
-pub fn find_all(
-    q_year: String,
-    q_month: String,
-    q_security_code: String,
-) -> Vec<SecurityPrice> {
+pub fn find_all(q_year: String, q_month: String, q_security_code: String) -> Vec<SecurityPrice> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
@@ -211,8 +207,12 @@ pub fn modify(data: SecurityPrice) -> Result<usize, SecurityError> {
     }
 }
 
-pub fn remove(conn: &mut PgConnection, q_year: String, q_month: String, q_security_code: String) -> Result<usize, SecurityError> {
-
+pub fn remove(
+    conn: &mut PgConnection,
+    q_year: String,
+    q_month: String,
+    q_security_code: String,
+) -> Result<usize, SecurityError> {
     match delete(table)
         .filter(open_date_year.eq(q_year))
         .filter(open_date_month.eq(q_month))

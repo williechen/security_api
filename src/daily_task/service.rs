@@ -113,7 +113,7 @@ pub fn exec_daily_task() -> Result<(), SecurityError> {
                         panic!("daily_task.task_run Error {}", &e)
                     }
                 },
-                _ => debug!(target: "security_api", "daily_task.other_job: {0}", &job_code)
+                _ => debug!(target: "security_api", "daily_task.other_job: {0}", &job_code),
             };
         }
 
@@ -160,7 +160,7 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                         panic!("daily_task.price_value Error {}", &e)
                     }
                 },
-                _ => debug!(target: "security_api", "price_task.other_job: {0}", &job_code)
+                _ => debug!(target: "security_api", "price_task.other_job: {0}", &job_code),
             };
         }
 
