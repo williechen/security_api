@@ -161,7 +161,7 @@ pub fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<Re
         SELECT rd.data_content
              , st.open_date_year
              , st.open_date_month
-             , max(st.open_date_day) as open_date_day 
+             , MAX(st.open_date_day) AS open_date_day 
              , st.security_code
              , st.security_name
              , st.market_type
@@ -173,7 +173,7 @@ pub fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<Re
          WHERE rd.open_date_year = $1
            AND rd.open_date_month = $2
            AND rd.open_date_day >= $3
-         group by rd.data_content, st.open_date_year, st.open_date_month, st.security_code, st.security_name , st.market_type
+         GROUP BY rd.data_content, st.open_date_year, st.open_date_month, st.security_code, st.security_name , st.market_type
          ORDER BY st.open_date_year, st.open_date_month,  st.security_code
          "#,
     )
