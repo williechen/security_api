@@ -33,12 +33,8 @@ pub async fn get_security_to_price(task: &DailyTask) -> Result<(), Box<dyn Error
         let q_month = price.open_date_month.clone();
         let q_security_code = price.security_code.clone();
 
-        let month_prices = dao::find_all(
-            q_year.clone(),
-            q_month.clone(),
-            q_security_code.clone(),
-        )
-        .await;
+        let month_prices =
+            dao::find_all(q_year.clone(), q_month.clone(), q_security_code.clone()).await;
         if month_prices.len() <= 0 {
             loop_data_res(price).await?;
         } else {

@@ -112,8 +112,9 @@ pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
                         panic!("daily_task.task_run Error {}", &e)
                     }
                 },
-                _ => event!(target: "security_api", Level::DEBUG, "daily_task.other_job: {0}", &job_code)
-        
+                _ => {
+                    event!(target: "security_api", Level::DEBUG, "daily_task.other_job: {0}", &job_code)
+                }
             };
         }
 
@@ -161,8 +162,9 @@ pub async fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                 }
-                _ => event!(target: "security_api", Level::DEBUG,  "price_task.other_job: {0}", &job_code)
-                
+                _ => {
+                    event!(target: "security_api", Level::DEBUG,  "price_task.other_job: {0}", &job_code)
+                }
             };
         }
 
