@@ -126,12 +126,11 @@ pub async fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> 
     let dao = Repository::new().await;
     let conn = dao.connection;
 
-    match sqlx::query(
-        r" 
+    match sqlx::query(r" 
         SELECT rd.data_content
              , st.open_date_year
              , st.open_date_month
-             , st.open_date_day
+             , max(st.open_date_day) as open_date_day 
              , st.security_code
              , st.security_name
              , st.market_type
@@ -140,11 +139,11 @@ pub async fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> 
             ON rd.exec_code = st.security_code
            AND rd.open_date_year = st.open_date_year
            AND rd.open_date_month = st.open_date_month
-           AND rd.open_date_day = st.open_date_day
          WHERE rd.open_date_year = $1
            AND rd.open_date_month = $2
-           AND rd.open_date_day >= $3 
-         ORDER BY rd.open_date_year, rd.open_date_month, rd.open_date_day, st.security_code
+           AND rd.open_date_day >= $3
+         GROUP BY rd.data_content, st.open_date_year, st.open_date_month, st.security_code, st.security_name , st.market_type
+         ORDER BY st.open_date_year, st.open_date_month,  st.security_code
     ",
     )
     .bind(q_year)
