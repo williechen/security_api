@@ -176,7 +176,7 @@ pub fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
          "#,
     )
     .bind::<VarChar, _>(q_year)
-    .bind::<VarChar, _>(q_month)
+    .bind::<VarChar, _>(q_month);
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
