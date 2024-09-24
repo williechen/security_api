@@ -122,7 +122,7 @@ pub async fn remove(
     }
 }
 
-pub async fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<ResposePrice> {
+pub async fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
@@ -130,7 +130,7 @@ pub async fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> 
         SELECT rd.data_content
              , st.open_date_year
              , st.open_date_month
-             , MAX(st.open_date_day) AS open_date_day 
+             , st.open_date_day
              , st.security_code
              , st.security_name
              , st.market_type
@@ -139,16 +139,19 @@ pub async fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> 
             ON rd.exec_code = st.security_code
            AND rd.open_date_year = st.open_date_year
            AND rd.open_date_month = st.open_date_month
-         WHERE rd.open_date_year = $1
-           AND rd.open_date_month = $2
-           AND rd.open_date_day >= $3
-         GROUP BY rd.data_content, st.open_date_year, st.open_date_month, st.security_code, st.security_name , st.market_type
+         WHERE st.open_date_year = $1
+           AND st.open_date_month = $2
+           AND st.open_date_day = (SELECT MAX(st2.open_date_day) 
+                                      FROM security_task st2 
+                                     WHERE st2.security_code = st.security_code 
+                                       AND st2.open_date_year = st.open_date_year
+                                       AND st2.open_date_month = st.open_date_month
+                                   )
          ORDER BY st.open_date_year, st.open_date_month,  st.security_code
     ",
     )
     .bind(q_year)
     .bind(q_month)
-    .bind(q_day)
     .map(|row: PgRow| ResposePrice {
         open_date_year: row.get("open_date_year"),
         open_date_month: row.get("open_date_month"),

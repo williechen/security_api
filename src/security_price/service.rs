@@ -23,9 +23,8 @@ pub async fn get_security_to_price(task: &DailyTask) -> Result<(), Box<dyn Error
 
     let q_year = task.open_date_year.clone();
     let q_month = task.open_date_month.clone();
-    let q_day = task.open_date_day.clone();
 
-    let res_prices = dao::read_all_by_res(q_year, q_month, q_day).await;
+    let res_prices = dao::read_all_by_res(q_year, q_month).await;
     for price in res_prices {
         event!(target: "security_api", Level::DEBUG, "ResposePrice: {:?}", &price);
 
