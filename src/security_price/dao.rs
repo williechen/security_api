@@ -147,7 +147,7 @@ pub fn find_one_by_maxdate() -> Option<MaxPriceDate> {
     }
 }
 
-pub fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<ResposePrice> {
+pub fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
@@ -155,7 +155,7 @@ pub fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<Re
         SELECT rd.data_content
              , st.open_date_year
              , st.open_date_month
-             , MAX(st.open_date_day) AS open_date_day 
+             , st.open_date_day
              , st.security_code
              , st.security_name
              , st.market_type
@@ -164,16 +164,19 @@ pub fn read_all_by_res(q_year: String, q_month: String, q_day: String) -> Vec<Re
             ON rd.exec_code = st.security_code
            AND rd.open_date_year = st.open_date_year
            AND rd.open_date_month = st.open_date_month
-         WHERE rd.open_date_year = $1
-           AND rd.open_date_month = $2
-           AND rd.open_date_day >= $3
-         GROUP BY rd.data_content, st.open_date_year, st.open_date_month, st.security_code, st.security_name , st.market_type
+         WHERE st.open_date_year = $1
+           AND st.open_date_month = $2
+           AND st.open_date_day = (SELECT MAX(st2.open_date_day) 
+                                     FROM security_task st2 
+                                    WHERE st2.security_code = st.security_code 
+                                      AND st2.open_date_year = st.open_date_year
+                                      AND st2.open_date_month = st.open_date_month
+                                  )
          ORDER BY st.open_date_year, st.open_date_month,  st.security_code
          "#,
     )
     .bind::<VarChar, _>(q_year)
     .bind::<VarChar, _>(q_month)
-    .bind::<VarChar, _>(q_day);
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
