@@ -15,6 +15,15 @@ use crate::{
     security_task::model::SecurityTask,
 };
 
+fn html_decode(input: &str) -> String {
+    input
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&apos;", "'")
+}
+
 pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level:: INFO, "call daily_task.get_security_all_code");
 
@@ -71,7 +80,7 @@ async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
     let result_html = parse_web_security_data(&utf8_text.0.to_string())?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &result_html);
 
-    Ok(result_html)
+    Ok(html_decode(&result_html))
 }
 
 fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error::Error>> {
@@ -112,7 +121,7 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
     let json = res.text().await?;
     event!(target: "security_api", Level::DEBUG,  "{:?}", &json);
 
-    Ok(json)
+    Ok(html_decode(&json))
 }
 
 pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
@@ -140,7 +149,7 @@ pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::
     let parse_text = decode_unicode_escape(&json);
     event!(target: "security_api", Level::DEBUG,  "{:?}", &parse_text);
 
-    Ok(parse_text)
+    Ok(html_decode(&parse_text))
 }
 
 fn decode_unicode_escape(s: &str) -> String {
@@ -204,7 +213,7 @@ pub async fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::
     let json_text = parse_web_tpex2_data(&text)?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &json_text);
 
-    Ok(json_text)
+    Ok(html_decode(&json_text))
 }
 
 fn parse_web_tpex2_data(document: &String) -> Result<String, Box<dyn std::error::Error>> {
