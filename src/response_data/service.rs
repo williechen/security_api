@@ -18,6 +18,15 @@ use crate::{
     security_task::model::SecurityTask,
 };
 
+fn html_decode(input: &str) -> String {
+    input
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&apos;", "'")
+}
+
 pub fn get_security_all_code(task: &DailyTask) -> Result<(), SecurityError> {
     info!(target: "security_api", "call daily_task.get_security_all_code");
 
@@ -68,7 +77,7 @@ fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
     let result_html = parse_web_security_data(&utf8_text.0.to_string())?;
     debug!(target: "security_api", "{:?}", &result_html);
 
-    Ok(result_html)
+    Ok(html_decode(&result_html))
 }
 
 fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error::Error>> {
@@ -134,7 +143,7 @@ pub fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::err
     let json = res.text()?;
     debug!(target: "security_api",  "{:?}", &json);
 
-    Ok(json)
+    Ok(html_decode(&json))
 }
 
 pub fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
@@ -161,7 +170,7 @@ pub fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error:
     let parse_text = decode_unicode_escape(&json);
     debug!(target: "security_api",  "{:?}", &parse_text);
 
-    Ok(parse_text)
+    Ok(html_decode(&parse_text))
 }
 
 fn decode_unicode_escape(s: &str) -> String {
@@ -224,7 +233,7 @@ pub fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::error:
     let json_text = parse_web_tpex2_data(&text)?;
     debug!(target: "security_api",  "{:?}", &json_text);
 
-    Ok(json_text)
+    Ok(html_decode(&json_text))
 }
 
 fn parse_web_tpex2_data(document: &String) -> Result<String, Box<dyn std::error::Error>> {
