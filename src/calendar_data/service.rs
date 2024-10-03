@@ -2,9 +2,7 @@
 
 use chrono::{Datelike, Local, NaiveDate};
 
-use crate::{
-    security_error::SecurityError, security_price,
-};
+use crate::{security_error::SecurityError, security_price};
 
 use super::{
     dao,
@@ -31,7 +29,7 @@ pub fn init_calendar_data() -> Result<(), SecurityError> {
                 if (max_date_str > this_date_str) && (min_date_str <= this_date_str) {
                     let dates: Vec<String> = price_data
                         .iter()
-                        .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", y-1911, m, d))
+                        .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", y - 1911, m, d))
                         .map(|x| x.price_date.clone())
                         .collect();
 
@@ -73,7 +71,7 @@ pub fn insert_calendar_data(open_next_year: bool) -> Result<(), SecurityError> {
 
             let dates: Vec<String> = price_data
                 .iter()
-                .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", year-1911, m, d))
+                .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", year - 1911, m, d))
                 .map(|x| x.price_date.clone())
                 .collect();
 

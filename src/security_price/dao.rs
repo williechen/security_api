@@ -150,7 +150,8 @@ pub fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
-    let query = sql_query(r#"
+    let query = sql_query(
+        r#"
         SELECT rd.data_content
              , st.open_date_year
              , st.open_date_month
