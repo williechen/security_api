@@ -73,7 +73,7 @@ pub fn insert_calendar_data(open_next_year: bool) -> Result<(), SecurityError> {
 
             let dates: Vec<String> = price_data
                 .iter()
-                .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", year, m, d))
+                .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", year-1911, m, d))
                 .map(|x| x.price_date.clone())
                 .collect();
 
