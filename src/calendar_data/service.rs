@@ -2,7 +2,9 @@
 
 use chrono::{Datelike, Local, NaiveDate};
 
-use crate::{security_error::SecurityError, security_price};
+use crate::{
+    security_error::SecurityError, security_price,
+};
 
 use super::{
     dao,
@@ -15,13 +17,25 @@ pub fn init_calendar_data() -> Result<(), SecurityError> {
     let max_date_str = max_date.format("%Y%m%d").to_string();
     let min_date_str = min_date.format("%Y%m%d").to_string();
 
+    let max_price_date = security_price::dao::find_one_by_maxdate().unwrap();
+
     for y in min_date.year()..=max_date.year() {
         for m in 1..=12 {
             let last_day = last_day_in_month(y, m).day();
+
+            // 收盤價資料
+            let price_data = security_price::dao::find_all_by_date(y.to_string(), m.to_string());
+
             for d in 1..=last_day {
                 let this_date_str = format!("{0:04}{1:02}{2:02}", y, m, d);
                 if (max_date_str > this_date_str) && (min_date_str <= this_date_str) {
-                    loop_date_calendar(y, m, d)?;
+                    let dates: Vec<String> = price_data
+                        .iter()
+                        .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", y, m, d))
+                        .map(|x| x.price_date.clone())
+                        .collect();
+
+                    loop_date_calendar(y, m, d, max_price_date.price_date.clone(), dates.len())?;
                 }
             }
 
@@ -43,16 +57,29 @@ pub fn insert_calendar_data(open_next_year: bool) -> Result<(), SecurityError> {
     } else {
         now.year()
     };
+
+    let max_price_date = security_price::dao::find_one_by_maxdate().unwrap();
+
     for m in 1..=12 {
         let last_day = last_day_in_month(year, m).day();
+
+        // 收盤價資料
+        let price_data = security_price::dao::find_all_by_date(year.to_string(), m.to_string());
+
         for d in 1..=last_day {
             let q_year = format!("{0:04}", year);
             let q_month = format!("{0:02}", m);
             let q_day = format!("{0:02}", d);
 
+            let dates: Vec<String> = price_data
+                .iter()
+                .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", year, m, d))
+                .map(|x| x.price_date.clone())
+                .collect();
+
             let cal = dao::find_one(q_year, q_month, q_day);
             if cal.is_none() {
-                loop_date_calendar(year, m, d)?;
+                loop_date_calendar(year, m, d, max_price_date.price_date.clone(), dates.len())?;
             }
         }
 
@@ -78,21 +105,23 @@ fn last_day_in_month(year: i32, month: u32) -> NaiveDate {
         .unwrap()
 }
 
-fn loop_date_calendar(year: i32, month: u32, day: u32) -> Result<(), SecurityError> {
+fn loop_date_calendar(
+    year: i32,
+    month: u32,
+    day: u32,
+    price_date: String,
+    price_count: usize,
+) -> Result<(), SecurityError> {
     // 初始日期
     let now = NaiveDate::from_ymd_opt(2024, 5, 17).unwrap();
     // 指定日期
     let this_date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
     let this_tw_date = format!("{0:04}{1:02}{2:02}", year, month, day);
-    // 收盤價資料
-    let price_data =
-        security_price::dao::find_all_by_date(year.to_string(), month.to_string(), day.to_string());
-    let max_price_date = security_price::dao::find_one_by_maxdate().unwrap();
 
     // 如果是假日
-    if (this_date.weekday().number_from_monday() == 6 && price_data.len() == 0)
-        || (this_date.weekday().number_from_monday() == 7 && price_data.len() == 0)
-        || (this_tw_date <= max_price_date.price_date && price_data.len() == 0)
+    if (this_date.weekday().number_from_monday() == 6 && price_count == 0)
+        || (this_date.weekday().number_from_monday() == 7 && price_count == 0)
+        || (this_tw_date <= price_date && price_count > 0)
     {
         let calendar_data = NewCalendarData {
             ce_year: format!("{0:04}", year),
