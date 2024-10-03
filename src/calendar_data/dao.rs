@@ -67,6 +67,7 @@ pub fn find_one_by_work_day_first(q_year: String, q_month: String) -> Option<Cal
              , cd.ce_year
              , cd.ce_month
              , cd.ce_day
+             , cd.week_index
              , cd.date_status
              , cd.group_task
              , cd.created_date
