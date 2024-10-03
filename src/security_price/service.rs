@@ -162,9 +162,8 @@ pub fn get_calculator_to_price(task: &DailyTask) -> Result<(), SecurityError> {
 
     let q_year = task.open_date_year.clone();
     let q_month = task.open_date_month.clone();
-    let q_day = task.open_date_day.clone();
 
-    let res_prices = dao::find_all_by_date(q_year, q_month, q_day);
+    let res_prices = dao::find_all_by_date(q_year, q_month);
     for price in res_prices {
         debug!(target: "security_api", "SecurityPrice: {:?}", &price);
         loop_data_calculator(price)?;

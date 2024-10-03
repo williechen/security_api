@@ -80,7 +80,7 @@ pub fn find_all_by_code(
     }
 }
 
-pub fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<SecurityPrice> {
+pub fn find_all_by_date(q_year: String, q_month: String) -> Vec<SecurityPrice> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 
@@ -102,15 +102,14 @@ pub fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<S
              , sp.created_date
              , sp.updated_date
           FROM security_price sp
-          WHERE sp.price_date = $1
+          WHERE sp.price_date LIKE $1
          ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.price_date, sp.security_code
         "#,
     )
     .bind::<VarChar, _>(format!(
-        "{0:04}/{1:02}/{2:02}",
+        "%{0:04}/{1:02}%",
         (q_year.parse::<i32>().unwrap() - 1911),
-        q_month.parse::<i32>().unwrap(),
-        q_day.parse::<i32>().unwrap()
+        q_month.parse::<i32>().unwrap()
     ));
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
