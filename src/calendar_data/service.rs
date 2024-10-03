@@ -27,7 +27,7 @@ pub async fn init_calendar_data() -> Result<(), sqlx::Error> {
                 if (max_date_str > this_date_str) && (min_date_str <= this_date_str) {
                     let dates: Vec<String> = price_data
                         .iter()
-                        .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", y-1911, m, d))
+                        .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", y - 1911, m, d))
                         .map(|x| x.price_date.clone())
                         .collect();
 
@@ -59,7 +59,8 @@ pub async fn insert_calendar_data(open_next_year: bool) -> Result<(), sqlx::Erro
         let last_day = last_day_in_month(year, m).day();
 
         // 收盤價資料
-        let price_data = security_price::dao::find_all_by_date(year.to_string(), m.to_string()).await;
+        let price_data =
+            security_price::dao::find_all_by_date(year.to_string(), m.to_string()).await;
 
         for d in 1..=last_day {
             let q_year = format!("{0:04}", year);
@@ -67,10 +68,10 @@ pub async fn insert_calendar_data(open_next_year: bool) -> Result<(), sqlx::Erro
             let q_day = format!("{0:02}", d);
 
             let dates: Vec<String> = price_data
-                        .iter()
-                        .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", year-1911, m, d))
-                        .map(|x| x.price_date.clone())
-                        .collect();
+                .iter()
+                .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", year - 1911, m, d))
+                .map(|x| x.price_date.clone())
+                .collect();
 
             let cal = dao::find_one(q_year, q_month, q_day).await;
             if cal.is_none() {
