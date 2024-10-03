@@ -31,7 +31,7 @@ pub fn init_calendar_data() -> Result<(), SecurityError> {
                 if (max_date_str > this_date_str) && (min_date_str <= this_date_str) {
                     let dates: Vec<String> = price_data
                         .iter()
-                        .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", y, m, d))
+                        .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", y-1911, m, d))
                         .map(|x| x.price_date.clone())
                         .collect();
 
@@ -121,7 +121,7 @@ fn loop_date_calendar(
     // 如果是假日
     if (this_date.weekday().number_from_monday() == 6 && price_count == 0)
         || (this_date.weekday().number_from_monday() == 7 && price_count == 0)
-        || (this_tw_date <= price_date && price_count > 0)
+        || (this_tw_date <= price_date && price_count == 0)
     {
         let calendar_data = NewCalendarData {
             ce_year: format!("{0:04}", year),
