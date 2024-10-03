@@ -126,7 +126,8 @@ pub async fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePric
     let dao = Repository::new().await;
     let conn = dao.connection;
 
-    match sqlx::query(r" 
+    match sqlx::query(
+        r" 
         SELECT rd.data_content
              , st.open_date_year
              , st.open_date_month
@@ -292,11 +293,7 @@ pub async fn find_all_by_code(
     }
 }
 
-pub async fn find_all_by_date(
-    q_year: String,
-    q_month: String,
-    q_day: String,
-) -> Vec<SecurityPrice> {
+pub async fn find_all_by_date(q_year: String, q_month: String) -> Vec<SecurityPrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
@@ -318,15 +315,14 @@ pub async fn find_all_by_date(
              , sp.created_date
              , sp.updated_date
           FROM security_price sp
-          WHERE sp.price_date = $1
+          WHERE sp.price_date LIKE $1
          ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.price_date, sp.security_code
     ",
     )
     .bind(format!(
-        "{0:04}/{1:02}/{2:02}",
+        "%{0:04}/{1:02}%",
         (q_year.parse::<i32>().unwrap() - 1911),
-        q_month.parse::<i32>().unwrap(),
-        q_day.parse::<i32>().unwrap()
+        q_month.parse::<i32>().unwrap()
     ))
     .map(|row: PgRow| SecurityPrice {
         row_id: row.get("row_id"),
