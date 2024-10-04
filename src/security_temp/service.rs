@@ -97,6 +97,15 @@ async fn loop_data_temp(
     Ok(())
 }
 
+fn html_decode(input: &str) -> String {
+    input
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&apos;", "'")
+}
+
 fn parse_table_data(
     table: String,
 ) -> Result<Vec<HashMap<String, String>>, Box<dyn std::error::Error>> {
@@ -114,7 +123,7 @@ fn parse_table_data(
 
         let tds = tr_content.select(&td);
         for td_content in tds {
-            let a = td_content.inner_html();
+            let a = html_decode(&td_content.inner_html());
             cells.insert(index.to_string(), a.trim().to_string());
 
             index = index + 1;
