@@ -22,7 +22,10 @@ fn html_decode(input: &str) -> String {
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&apos;", "'")
+        .replace("*", "")
+        .replace("＊", "")
 }
+
 
 pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level:: INFO, "call daily_task.get_security_all_code");
