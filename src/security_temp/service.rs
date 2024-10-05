@@ -106,6 +106,8 @@ fn html_decode(input: &str) -> String {
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&apos;", "'")
+        .replace("*", "")
+        .replace("＊", "")
 }
 
 fn parse_table_data(

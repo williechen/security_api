@@ -25,6 +25,8 @@ fn html_decode(input: &str) -> String {
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&apos;", "'")
+        .replace("*", "")
+        .replace("＊", "")
 }
 
 pub fn get_security_all_code(task: &DailyTask) -> Result<(), SecurityError> {
