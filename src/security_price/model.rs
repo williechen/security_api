@@ -113,9 +113,3 @@ pub struct ResposePrice {
     #[diesel(sql_type = sql_types::VarChar)]
     pub data_content: String,
 }
-
-#[derive(Debug, Clone, QueryableByName)]
-pub struct MaxPriceDate {
-    #[diesel(sql_type = sql_types::VarChar)]
-    pub price_date: String,
-}

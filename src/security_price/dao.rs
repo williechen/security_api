@@ -4,13 +4,11 @@ use crate::repository::Repository;
 use crate::schema::security_price::dsl::security_price as table;
 use crate::schema::security_price::{open_date_month, open_date_year, row_id, security_code};
 use crate::security_error::SecurityError;
-use diesel::{
-    delete, insert_into, update, ExpressionMethods, OptionalExtension, PgConnection, QueryDsl,
-};
+use diesel::{delete, insert_into, update, ExpressionMethods, PgConnection, QueryDsl};
 use diesel::{sql_query, sql_types::VarChar, RunQueryDsl};
 use log::{debug, error};
 
-use super::model::{MaxPriceDate, NewSecurityPrice, ResposePrice, SecurityPrice};
+use super::model::{NewSecurityPrice, ResposePrice, SecurityPrice};
 
 pub fn find_all(q_year: String, q_month: String, q_security_code: String) -> Vec<SecurityPrice> {
     let dao = Repository::new();
@@ -120,7 +118,6 @@ pub fn find_all_by_date(q_year: String, q_month: String) -> Vec<SecurityPrice> {
         }
     }
 }
-
 
 pub fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
     let dao = Repository::new();
