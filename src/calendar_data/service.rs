@@ -87,8 +87,13 @@ fn get_new_calendar_date(
     }
 }
 
-fn check_data_exists(ce_year: String, ce_month: String, ce_day: String) -> bool {
-    dao::find_one(ce_year, ce_month, ce_day).is_some()
+fn check_data_exists(data: &NewCalendarData) -> bool {
+    dao::find_one(
+        data.ce_year.clone(),
+        data.ce_month.clone(),
+        data.ce_day.clone(),
+    )
+    .is_some()
 }
 
 pub fn init_calendar_data() -> Result<(), SecurityError> {
@@ -131,11 +136,7 @@ pub fn init_calendar_data() -> Result<(), SecurityError> {
     }
 
     for calendar_data in calendar_datas {
-        if check_data_exists(
-            calendar_data.ce_year.clone(),
-            calendar_data.ce_month.clone(),
-            calendar_data.ce_day.clone(),
-        ) {
+        if !check_data_exists(&calendar_data) {
             dao::create(calendar_data)?;
         }
     }
@@ -185,11 +186,7 @@ pub fn insert_calendar_data(open_next_year: bool) -> Result<(), SecurityError> {
     }
 
     for calendar_data in calendar_datas {
-        if check_data_exists(
-            calendar_data.ce_year.clone(),
-            calendar_data.ce_month.clone(),
-            calendar_data.ce_day.clone(),
-        ) {
+        if !check_data_exists(&calendar_data) {
             dao::create(calendar_data)?;
         }
     }

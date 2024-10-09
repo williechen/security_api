@@ -43,59 +43,63 @@ pub fn get_security_to_temp(task: &DailyTask) -> Result<(), SecurityError> {
     Ok(())
 }
 
-fn insert_temp_data(
-    transaction: &mut PgConnection,
-    data_content: String,
-    task: &DailyTask,
-) -> Result<(), SecurityError> {
-    let rows = parse_table_data(data_content).unwrap();
-    for row in rows {
-        debug!(target: "security_api", "ROW: {:?}", &row);
-        loop_data_temp(transaction, row, &task)?;
+fn get_new_security_temp(content: HashMap<String, String>, task: &DailyTask) -> NewSecurityTemp {
+    NewSecurityTemp {
+        open_date_year: task.open_date_year.clone(),
+        open_date_month: task.open_date_month.clone(),
+        open_date_day: task.open_date_day.clone(),
+        international_code: content.get("1").cloned().unwrap_or(String::new()),
+        security_code: content.get("2").cloned().unwrap_or(String::new()),
+        security_name: content.get("3").cloned().unwrap_or(String::new()),
+        market_type: content.get("4").cloned().unwrap_or(String::new()),
+        security_type: content.get("5").cloned().unwrap_or(String::new()),
+        industry_type: content.get("6").cloned().unwrap_or(String::new()),
+        issue_date: content.get("7").cloned().unwrap_or(String::new()),
+        cfi_code: content.get("8").cloned().unwrap_or(String::new()),
+        remark: content.get("9").cloned().unwrap_or(String::new()),
+        created_date: Local::now().naive_local(),
+        updated_date: Local::now().naive_local(),
     }
-
-    Ok(())
 }
 
-fn loop_data_temp(
-    transaction: &mut PgConnection,
-    content: HashMap<String, String>,
-    task: &DailyTask,
-) -> Result<(), SecurityError> {
-    let q_year = task.clone().open_date_year;
-    let q_month = task.clone().open_date_month;
-    let q_day = task.clone().open_date_day;
-    let q_security_code = content.get("2").cloned().unwrap();
-    let q_market_type = content.get("4").cloned().unwrap();
-    let q_issue_date = content.get("7").cloned().unwrap();
+fn check_data_exists(temp: &NewSecurityTemp) -> bool {
+    let q_year = temp.open_date_year.clone();
+    let q_month = temp.open_date_month.clone();
+    let q_day = temp.open_date_day.clone();
+    let q_security_code = temp.security_code.clone();
+    let q_market_type = temp.market_type.clone();
+    let q_issue_date = temp.issue_date.clone();
 
-    let data = dao::find_one(
+    dao::find_one(
         q_year,
         q_month,
         q_day,
         q_security_code,
         q_market_type,
         q_issue_date,
-    );
-    if data.is_none() {
-        let security_temp = NewSecurityTemp {
-            open_date_year: task.clone().open_date_year,
-            open_date_month: task.clone().open_date_month,
-            open_date_day: task.clone().open_date_day,
-            international_code: content.get("1").cloned().unwrap(),
-            security_code: content.get("2").cloned().unwrap(),
-            security_name: content.get("3").cloned().unwrap(),
-            market_type: content.get("4").cloned().unwrap(),
-            security_type: content.get("5").cloned().unwrap(),
-            industry_type: content.get("6").cloned().unwrap(),
-            issue_date: content.get("7").cloned().unwrap(),
-            cfi_code: content.get("8").cloned().unwrap(),
-            remark: content.get("9").cloned().unwrap(),
-            created_date: Local::now().naive_local(),
-            updated_date: Local::now().naive_local(),
-        };
-        dao::create(transaction, security_temp)?;
+    )
+    .is_some()
+}
+
+fn insert_temp_data(
+    transaction: &mut PgConnection,
+    data_content: String,
+    task: &DailyTask,
+) -> Result<(), SecurityError> {
+    let mut security_temps = Vec::<NewSecurityTemp>::new();
+
+    let rows = parse_table_data(data_content).unwrap();
+    for row in rows {
+        debug!(target: "security_api", "ROW: {:?}", &row);
+        security_temps.push(get_new_security_temp(row, task));
     }
+
+    for security_temp in security_temps {
+        if !check_data_exists(&security_temp) {
+            dao::create(transaction, security_temp)?;
+        }
+    }
+
     Ok(())
 }
 

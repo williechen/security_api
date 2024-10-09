@@ -25,6 +25,8 @@ use crate::{
 pub fn insert_task_data(task: &DailyTask) -> Result<(), SecurityError> {
     info!(target: "security_api", "call daily_task.temp_to_task");
 
+    let mut security_tasks = Vec::<NewSecurityTask>::new();
+
     let twse_list = security_temp::dao::find_all_by_twse(&task);
     let tpex_list = security_temp::dao::find_all_by_tpex(&task);
 
@@ -36,64 +38,68 @@ pub fn insert_task_data(task: &DailyTask) -> Result<(), SecurityError> {
             sort_num = sort_num + 1;
 
             let twse_data = &twse_list[i];
-            loop_data_temp_data(twse_data, &task, sort_num)?;
+            security_tasks.push(get_new_security_task(twse_data, &task, sort_num));
         }
         if i < tpex_list.len() {
             sort_num = sort_num + 1;
 
             let tpex_data = &tpex_list[i];
-            loop_data_temp_data(tpex_data, &task, sort_num)?;
+            security_tasks.push(get_new_security_task(tpex_data, &task, sort_num));
+        }
+    }
+
+    for security_task in security_tasks {
+        if !check_data_exists(&security_task) {
+            dao::create(security_task)?;
         }
     }
 
     Ok(())
 }
 
-fn loop_data_temp_data(
+fn get_new_security_task(
     data: &SecurityTemp,
     task: &DailyTask,
     item_index: i32,
-) -> Result<(), SecurityError> {
+) -> NewSecurityTask {
+    let seed: i64 = thread_rng().gen_range(1..=9999999999999);
+    let security_seed = format!("{:013}", seed);
+    let sort_no = item_index;
+
+    NewSecurityTask {
+        security_code: data.security_code.clone(),
+        security_name: data.security_name.clone(),
+        market_type: data.market_type.clone(),
+        issue_date: data.issue_date.clone(),
+        exec_count: 0,
+        is_enabled: 1,
+        sort_no,
+        open_date_year: task.open_date_year.clone(),
+        open_date_month: task.open_date_month.clone(),
+        open_date_day: task.open_date_day.clone(),
+        exec_seed: security_seed,
+        created_date: Local::now().naive_local(),
+        updated_date: Local::now().naive_local(),
+    }
+}
+
+fn check_data_exists(task: &NewSecurityTask) -> bool {
     let q_year = task.open_date_year.clone();
     let q_month = task.open_date_month.clone();
     let q_day = task.open_date_day.clone();
-    let q_security_code = data.security_code.clone();
-    let q_market_type = data.market_type.clone();
-    let q_issue_date = data.issue_date.clone();
+    let q_security_code = task.security_code.clone();
+    let q_market_type = task.market_type.clone();
+    let q_issue_date = task.issue_date.clone();
 
-    let security = dao::find_one(
+    dao::find_one(
         q_year,
         q_month,
         q_day,
         q_security_code,
         q_market_type,
         q_issue_date,
-    );
-    if security.is_none() {
-        let seed: i64 = thread_rng().gen_range(1..=9999999999999);
-        let security_seed = format!("{:013}", seed);
-        let sort_no = item_index;
-
-        let new_security_task = NewSecurityTask {
-            security_code: data.security_code.clone(),
-            security_name: data.security_name.clone(),
-            market_type: data.market_type.clone(),
-            issue_date: data.issue_date.clone(),
-            exec_count: 0,
-            is_enabled: 1,
-            sort_no,
-            open_date_year: task.open_date_year.clone(),
-            open_date_month: task.open_date_month.clone(),
-            open_date_day: task.open_date_day.clone(),
-            exec_seed: security_seed,
-            created_date: Local::now().naive_local(),
-            updated_date: Local::now().naive_local(),
-        };
-
-        dao::create(new_security_task)?;
-    }
-
-    Ok(())
+    )
+    .is_some()
 }
 
 pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
@@ -112,42 +118,9 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
         let security = &securitys[index];
         debug!(target: "security_api", "SecurityTask: {}", &security);
 
-        let y = task.open_date_year.clone().parse().unwrap();
-        let m = task.open_date_month.clone().parse().unwrap();
-        let d = task.open_date_day.clone().parse().unwrap();
-
-        let od = NaiveDate::from_ymd_opt(y, m, d).unwrap();
-        let nod = od.and_hms_opt(15, 30, 0).unwrap();
-
-        let nd = Local::now().date_naive();
-        let ndt = Local::now().naive_local();
-
         let market_type = security.market_type.clone();
 
-        // 今天且下午三點半
-        if nd == od && nod < ndt {
-            let start_time = Local::now();
-
-            match loop_data_security_task(security.clone()) {
-                Ok(_) => {
-                    let end_time = Local::now();
-
-                    sleep(time::Duration::from_secs(sleep_time(
-                        (end_time - start_time).num_seconds(),
-                        old_market_type,
-                        market_type,
-                    )));
-
-                    index += 1;
-                    old_market_type = security.market_type.clone();
-                }
-                Err(e) => {
-                    error!(target: "security_api", "daily_task.get_all_task {}", &e);
-                    continue;
-                }
-            }
-        // 小於今天的日期
-        } else if nd > od {
+        if check_exec_date(&security) {
             let res_data = response_data::dao::find_one_by_max(&security);
             if res_data.is_none() {
                 let start_time = Local::now();
@@ -177,6 +150,26 @@ pub fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> 
     }
 
     Ok(())
+}
+
+fn check_exec_date(task: &SecurityTask) -> bool {
+    let y = task.open_date_year.clone().parse().unwrap();
+    let m = task.open_date_month.clone().parse().unwrap();
+    let d = task.open_date_day.clone().parse().unwrap();
+
+    let task_date = NaiveDate::from_ymd_opt(y, m, d).unwrap();
+
+    let now_date = Local::now().date_naive();
+    let now_time = now_date.and_hms_opt(15, 30, 0).unwrap();
+    let now_date_time = Local::now().naive_local();
+
+    if task_date == now_date && now_date_time > now_time {
+        return true;
+    } else if task_date != now_date {
+        return true;
+    }
+
+    false
 }
 
 fn sleep_time(seconds: i64, old_market_type: String, new_market_type: String) -> u64 {
@@ -237,10 +230,6 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
     let market_type = security.market_type.clone();
     let ref_market_type = market_type.as_str();
 
-    let y = security.open_date_year.clone().parse::<i32>().unwrap();
-    let m = security.open_date_month.clone();
-    let tw_ym = format!("{0}/{1}", y - 1911, m);
-
     match ref_market_type {
         "上市" => {
             match retry(retry_strategy, || {
@@ -250,15 +239,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                     match serde_json::from_str::<SecurityPriceTwse>(&res) {
                         Ok(price) => {
                             let stat = price.stat;
-                            let mut date = "000/00/00".to_string();
-                            if price.data.is_some() {
-                                let row = price.data.clone().unwrap();
-                                if row.first().is_some() {
-                                    date = row[0][0].clone();
-                                }
-                            }
-
-                            if "OK" == stat && date.trim().starts_with(&tw_ym) {
+                            if "OK" == stat && check_price_date(&security, price.data.unwrap()) {
                                 add_res_data(&security, res);
                                 update_data(&security, true);
                             } else {
@@ -285,14 +266,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                     match serde_json::from_str::<SecurityPriceTpex1>(&res) {
                         Ok(price) => {
                             let cnt = price.i_total_records;
-                            let mut date = "000/00/00".to_string();
-                            if !price.aa_data.is_empty() {
-                                if price.aa_data[0].first().is_some() {
-                                    date = price.aa_data[0][0].clone();
-                                }
-                            }
-
-                            if cnt > 0 && date.trim().starts_with(&tw_ym) {
+                            if cnt > 0 && check_price_date(&security, price.aa_data) {
                                 add_res_data(&security, res);
                                 update_data(&security, true);
                             } else {
@@ -319,14 +293,7 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
                     match serde_json::from_str::<SecurityPriceTpex2>(&res) {
                         Ok(price) => {
                             let cnt = price.i_total_records;
-                            let mut date = "000/00/00".to_string();
-                            if !price.aa_data.is_empty() {
-                                if price.aa_data[0].first().is_some() {
-                                    date = price.aa_data[0][0].clone();
-                                }
-                            }
-
-                            if cnt > 0 && date.trim().starts_with(&tw_ym) {
+                            if cnt > 0 && check_price_date(&security, price.aa_data) {
                                 add_res_data(&security, res);
                                 update_data(&security, true);
                             } else {
@@ -349,6 +316,21 @@ fn loop_data_security_task(security: SecurityTask) -> Result<(), SecurityError> 
     }
 
     Ok(())
+}
+
+fn check_price_date(task: &SecurityTask, price_datas: Vec<Vec<String>>) -> bool {
+    let y = task.open_date_year.clone().parse::<i32>().unwrap();
+    let m = task.open_date_month.clone();
+    let tw_ym = format!("{0}/{1}", y - 1911, m);
+
+    if !price_datas.is_empty() {
+        if price_datas[0].first().is_some() {
+            let date = price_datas[0][0].clone();
+            return date.trim().starts_with(&tw_ym);
+        }
+    }
+
+    false
 }
 
 fn add_res_data(security: &SecurityTask, html: String) {
