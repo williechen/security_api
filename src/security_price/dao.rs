@@ -4,11 +4,34 @@ use crate::repository::Repository;
 use crate::schema::security_price::dsl::security_price as table;
 use crate::schema::security_price::{open_date_month, open_date_year, row_id, security_code};
 use crate::security_error::SecurityError;
-use diesel::{delete, insert_into, update, ExpressionMethods, PgConnection, QueryDsl};
+use diesel::{delete, insert_into, update, ExpressionMethods, OptionalExtension, PgConnection, QueryDsl};
 use diesel::{sql_query, sql_types::VarChar, RunQueryDsl};
 use log::{debug, error};
 
-use super::model::{NewSecurityPrice, ResposePrice, SecurityPrice};
+use super::model::{MaxPriceDate, NewSecurityPrice, ResposePrice, SecurityPrice};
+
+pub fn find_one_by_maxdate() -> Option<MaxPriceDate> {
+    let dao = Repository::new();
+    let mut conn = dao.connection;
+
+    let query = sql_query(
+        r#"
+        SELECT COALESCE(MAX(concat(open_date_year, open_date_month, RIGHT(price_date, 2))), '19981231') AS price_date
+          FROM security_price sp
+        WHERE sp.price_date not like '%月平均收盤價%'
+        "#,
+    );
+
+    debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
+
+    match query.get_result::<MaxPriceDate>(&mut conn).optional() {
+        Ok(row) => row,
+        Err(e) => {
+            error!("{}", SecurityError::SQLError(e));
+            None
+        }
+    }
+}
 
 pub fn find_all(q_year: String, q_month: String, q_security_code: String) -> Vec<SecurityPrice> {
     let dao = Repository::new();
@@ -119,7 +142,7 @@ pub fn find_all_by_date(q_year: String, q_month: String) -> Vec<SecurityPrice> {
     }
 }
 
-pub fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
+pub fn find_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
     let dao = Repository::new();
     let mut conn = dao.connection;
 

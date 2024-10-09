@@ -23,7 +23,7 @@ pub fn get_security_to_price(task: &DailyTask) -> Result<(), SecurityError> {
     let q_year = task.open_date_year.clone();
     let q_month = task.open_date_month.clone();
 
-    let res_prices = dao::read_all_by_res(q_year, q_month);
+    let res_prices = dao::find_all_by_res(q_year, q_month);
     for price in res_prices {
         debug!(target: "security_api", "ResposePrice: {:?}", &price);
 
