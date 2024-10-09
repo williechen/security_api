@@ -102,15 +102,13 @@ pub fn find_all_by_date(q_year: String, q_month: String) -> Vec<SecurityPrice> {
              , sp.created_date
              , sp.updated_date
           FROM security_price sp
-          WHERE sp.price_date LIKE $1
-         ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.price_date, sp.security_code
+          WHERE sp.open_date_year = $1
+            AND sp.open_date_month = $2
+         ORDER BY sp.open_date_year, sp.open_date_month
         "#,
     )
-    .bind::<VarChar, _>(format!(
-        "%{0:04}/{1:02}%",
-        (q_year.parse::<i32>().unwrap() - 1911),
-        q_month.parse::<i32>().unwrap()
-    ));
+    .bind::<VarChar, _>(q_year)
+    .bind::<VarChar, _>(q_month);
 
     debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
 
@@ -123,28 +121,6 @@ pub fn find_all_by_date(q_year: String, q_month: String) -> Vec<SecurityPrice> {
     }
 }
 
-pub fn find_one_by_maxdate() -> Option<MaxPriceDate> {
-    let dao = Repository::new();
-    let mut conn = dao.connection;
-
-    let query = sql_query(
-        r#"
-        SELECT COALESCE(MAX(concat(open_date_year, open_date_month, RIGHT(price_date, 2))), '19981231') AS price_date
-          FROM security_price sp
-        WHERE sp.price_date not like '%月平均收盤價%'
-        "#,
-    );
-
-    debug!("{}", diesel::debug_query::<diesel::pg::Pg, _>(&query));
-
-    match query.get_result::<MaxPriceDate>(&mut conn).optional() {
-        Ok(row) => row,
-        Err(e) => {
-            error!("{}", SecurityError::SQLError(e));
-            None
-        }
-    }
-}
 
 pub fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
     let dao = Repository::new();

@@ -4,44 +4,139 @@ use chrono::{Datelike, Local, NaiveDate};
 
 use crate::{security_error::SecurityError, security_price};
 
-use super::{
-    dao,
-    model::{CalendarData, NewCalendarData},
-};
+use super::{dao, model::NewCalendarData};
+
+///
+/// 取得每個月的最後一天
+///
+fn last_day_in_month(year: i32, month: u32) -> NaiveDate {
+    let (y, m) = if month == 12 {
+        (year + 1, 1)
+    } else {
+        (year, month + 1)
+    };
+    NaiveDate::from_ymd_opt(y, m, 1)
+        .unwrap()
+        .pred_opt()
+        .unwrap()
+}
+
+///
+/// (年，月，日，開市第幾天)
+///
+fn get_open_stock_date(year: i32) -> Vec<(i32, u32, u32, i32)> {
+    let mut open_stock_dates = Vec::<(i32, u32, u32, i32)>::new();
+
+    let mut open_stock_index = 0;
+    for month in 1..=12 {
+        // 收盤價資料
+        let price_data = security_price::dao::find_all_by_date(
+            format!("{0:04}", year),
+            format!("{0:02}", month),
+        );
+
+        let last_day = last_day_in_month(year, month).day();
+        for day in 1..=last_day {
+            let security_codes: Vec<String> = price_data
+                .iter()
+                .filter(|x| {
+                    x.price_date == format!("{0:04}/{1:02}/{2:02}", year - 1911, month, day)
+                })
+                .map(|x| x.security_code.clone())
+                .collect();
+            if security_codes.len() > 0 {
+                open_stock_dates.push((year, month, day, open_stock_index));
+                open_stock_index = open_stock_index + 1;
+            } else {
+                open_stock_dates.push((year, month, day, -1));
+            }
+        }
+    }
+
+    open_stock_dates
+}
+
+///
+/// 取得每天的星期
+///
+fn get_weekday(year: i32, month: u32, day: u32) -> i32 {
+    let date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
+    let weekday = date.weekday().number_from_monday();
+    weekday.try_into().unwrap()
+}
+
+///
+/// 建立新增 Calendar Entity
+///
+fn get_new_calendar_date(
+    year: i32,
+    month: u32,
+    day: u32,
+    status: &str,
+    task: &str,
+) -> NewCalendarData {
+    NewCalendarData {
+        ce_year: format!("{0:04}", year),
+        ce_month: format!("{0:02}", month),
+        ce_day: format!("{0:02}", day),
+        week_index: get_weekday(year, month, day),
+        date_status: status.to_string(),
+        group_task: task.to_string(),
+        created_date: Local::now().naive_local(),
+        updated_date: Local::now().naive_local(),
+    }
+}
+
+fn check_data_exists(ce_year: String, ce_month: String, ce_day: String) -> bool {
+    dao::find_one(ce_year, ce_month, ce_day).is_some()
+}
 
 pub fn init_calendar_data() -> Result<(), SecurityError> {
-    let max_date = Local::now().date_naive();
-    let min_date = NaiveDate::from_ymd_opt(1999, 1, 1).unwrap();
-    let max_date_str = max_date.format("%Y%m%d").to_string();
-    let min_date_str = min_date.format("%Y%m%d").to_string();
+    let max_year = Local::now().year();
+    let min_year = 1999;
 
-    let max_price_date = security_price::dao::find_one_by_maxdate().unwrap();
+    let mut calendar_datas = Vec::<NewCalendarData>::new();
 
-    for y in min_date.year()..=max_date.year() {
-        for m in 1..=12 {
-            let last_day = last_day_in_month(y, m).day();
-
-            // 收盤價資料
-            let price_data = security_price::dao::find_all_by_date(y.to_string(), m.to_string());
-
-            for d in 1..=last_day {
-                let this_date_str = format!("{0:04}{1:02}{2:02}", y, m, d);
-                if (max_date_str > this_date_str) && (min_date_str <= this_date_str) {
-                    let dates: Vec<String> = price_data
-                        .iter()
-                        .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", y - 1911, m, d))
-                        .map(|x| x.price_date.clone())
-                        .collect();
-
-                    loop_date_calendar(y, m, d, max_price_date.price_date.clone(), dates.len())?;
-                }
+    for y in min_year..=max_year {
+        let open_stock_dates = get_open_stock_date(y);
+        for open_stock_date in open_stock_dates {
+            if open_stock_date.3 == -1 {
+                calendar_datas.push(get_new_calendar_date(
+                    open_stock_date.0,
+                    open_stock_date.1,
+                    open_stock_date.2,
+                    "S",
+                    "STOP",
+                ));
             }
-
-            let first_date =
-                dao::find_one_by_work_day_first(format!("{0:04}", y), format!("{0:02}", m));
-            if first_date.is_some() {
-                update_first_date(first_date.unwrap())?;
+            if open_stock_date.3 == 0 {
+                calendar_datas.push(get_new_calendar_date(
+                    open_stock_date.0,
+                    open_stock_date.1,
+                    open_stock_date.2,
+                    "O",
+                    "FIRST_INIT",
+                ));
             }
+            if open_stock_date.3 > 0 {
+                calendar_datas.push(get_new_calendar_date(
+                    open_stock_date.0,
+                    open_stock_date.1,
+                    open_stock_date.2,
+                    "O",
+                    "INIT",
+                ));
+            }
+        }
+    }
+
+    for calendar_data in calendar_datas {
+        if check_data_exists(
+            calendar_data.ce_year.clone(),
+            calendar_data.ce_month.clone(),
+            calendar_data.ce_day.clone(),
+        ) {
+            dao::create(calendar_data)?;
         }
     }
 
@@ -56,134 +151,48 @@ pub fn insert_calendar_data(open_next_year: bool) -> Result<(), SecurityError> {
         now.year()
     };
 
-    let max_price_date = security_price::dao::find_one_by_maxdate().unwrap();
+    let mut calendar_datas = Vec::<NewCalendarData>::new();
 
-    for m in 1..=12 {
-        let last_day = last_day_in_month(year, m).day();
-
-        // 收盤價資料
-        let price_data = security_price::dao::find_all_by_date(year.to_string(), m.to_string());
-
-        for d in 1..=last_day {
-            let q_year = format!("{0:04}", year);
-            let q_month = format!("{0:02}", m);
-            let q_day = format!("{0:02}", d);
-
-            let dates: Vec<String> = price_data
-                .iter()
-                .filter(|x| x.price_date == format!("{0:04}/{1:02}/{2:02}", year - 1911, m, d))
-                .map(|x| x.price_date.clone())
-                .collect();
-
-            let cal = dao::find_one(q_year, q_month, q_day);
-            if cal.is_none() {
-                loop_date_calendar(year, m, d, max_price_date.price_date.clone(), dates.len())?;
-            }
+    let open_stock_dates = get_open_stock_date(year);
+    for open_stock_date in open_stock_dates {
+        if open_stock_date.3 == -1 {
+            calendar_datas.push(get_new_calendar_date(
+                open_stock_date.0,
+                open_stock_date.1,
+                open_stock_date.2,
+                "S",
+                "STOP",
+            ));
         }
-
-        let first_date =
-            dao::find_one_by_work_day_first(format!("{0:04}", year), format!("{0:02}", m));
-        if first_date.is_some() {
-            update_first_date(first_date.unwrap())?;
+        if open_stock_date.3 == 0 {
+            calendar_datas.push(get_new_calendar_date(
+                open_stock_date.0,
+                open_stock_date.1,
+                open_stock_date.2,
+                "O",
+                "FRIST",
+            ));
+        }
+        if open_stock_date.3 > 0 {
+            calendar_datas.push(get_new_calendar_date(
+                open_stock_date.0,
+                open_stock_date.1,
+                open_stock_date.2,
+                "O",
+                "SECURITY",
+            ));
         }
     }
 
-    Ok(())
-}
-
-fn last_day_in_month(year: i32, month: u32) -> NaiveDate {
-    let (y, m) = if month == 12 {
-        (year + 1, 1)
-    } else {
-        (year, month + 1)
-    };
-    NaiveDate::from_ymd_opt(y, m, 1)
-        .unwrap()
-        .pred_opt()
-        .unwrap()
-}
-
-fn loop_date_calendar(
-    year: i32,
-    month: u32,
-    day: u32,
-    price_date: String,
-    price_count: usize,
-) -> Result<(), SecurityError> {
-    // 初始日期
-    let now = NaiveDate::from_ymd_opt(2024, 5, 17).unwrap();
-    // 指定日期
-    let this_date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
-    let this_tw_date = format!("{0:04}{1:02}{2:02}", year, month, day);
-
-    // 如果是假日
-    if (this_date.weekday().number_from_monday() == 6 && price_count == 0)
-        || (this_date.weekday().number_from_monday() == 7 && price_count == 0)
-        || (this_tw_date <= price_date && price_count == 0)
-    {
-        let calendar_data = NewCalendarData {
-            ce_year: format!("{0:04}", year),
-            ce_month: format!("{0:02}", month),
-            ce_day: format!("{0:02}", day),
-            week_index: this_date.weekday().number_from_monday() as i32,
-            date_status: "S".to_string(),
-            group_task: "STOP".to_string(),
-            created_date: Local::now().naive_local(),
-            updated_date: Local::now().naive_local(),
-        };
-
-        dao::create(calendar_data)?;
-    // 如果是初始
-    } else if this_date < now {
-        let calendar_data = NewCalendarData {
-            ce_year: format!("{0:04}", year),
-            ce_month: format!("{0:02}", month),
-            ce_day: format!("{0:02}", day),
-            week_index: this_date.weekday().number_from_monday() as i32,
-            date_status: "O".to_string(),
-            group_task: "INIT".to_string(),
-            created_date: Local::now().naive_local(),
-            updated_date: Local::now().naive_local(),
-        };
-
-        dao::create(calendar_data)?;
-    } else {
-        let calendar_data = NewCalendarData {
-            ce_year: format!("{0:04}", year),
-            ce_month: format!("{0:02}", month),
-            ce_day: format!("{0:02}", day),
-            week_index: this_date.weekday().number_from_monday() as i32,
-            date_status: "O".to_string(),
-            group_task: "SECURITY".to_string(),
-            created_date: Local::now().naive_local(),
-            updated_date: Local::now().naive_local(),
-        };
-
-        dao::create(calendar_data)?;
+    for calendar_data in calendar_datas {
+        if check_data_exists(
+            calendar_data.ce_year.clone(),
+            calendar_data.ce_month.clone(),
+            calendar_data.ce_day.clone(),
+        ) {
+            dao::create(calendar_data)?;
+        }
     }
-
-    Ok(())
-}
-
-fn update_first_date(first_date: CalendarData) -> Result<(), SecurityError> {
-    let mut m_first_date = first_date.clone();
-
-    // 當前日期
-    let now = NaiveDate::from_ymd_opt(2024, 5, 17).unwrap();
-    // 指定日期
-    let year = first_date.ce_year.parse().unwrap();
-    let month = first_date.ce_month.parse().unwrap();
-    let day = first_date.ce_day.parse().unwrap();
-    let this_date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
-
-    if now <= this_date {
-        m_first_date.group_task = "FIRST".to_string();
-    } else {
-        m_first_date.group_task = "FIRST_INIT".to_string();
-    }
-    m_first_date.updated_date = Local::now().naive_local();
-
-    dao::modify(m_first_date)?;
 
     Ok(())
 }
