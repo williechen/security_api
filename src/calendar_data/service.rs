@@ -22,6 +22,15 @@ fn last_day_in_month(year: i32, month: u32) -> NaiveDate {
 }
 
 ///
+/// 取得每天的星期
+///
+fn get_weekday(year: i32, month: u32, day: u32) -> i32 {
+    let date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
+    let weekday = date.weekday().number_from_monday();
+    weekday.try_into().unwrap()
+}
+
+///
 /// (年，月，日，開市第幾天)
 ///
 fn get_open_stock_date(year: i32, last_price_date: String) -> Vec<(i32, u32, u32, i32)> {
@@ -54,26 +63,17 @@ fn get_open_stock_date(year: i32, last_price_date: String) -> Vec<(i32, u32, u32
                 }
             } else {
                 let weekday = get_weekday(year, month, day);
-                if weekday == 6 || weekday == 7 {
-                    open_stock_dates.push((year, month, day, -1));
-                } else {
+                if weekday < 6 {
                     open_stock_dates.push((year, month, day, open_stock_index));
                     open_stock_index = open_stock_index + 1;
+                } else {
+                    open_stock_dates.push((year, month, day, -1));
                 }
             }
         }
     }
 
     open_stock_dates
-}
-
-///
-/// 取得每天的星期
-///
-fn get_weekday(year: i32, month: u32, day: u32) -> i32 {
-    let date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
-    let weekday = date.weekday().number_from_monday();
-    weekday.try_into().unwrap()
 }
 
 ///
