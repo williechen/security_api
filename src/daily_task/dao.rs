@@ -85,6 +85,7 @@ pub async fn find_all() -> Vec<DailyTask> {
           FROM calendar_data cd
           JOIN task_setting ts
             ON cd.group_task = ts.group_code
+           AND ts.is_enabled = 1
          WHERE NOT EXISTS (
                SELECT 1 
                  FROM daily_task dt
@@ -283,6 +284,7 @@ pub async fn find_all_by_exec_asc(q_year: String, q_month: String) -> Vec<DailyT
           JOIN task_setting ts
             ON ts.group_code = cd.group_task 
            AND ts.job_code = dt.job_code
+           AND ts.is_enabled = 1
          WHERE dt.open_date_year = $1
            AND dt.open_date_month = $2
            AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
@@ -330,6 +332,7 @@ pub async fn find_all_by_exec_desc(q_year: String, q_month: String) -> Vec<Daily
           JOIN task_setting ts
             ON ts.group_code = cd.group_task 
            AND ts.job_code = dt.job_code
+           AND ts.is_enabled = 1
          WHERE dt.open_date_year = $1
            AND dt.open_date_month = $2
            AND dt.exec_status in ('WAIT', 'OPEN', 'EXEC')
