@@ -1,7 +1,8 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
+use bigdecimal::Zero;
 use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
@@ -284,6 +285,7 @@ fn get_close_price(
 ) -> Vec<Vec<String>> {
     data.iter()
         .filter(|x| x[date_index as usize].trim().starts_with(&tw_ym))
+        .filter(|x| bigdecimal::BigDecimal::from_str(&x[price_index as usize]).unwrap() > bigdecimal::BigDecimal::zero())
         .map(|x| {
             vec![
                 x[date_index as usize].clone(),
