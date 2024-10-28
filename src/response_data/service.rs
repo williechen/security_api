@@ -285,7 +285,11 @@ fn get_close_price(
 ) -> Vec<Vec<String>> {
     data.iter()
         .filter(|x| x[date_index as usize].trim().starts_with(&tw_ym))
-        .filter(|x| bigdecimal::BigDecimal::from_str(&x[price_index as usize]).unwrap() > bigdecimal::BigDecimal::zero())
+        .filter(|x| {
+            bigdecimal::BigDecimal::from_str(&x[price_index as usize])
+                .unwrap_or(bigdecimal::BigDecimal::zero())
+                > bigdecimal::BigDecimal::zero()
+        })
         .map(|x| {
             vec![
                 x[date_index as usize].clone(),
