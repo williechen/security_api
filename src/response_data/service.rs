@@ -5,15 +5,19 @@ use std::time::Duration;
 use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
-use serde_json::json;
 use tokio_retry::{strategy::ExponentialBackoff, Retry};
 use tracing::{event, Level};
 
 use crate::{
     daily_task::model::DailyTask,
-    response_data::{dao, model::ResponseData},
+    response_data::{
+        dao,
+        model::{ResponseData, SecurityPriceTpex, SecurityPriceTwse},
+    },
     security_task::model::SecurityTask,
 };
+
+use super::model::MonthlyPrice;
 
 fn html_decode(input: &str) -> String {
     input
@@ -25,7 +29,6 @@ fn html_decode(input: &str) -> String {
         .replace("*", "")
         .replace("＊", "")
 }
-
 
 pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level:: INFO, "call daily_task.get_security_all_code");
@@ -107,6 +110,7 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
     let m = &task.open_date_month;
     let d = &task.open_date_day;
     let open_date = format!("{0}{1}{2}", y, m, d);
+    let tw_ym = format!("{0}/{1}", y.parse::<u32>().unwrap() - 1911, m);
 
     let client = Client::new();
 
@@ -121,10 +125,48 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
         .await?;
     event!(target: "security_api", Level::DEBUG,  "{:?}", &res.url().to_string());
 
-    let json = res.text().await?;
+    let json = res.json::<SecurityPriceTwse>().await?;
     event!(target: "security_api", Level::DEBUG,  "{:?}", &json);
 
-    Ok(html_decode(&json))
+    let json_str = get_twse_price(json, tw_ym, 0, 1);
+    event!(target: "security_api", Level::DEBUG,  "{0}", &json_str);
+
+    Ok(html_decode(&json_str))
+}
+
+fn get_twse_price(
+    twse_json: SecurityPriceTwse,
+    tw_ym: String,
+    date_index: u32,
+    price_index: u32,
+) -> String {
+    let status = if "OK" == twse_json.stat {
+        "Y".to_string()
+    } else {
+        "N".to_string()
+    };
+    let title = twse_json.title.unwrap_or("".to_string());
+    let date = twse_json.date.unwrap_or("".to_string());
+    let fields = twse_json.fields.unwrap_or(Vec::<String>::new());
+    let data = get_close_price(
+        twse_json.data.unwrap_or(Vec::<Vec<String>>::new()),
+        tw_ym,
+        date_index,
+        price_index,
+    );
+
+    if "Y" == status && !data.is_empty() {
+        return serde_json::to_string(&MonthlyPrice {
+            status,
+            title,
+            date,
+            fields,
+            data,
+        })
+        .unwrap_or("".to_string());
+    } else {
+        return "".to_string();
+    }
 }
 
 pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
@@ -132,139 +174,123 @@ pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::
 
     let y = &task.open_date_year;
     let m = &task.open_date_month;
-    let tw_date = format!("{0}/{1}", y.parse::<i32>().unwrap() - 1911, m);
+    let d = &task.open_date_day;
+    let open_date = format!("{0}/{1}/{2}", y, m, d);
+    let tw_ym = format!("{0}/{1}", y.parse::<u32>().unwrap() - 1911, m);
 
     let client = Client::new();
-
-    let res = client
-        .get("https://www.tpex.org.tw/web/stock/aftertrading/daily_trading_info/st43_result.php")
-        .query(&[("d", &tw_date)])
-        .query(&[("stkno", &task.security_code)])
-        .query(&[("_", &task.exec_seed)])
-        .timeout(Duration::from_secs(4))
-        .send()
-        .await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &res.url().to_string());
-
-    let json = res.text().await?;
-    event!(target: "security_api", Level::DEBUG,  "{:?}", &json);
-
-    let parse_text = decode_unicode_escape(&json);
-    event!(target: "security_api", Level::DEBUG,  "{:?}", &parse_text);
-
-    Ok(html_decode(&parse_text))
-}
-
-fn decode_unicode_escape(s: &str) -> String {
-    let mut result = String::new();
-    let mut chars = s.chars().peekable();
-
-    while let Some(c) = chars.next() {
-        if c == '\\' {
-            let c1 = chars.next();
-            if let Some('u') = c1 {
-                let mut codepoint = String::new();
-                for _ in 0..4 {
-                    if let Some(digit) = chars.next() {
-                        codepoint.push(digit);
-                    } else {
-                        break;
-                    }
-                }
-                if let Ok(code) = u32::from_str_radix(&codepoint, 16) {
-                    if let Some(unicode_char) = std::char::from_u32(code) {
-                        result.push(unicode_char);
-                    }
-                }
-            } else {
-                result.push(c1.unwrap());
-            }
-        } else {
-            result.push(c);
-        }
-    }
-
-    result
-}
-
-pub async fn get_tpex2_html(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
-    run_task_log(task);
-
-    let y = &task.open_date_year;
-    let m = &task.open_date_month;
-    let tw_date = format!("{0}/{1}", y.parse::<i32>().unwrap() - 1911, m);
 
     let params = [
-        ("input_month", &tw_date),
-        ("input_emgstk_code", &task.security_code),
-        ("ajax", &"true".to_string()),
+        ("code", &task.security_code),
+        ("date", &open_date),
+        ("id", &"".to_string()),
+        ("response", &"json".to_string()),
     ];
 
-    let client = Client::new();
-
     let res = client
-        .post("https://www.tpex.org.tw/web/emergingstock/single_historical/result.php")
+        .post("https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock")
         .form(&params)
         .timeout(Duration::from_secs(4))
         .send()
         .await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &res.url().to_string());
 
-    let text = res.text().await?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &text);
+    let json = res.json::<SecurityPriceTpex>().await?;
+    event!(target: "security_api", Level::DEBUG,  "{:?}", &json);
 
-    let json_text = parse_web_tpex2_data(&text)?;
-    event!(target: "security_api", Level::DEBUG, "{:?}", &json_text);
+    let json_str = get_tpex_price(json, tw_ym, 0, 6);
+    event!(target: "security_api", Level::DEBUG,  "{0}", &json_str);
 
-    Ok(html_decode(&json_text))
+    Ok(html_decode(&json_str))
 }
 
-fn parse_web_tpex2_data(document: &String) -> Result<String, Box<dyn std::error::Error>> {
-    let mut data_map = serde_json::Map::new();
+pub async fn get_tpex2_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+    run_task_log(task);
 
-    let html_content = Html::parse_document(document);
+    let y = &task.open_date_year;
+    let m = &task.open_date_month;
+    let d = &task.open_date_day;
+    let open_date = format!("{0}/{1}/{2}", y, m, d);
+    let tw_ym = format!("{0}/{1}", y.parse::<u32>().unwrap() - 1911, m);
 
-    let input_selector = Selector::parse("div.v-pnl form input").unwrap();
-    let input_content = html_content.select(&input_selector);
-    for input in input_content {
-        data_map.insert(
-            input.attr("name").unwrap().to_string(),
-            serde_json::Value::String(input.attr("value").unwrap().to_string()),
-        );
-    }
+    let params = [
+        ("type", &"Monthly".to_string()),
+        ("date", &open_date),
+        ("code", &task.security_code),
+        ("id", &"".to_string()),
+        ("response", &"json".to_string()),
+    ];
 
-    let mut field_row = Vec::<serde_json::Value>::new();
-    let mut data_row = Vec::<serde_json::Value>::new();
+    let client = Client::new();
 
-    let tr_selector = Selector::parse("div.v-pnl table tr").unwrap();
-    let td_selector = Selector::parse("td").unwrap();
+    let res = client
+        .post("https://www.tpex.org.tw/www/zh-tw/emerging/historical")
+        .form(&params)
+        .timeout(Duration::from_secs(4))
+        .send()
+        .await?;
+    event!(target: "security_api", Level::DEBUG, "{:?}", &res.url().to_string());
 
-    let tr_content = html_content.select(&tr_selector);
-    for tr in tr_content {
-        let mut row = Vec::<String>::new();
+    let json = res.json::<SecurityPriceTpex>().await?;
+    event!(target: "security_api", Level::DEBUG, "{:?}", &json);
 
-        let td_content = tr.select(&td_selector);
-        for td in td_content {
-            row.push(td.inner_html());
-        }
+    let json_str = get_tpex_price(json, tw_ym, 0, 5);
+    event!(target: "security_api", Level::DEBUG,  "{0}", &json_str);
 
-        if row.get(0).clone().unwrap().contains("日期")
-            || row.get(0).clone().unwrap().contains("成交<br>股數")
-            || row.get(0).clone().unwrap().contains("查無股票代碼")
-        {
-            field_row.push(json!(row));
+    Ok(html_decode(&json_str))
+}
+
+fn get_tpex_price(
+    tpex_json: SecurityPriceTpex,
+    tw_ym: String,
+    date_index: u32,
+    price_index: u32,
+) -> String {
+    if tpex_json.tables.first().is_some() {
+        let table = tpex_json.tables.first().unwrap();
+
+        let status = if table.total_count > 0 {
+            "Y".to_string()
         } else {
-            data_row.push(json!(row));
-        }
-    }
-    data_map.insert(
-        "iTotalRecords".to_string(),
-        serde_json::Value::Number(data_row.len().into()),
-    );
-    data_map.insert("fields".to_string(), serde_json::Value::Array(field_row));
-    data_map.insert("aaData".to_string(), serde_json::Value::Array(data_row));
+            "N".to_string()
+        };
+        let title = table.subtitle.clone();
+        let date = table.date.clone();
+        let fields = table.fields.clone();
+        let data = get_close_price(table.data.clone(), tw_ym, date_index, price_index);
 
-    Ok(serde_json::to_string(&data_map)?)
+        if "Y" == status && !data.is_empty() {
+            return serde_json::to_string(&MonthlyPrice {
+                status,
+                title,
+                date,
+                fields,
+                data,
+            })
+            .unwrap_or("".to_string());
+        } else {
+            return "".to_string();
+        }
+    } else {
+        return "".to_string();
+    }
+}
+
+fn get_close_price(
+    data: Vec<Vec<String>>,
+    tw_ym: String,
+    date_index: u32,
+    price_index: u32,
+) -> Vec<Vec<String>> {
+    data.iter()
+        .filter(|x| x[date_index as usize].trim().starts_with(&tw_ym))
+        .map(|x| {
+            vec![
+                x[date_index as usize].clone(),
+                x[price_index as usize].clone(),
+            ]
+        })
+        .collect()
 }
 
 fn run_task_log(task: &SecurityTask) {

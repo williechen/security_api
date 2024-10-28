@@ -9,10 +9,10 @@ use regex::Regex;
 use sqlx::PgConnection;
 use tracing::{event, Level};
 
+use crate::response_data::model::MonthlyPrice;
 use crate::{
     daily_task::model::DailyTask,
     repository::Repository,
-    response_data::model::{SecurityPriceTpex1, SecurityPriceTpex2, SecurityPriceTwse},
     security_price::dao,
 };
 
@@ -54,64 +54,37 @@ pub async fn get_security_to_price(task: &DailyTask) -> Result<(), Box<dyn Error
 }
 
 async fn loop_data_res(data: ResposePrice) -> Result<(), Box<dyn Error>> {
-    let market_type = data.market_type.clone();
     let data_content = data.data_content.clone();
 
     let dao = Repository::new().await;
 
-    match market_type.as_str() {
-        "上市" => match serde_json::from_str::<SecurityPriceTwse>(&data_content) {
-            Ok(data_row) => {
-                if data_row.data.is_some() {
-                    let mut conn = dao.connection.begin().await?;
-                    match loop_data_code(data_row.data.unwrap(), 0, 1, &mut conn, data.clone())
-                        .await
-                    {
-                        Ok(_) => conn.commit().await?,
-                        Err(_) => conn.rollback().await?,
-                    }
-                }
-            }
-            Err(e) => return Err(Box::new(e)),
-        },
-        "上櫃" => match serde_json::from_str::<SecurityPriceTpex1>(&data_content) {
-            Ok(data_row) => {
+    match serde_json::from_str::<MonthlyPrice>(&data_content) {
+        Ok(data_row) => {
+            if !data_row.data.is_empty() {
                 let mut conn = dao.connection.begin().await?;
-                match loop_data_code(data_row.aa_data, 0, 6, &mut conn, data.clone()).await {
+                match loop_data_code(data_row.data, &mut conn, data.clone()).await {
                     Ok(_) => conn.commit().await?,
                     Err(_) => conn.rollback().await?,
                 }
             }
-            Err(e) => return Err(Box::new(e)),
-        },
-        "興櫃" => match serde_json::from_str::<SecurityPriceTpex2>(&data_content) {
-            Ok(data_row) => {
-                let mut conn = dao.connection.begin().await?;
-                match loop_data_code(data_row.aa_data, 0, 5, &mut conn, data.clone()).await {
-                    Ok(_) => conn.commit().await?,
-                    Err(_) => conn.rollback().await?,
-                }
-            }
-            Err(e) => return Err(Box::new(e)),
-        },
-        _ => (),
+        }
+        Err(e) => return Err(Box::new(e)),
     }
+
     Ok(())
 }
 
 async fn loop_data_code(
     rows: Vec<Vec<String>>,
-    date_index: usize,
-    price_index: usize,
     trax_conn: &mut PgConnection,
     data: ResposePrice,
 ) -> Result<(), sqlx::Error> {
     let re = Regex::new(r"[0-9.,]+").unwrap();
     for row in rows {
-        if re.is_match(&row[price_index]) {
-            let price_close = BigDecimal::from_str(&row[price_index].replace(",", "")).unwrap();
+        if re.is_match(&row[1]) {
+            let price_close = BigDecimal::from_str(&row[1].replace(",", "")).unwrap();
 
-            let mut price_date = row[date_index].trim().replace("＊", "");
+            let mut price_date = row[0].trim().replace("＊", "");
             if "月平均收盤價" != price_date {
                 price_date = format!("{:0>10}", price_date);
             }

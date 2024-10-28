@@ -45,35 +45,36 @@ pub struct SecurityPriceTwse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SecurityPriceTpex1 {
-    #[serde(alias = "stkNo")]
-    pub stk_no: String,
-    #[serde(alias = "stkName")]
-    pub stk_name: String,
+pub struct SecurityPriceTpex {
+    pub tables: Vec<SecurityPriceTpexTable>,
+    pub stat: String,
+    pub date: String,
+    pub code: Option<String>,
+    pub name: Option<String>,
     #[serde(alias = "showListPriceNote")]
-    pub show_list_price_note: bool,
+    pub show_list_price_note: Option<bool>,
     #[serde(alias = "showListPriceLink")]
-    pub show_list_price_link: bool,
-    #[serde(alias = "reportDate")]
-    pub report_date: String,
-    #[serde(alias = "iTotalRecords")]
-    pub i_total_records: i32,
-    #[serde(alias = "aaData")]
-    pub aa_data: Vec<Vec<String>>,
+    pub show_list_price_link: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SecurityPriceTpex2 {
-    #[serde(alias = "stkno")]
-    pub stk_no: String,
-    #[serde(alias = "stkname")]
-    pub stk_name: String,
-    #[serde(alias = "iTotalRecords")]
-    pub i_total_records: i32,
-    #[serde(alias = "aaData")]
-    pub aa_data: Vec<Vec<String>>,
-    pub fields: Vec<Vec<String>>,
-    pub lang: String,
-    pub year: String,
-    pub month: String,
+pub struct SecurityPriceTpexTable {
+    pub title: String,
+    pub subtitle: String,
+    pub data: Vec<Vec<String>>,
+    pub date: String,
+    #[serde(alias = "totalCount")]
+    pub total_count: u32,
+    pub fields: Vec<String>,
+    pub notes: Vec<String>,
+    pub summary: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MonthlyPrice{
+    pub status: String,
+    pub title: String,
+    pub date: String,
+    pub fields: Vec<String>,
+    pub data: Vec<Vec<String>>
 }

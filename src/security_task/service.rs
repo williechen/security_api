@@ -11,10 +11,7 @@ use tracing::{event, Level};
 use super::{dao, model::SecurityTask};
 use crate::{
     daily_task::model::DailyTask,
-    response_data::{
-        self,
-        model::{ResponseData, SecurityPriceTpex1, SecurityPriceTpex2, SecurityPriceTwse},
-    },
+    response_data::{self, model::ResponseData},
     security_temp::{self, model::SecurityTemp},
 };
 
@@ -237,10 +234,6 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
     let market_type = security.market_type.clone();
     let ref_market_type = market_type.as_str();
 
-    let y = security.open_date_year.clone().parse::<i32>().unwrap();
-    let m = security.open_date_month.clone();
-    let tw_ym = format!("{0}/{1}", y - 1911, m);
-
     match ref_market_type {
         "上市" => {
             match Retry::spawn(retry_strategy.clone(), || async {
@@ -249,32 +242,13 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
             .await
             {
                 Ok(res) => {
-                    match serde_json::from_str::<SecurityPriceTwse>(&res) {
-                        Ok(price) => {
-                            let stat = price.stat;
-                            let mut date = "000/00/00".to_string();
-                            if price.data.is_some() {
-                                let row = price.data.clone().unwrap();
-                                if row.first().is_some() {
-                                    date = row[0][0].clone();
-                                }
-                            }
-
-                            if "OK" == stat && date.trim().starts_with(&tw_ym) {
-                                add_res_data(&security, res).await;
-                                update_data(&security, true).await;
-                            } else {
-                                event!(target: "security_api", Level::INFO,"{0}", res);
-                                update_data(&security, false).await;
-                            }
-
-                            return Ok(());
-                        }
-                        Err(e) => {
-                            event!(target: "security_api", Level::ERROR, "{0} => {1}", res, e);
-                            return Ok(());
-                        }
-                    };
+                    if !res.is_empty() {
+                        add_res_data(&security, res).await;
+                        update_data(&security, true).await;
+                    } else {
+                        update_data(&security, false).await;
+                    }
+                    return Ok(());
                 }
                 Err(e) => return Err(e),
             };
@@ -286,67 +260,31 @@ async fn loop_data_security_task(security: SecurityTask) -> Result<(), Box<dyn E
             .await
             {
                 Ok(res) => {
-                    match serde_json::from_str::<SecurityPriceTpex1>(&res) {
-                        Ok(price) => {
-                            let cnt = price.i_total_records;
-                            let mut date = "000/00".to_string();
-                            if !price.aa_data.is_empty() {
-                                if price.aa_data[0].first().is_some() {
-                                    date = price.aa_data[0][0].clone();
-                                }
-                            }
-
-                            if cnt > 0 && date.trim().starts_with(&tw_ym) {
-                                add_res_data(&security, res).await;
-                                update_data(&security, true).await;
-                            } else {
-                                event!(target: "security_api", Level::INFO, "{0}", res);
-                                update_data(&security, false).await;
-                            }
-
-                            return Ok(());
-                        }
-                        Err(e) => {
-                            event!(target: "security_api", Level::ERROR, "{0} => {1}", res, e);
-                            return Ok(());
-                        }
-                    };
+                    if !res.is_empty() {
+                        add_res_data(&security, res).await;
+                        update_data(&security, true).await;
+                    } else {
+                        update_data(&security, false).await;
+                    }
+                    return Ok(());
                 }
                 Err(e) => return Err(e),
             };
         }
         "興櫃" => {
             match Retry::spawn(retry_strategy.clone(), || async {
-                response_data::service::get_tpex2_html(&security).await
+                response_data::service::get_tpex2_json(&security).await
             })
             .await
             {
                 Ok(res) => {
-                    match serde_json::from_str::<SecurityPriceTpex2>(&res) {
-                        Ok(price) => {
-                            let cnt = price.i_total_records;
-                            let mut date = "000/00".to_string();
-                            if !price.aa_data.is_empty() {
-                                if price.aa_data[0].first().is_some() {
-                                    date = price.aa_data[0][0].clone();
-                                }
-                            }
-
-                            if cnt > 0 && date.trim().starts_with(&tw_ym) {
-                                add_res_data(&security, res).await;
-                                update_data(&security, true).await;
-                            } else {
-                                event!(target: "security_api", Level::INFO, "{0}", res);
-                                update_data(&security, false).await;
-                            }
-
-                            return Ok(());
-                        }
-                        Err(e) => {
-                            event!(target: "security_api", Level::ERROR, "{0} => {1}", res, e);
-                            return Ok(());
-                        }
-                    };
+                    if !res.is_empty() {
+                        add_res_data(&security, res).await;
+                        update_data(&security, true).await;
+                    } else {
+                        update_data(&security, false).await;
+                    }
+                    return Ok(());
                 }
                 Err(e) => return Err(e),
             };
