@@ -138,8 +138,8 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
 fn get_twse_price(
     twse_json: SecurityPriceTwse,
     tw_ym: String,
-    date_index: u32,
-    price_index: u32,
+    date_index: usize,
+    price_index: usize,
 ) -> String {
     let status = if "OK" == twse_json.stat {
         "Y".to_string()
@@ -244,8 +244,8 @@ pub async fn get_tpex2_json(task: &SecurityTask) -> Result<String, Box<dyn std::
 fn get_tpex_price(
     tpex_json: SecurityPriceTpex,
     tw_ym: String,
-    date_index: u32,
-    price_index: u32,
+    date_index: usize,
+    price_index: usize,
 ) -> String {
     if tpex_json.tables.first().is_some() {
         let table = tpex_json.tables.first().unwrap();
@@ -280,13 +280,13 @@ fn get_tpex_price(
 fn get_close_price(
     data: Vec<Vec<String>>,
     tw_ym: String,
-    date_index: u32,
-    price_index: u32,
+    date_index: usize,
+    price_index: usize,
 ) -> Vec<Vec<String>> {
     data.iter()
-        .filter(|x| x[date_index as usize].trim().starts_with(&tw_ym))
+        .filter(|x| x[date_index].trim().starts_with(&tw_ym))
         .filter(|x| {
-            bigdecimal::BigDecimal::from_str(&x[price_index as usize])
+            bigdecimal::BigDecimal::from_str(&x[price_index])
                 .unwrap_or(bigdecimal::BigDecimal::zero())
                 > bigdecimal::BigDecimal::zero()
         })
