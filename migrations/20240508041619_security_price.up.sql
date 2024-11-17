@@ -18,12 +18,8 @@ CREATE TABLE security_price (
     CONSTRAINT security_price_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX security_price_open_date_year_idx ON security_price USING btree (open_date_year);
-CREATE INDEX security_price_open_date_month_idx ON security_price USING btree (open_date_month);
-CREATE INDEX security_price_open_date_day_idx ON security_price USING btree (open_date_day);
-CREATE INDEX security_price_security_code_idx ON security_price USING btree (security_code);
-CREATE INDEX security_price_price_date_idx ON security_price USING btree (price_date);
-CREATE INDEX security_price_price_close_idx ON security_price USING btree (price_close);
+CREATE INDEX security_price_open_date_idx ON security_price USING btree (open_date_year, open_date_month, open_date_day);
+CREATE INDEX security_price_price_date_idx ON security_price USING btree (security_code, price_date);
 
 
 COMMENT ON TABLE security_price IS '每日收盤價';

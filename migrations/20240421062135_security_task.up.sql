@@ -17,14 +17,8 @@ CREATE TABLE security_task (
     CONSTRAINT security_task_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX security_task_open_date_year_idx ON security_task USING btree (open_date_year);
-CREATE INDEX security_task_open_date_month_idx ON security_task USING btree (open_date_month);
-CREATE INDEX security_task_open_date_day_idx ON security_task USING btree (open_date_day);
-CREATE INDEX security_task_security_code_idx ON security_task USING btree (security_code);
-CREATE INDEX security_task_market_type_idx ON security_task USING btree (market_type);
-CREATE INDEX security_task_exec_count_idx ON security_task USING btree (exec_count);
-CREATE INDEX security_task_is_enabled_idx ON security_task USING btree (is_enabled);
-CREATE INDEX security_task_sort_no_idx ON security_task USING btree (sort_no);
+CREATE INDEX security_task_open_date_idx ON security_task USING btree (open_date_year, open_date_month, open_date_day);
+CREATE INDEX security_task_exec_count_idx ON security_task USING btree (security_code, market_type, exec_count, is_enabled, sort_no);
 
 
 COMMENT ON TABLE security_task IS '證券任務';

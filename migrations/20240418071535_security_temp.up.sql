@@ -18,13 +18,9 @@ CREATE TABLE security_temp (
     CONSTRAINT security_temp_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX security_temp_open_date_year_idx ON security_temp USING btree (open_date_year);
-CREATE INDEX security_temp_open_date_month_idx ON security_temp USING btree (open_date_month);
-CREATE INDEX security_temp_open_date_day_idx ON security_temp USING btree (open_date_day);
-CREATE INDEX security_temp_security_code_idx ON security_temp USING btree (security_code);
+CREATE INDEX security_temp_open_date_idx ON security_temp USING btree (open_date_year, open_date_month, open_date_day);
 CREATE INDEX security_temp_security_name_idx ON security_temp USING btree (security_name);
-CREATE INDEX security_temp_market_type_idx ON security_temp USING btree (market_type);
-CREATE INDEX security_temp_security_type_idx ON security_temp USING btree (security_type);
+CREATE INDEX security_temp_security_type_idx ON security_temp USING btree (security_code, market_type, security_type);
 
 COMMENT ON TABLE security_temp IS '證券暫存';
 

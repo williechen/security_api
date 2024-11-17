@@ -11,11 +11,8 @@ CREATE TABLE daily_task (
     CONSTRAINT daily_task_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX daily_task_open_date_year_idx ON daily_task USING btree (open_date_year);
-CREATE INDEX daily_task_open_date_month_idx ON daily_task USING btree (open_date_month);
-CREATE INDEX daily_task_open_date_day_idx ON daily_task USING btree (open_date_day);
-CREATE INDEX daily_task_job_code_idx ON daily_task USING btree (job_code);
-CREATE INDEX daily_task_exec_status_idx ON daily_task USING btree (exec_status);
+CREATE INDEX daily_task_open_date_idx ON daily_task USING btree (open_date_year, open_date_month, open_date_day);
+CREATE INDEX daily_task_exec_status_idx ON daily_task USING btree (job_code, exec_status);
 
 COMMENT ON TABLE daily_task IS '每日執行表';
 

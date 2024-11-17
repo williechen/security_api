@@ -12,12 +12,8 @@ CREATE TABLE calendar_data (
     CONSTRAINT calendar_data_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX calendar_data_ce_year_idx ON calendar_data USING btree (ce_year);
-CREATE INDEX calendar_data_ce_month_idx ON calendar_data USING btree (ce_month);
-CREATE INDEX calendar_data_ce_day_idx ON calendar_data USING btree (ce_day);
-CREATE INDEX calendar_data_date_status_idx ON calendar_data USING btree (date_status);
-CREATE INDEX calendar_data_group_task_idx ON calendar_data USING btree (group_task);
-
+CREATE INDEX calendar_data_task_idx ON calendar_data USING btree (group_task, date_status);
+CREATE INDEX calendar_data_idx ON calendar_data USING btree (ce_year, ce_month, ce_day);
 
 COMMENT ON TABLE calendar_data IS '行事曆';
 

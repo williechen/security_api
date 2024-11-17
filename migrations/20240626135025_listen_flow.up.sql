@@ -14,14 +14,8 @@ CREATE TABLE listen_flow (
     CONSTRAINT listen_flow_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX listen_flow_flow_code_idx ON listen_flow USING btree (flow_code);
-CREATE INDEX listen_flow_flow_param1_idx ON listen_flow USING btree (flow_param1);
-CREATE INDEX listen_flow_flow_param2_idx ON listen_flow USING btree (flow_param2);
-CREATE INDEX listen_flow_flow_param3_idx ON listen_flow USING btree (flow_param3);
-CREATE INDEX listen_flow_flow_param4_idx ON listen_flow USING btree (flow_param4);
-CREATE INDEX listen_flow_flow_param5_idx ON listen_flow USING btree (flow_param5);
-CREATE INDEX listen_flow_pid_idx ON listen_flow USING btree (pid);
-CREATE INDEX listen_flow_pstatus_idx ON listen_flow USING btree (pstatus);
+CREATE INDEX listen_flow_flow_code_idx ON listen_flow USING btree (flow_code, flow_param1, flow_param2, flow_param3, flow_param4, flow_param5);
+CREATE INDEX listen_flow_pid_idx ON listen_flow USING btree (pid, pstatus);
 
 COMMENT ON TABLE listen_flow IS '監聽流程表';
 

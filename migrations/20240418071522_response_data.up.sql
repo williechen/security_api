@@ -11,10 +11,8 @@ CREATE TABLE response_data (
     CONSTRAINT response_data_key PRIMARY KEY (row_id)
 );
 
-CREATE INDEX response_data_open_date_year_idx ON response_data USING btree (open_date_year);
-CREATE INDEX response_data_open_date_month_idx ON response_data USING btree (open_date_month);
-CREATE INDEX response_data_open_date_day_idx ON response_data USING btree (open_date_day);
 CREATE INDEX response_data_exec_code_idx ON response_data USING btree (exec_code);
+CREATE INDEX response_data_open_date_idx ON response_data USING btree (open_date_year, open_date_month, open_date_day);
 
 COMMENT ON TABLE response_data IS '網頁資料';
 
