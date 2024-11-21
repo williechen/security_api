@@ -51,6 +51,16 @@ pub fn exec_daily_task() -> Result<(), SecurityError> {
 
             let job_code = task.job_code.clone();
             let ref_job_code = job_code.as_str();
+
+            // 執行任務
+            match ref_job_code {
+                "" => init_security_data(&task),
+                "" => reply_security_data(&task),
+                "" => response_to_temp(&task),
+                "" => temp_to_daily_security(&task),
+                "" => executive_daily_security(&task),
+                _ => (),
+            }
         }
 
         end_open_date("security", &e_open_date.0, &e_open_date.1);
@@ -69,7 +79,15 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
             info!(target: "security_api", "DailyTaskInfo {0}", &task);
             update_task_status(&task, "OPEN");
 
+            let job_code = task.job_code.clone();
+            let ref_job_code = job_code.as_str();
+
             // 執行任務
+            match ref_job_code {
+                "" => parse_security_price(&task),
+                "" => statistics_average_price(&task),
+                _ => (),
+            }
         }
 
         end_open_date("price", &e_open_date.0, &e_open_date.1);
