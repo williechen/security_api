@@ -6,7 +6,10 @@ use log::{debug, error, info};
 use rand::{thread_rng, Rng};
 
 use crate::{
-    daily_task::model::NewDailyTask, listen_flow, response_data, security_error::SecurityError,
+    daily_task::model::NewDailyTask,
+    listen_flow::{self, model::ListenFlow},
+    response_data,
+    security_error::SecurityError,
     security_price, security_task, security_temp,
 };
 
@@ -42,7 +45,7 @@ pub fn insert_task_data() -> Result<(), SecurityError> {
 pub fn exec_daily_task() -> Result<(), SecurityError> {
     let mut exec_task = dao::find_one_by_exec_desc("security".to_string());
     while exec_task.is_some() {
-        let e_open_date = start_open_data("security", &exec_task.clone().unwrap());
+        let e_open_date = start_open_data("security", &exec_task.unwrap());
 
         let task_list = dao::find_all_by_exec_desc(e_open_date.0.clone(), e_open_date.1.clone());
         for task in task_list {
@@ -209,30 +212,17 @@ fn start_open_data(flow_code: &str, task: &DailyTask) -> (String, String) {
     let year = task.open_date_year.clone();
     let month = task.open_date_month.clone();
 
-    sleep(time::Duration::from_secs(thread_rng().gen_range(2..=4)));
     let results = listen_flow::service::read_flow_data(flow_code, &year, &month);
-    if results.len() > 0 {
-        if pid == results[0].pid {
-            (year, month)
-        } else {
-            end_open_date(flow_code, &year, &month);
-            if "price" == flow_code {
-                let res = dao::find_one_by_exec_asc("price".to_string());
-                let year = res.clone().unwrap().open_date_year;
-                let month = res.clone().unwrap().open_date_month;
-                listen_flow::service::insert_flow_data2(pid, flow_code, &year, &month);
-                (year, month)
-            } else {
-                let res = dao::find_one_by_exec_desc("security".to_string());
-                let year = res.clone().unwrap().open_date_year;
-                let month = res.clone().unwrap().open_date_month;
-                listen_flow::service::insert_flow_data2(pid, flow_code, &year, &month);
-                (year, month)
-            }
-        }
+    let current_tasks = results
+        .into_iter()
+        .filter(|x| x.flow_param1.clone() == Some(task.open_date_year.clone()) && x.flow_param2.clone() == Some(task.open_date_month.clone()))
+        .collect::<Vec<ListenFlow>>();
+    if current_tasks.len() > 0 {
+        let exec_task = dao::find_one_by_exec_asc(flow_code.to_string());
+        return start_open_data(flow_code, &exec_task.unwrap());
     } else {
         listen_flow::service::insert_flow_data2(pid, flow_code, &year, &month);
-        (year, month)
+        return (year, month);
     }
 }
 
