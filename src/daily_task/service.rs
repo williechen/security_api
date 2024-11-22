@@ -1,9 +1,8 @@
 #![warn(clippy::all, clippy::pedantic)]
-use std::{process, thread::sleep, time};
+use std::process;
 
 use chrono::Local;
 use log::{debug, error, info};
-use rand::{thread_rng, Rng};
 
 use crate::{
     daily_task::model::NewDailyTask,
@@ -57,11 +56,11 @@ pub fn exec_daily_task() -> Result<(), SecurityError> {
 
             // 執行任務
             match ref_job_code {
-                "" => init_security_data(&task),
-                "" => reply_security_data(&task),
-                "" => response_to_temp(&task),
-                "" => temp_to_daily_security(&task),
-                "" => executive_daily_security(&task),
+                "delete_temp" => init_security_data(&task),
+                "get_web_security" => reply_security_data(&task),
+                "res_to_temp" => response_to_temp(&task),
+                "temp_to_task" => temp_to_daily_security(&task),
+                "task_run" => executive_daily_security(&task),
                 _ => (),
             }
         }
@@ -87,8 +86,8 @@ pub fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
 
             // 執行任務
             match ref_job_code {
-                "" => parse_security_price(&task),
-                "" => statistics_average_price(&task),
+                "res_price" => parse_security_price(&task),
+                "price_value" => statistics_average_price(&task),
                 _ => (),
             }
         }
@@ -215,7 +214,7 @@ fn start_open_data(flow_code: &str, task: &DailyTask) -> (String, String) {
     let results = listen_flow::service::read_flow_data(flow_code, &year, &month);
     let current_tasks = results
         .into_iter()
-        .filter(|x| x.flow_param1.clone() == Some(task.open_date_year.clone()) && x.flow_param2.clone() == Some(task.open_date_month.clone()))
+        .filter(|x| x.pid == pid && x.pstatus != "EXIT".to_string())
         .collect::<Vec<ListenFlow>>();
     if current_tasks.len() > 0 {
         let exec_task = dao::find_one_by_exec_asc(flow_code.to_string());
