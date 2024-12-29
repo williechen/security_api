@@ -216,7 +216,7 @@ fn sleep_time(seconds: i64, old_market_type: String, new_market_type: String) ->
 async fn loop_data_security_task(security: SecurityTask) -> Result<(), sqlx::Error> {
     // 重試設定
     let retry_strategy = ExponentialBackoff::from_millis(2000)
-        .max_delay(Duration::from_secs(10))
+        .max_delay(Duration::from_secs(2))
         .take(5);
 
     let market_type = security.market_type.clone();
