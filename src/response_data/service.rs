@@ -104,7 +104,9 @@ fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error:
     Ok(result.to_string())
 }
 
-pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error+ 'static + Send + Sync>> {
+pub async fn get_twse_avg_json(
+    task: &SecurityTask,
+) -> Result<String, Box<dyn std::error::Error + 'static + Send + Sync>> {
     run_task_log(task);
 
     let y = &task.open_date_year;
@@ -170,7 +172,9 @@ fn get_twse_price(
     }
 }
 
-pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error+ 'static + Send + Sync>> {
+pub async fn get_tpex1_json(
+    task: &SecurityTask,
+) -> Result<String, Box<dyn std::error::Error + 'static + Send + Sync>> {
     run_task_log(task);
 
     let y = &task.open_date_year;
@@ -205,7 +209,9 @@ pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::
     Ok(html_decode(&json_str))
 }
 
-pub async fn get_tpex2_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error+ 'static + Send + Sync>> {
+pub async fn get_tpex2_json(
+    task: &SecurityTask,
+) -> Result<String, Box<dyn std::error::Error + 'static + Send + Sync>> {
     run_task_log(task);
 
     let y = &task.open_date_year;

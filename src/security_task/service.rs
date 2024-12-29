@@ -50,11 +50,7 @@ pub async fn insert_task_data(task: &DailyTask) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-fn get_new_security_task(
-    data: &SecurityTemp,
-    task: &DailyTask,
-    item_index: i32,
-) -> SecurityTask {
+fn get_new_security_task(data: &SecurityTemp, task: &DailyTask, item_index: i32) -> SecurityTask {
     let seed: i64 = thread_rng().gen_range(1..=9999999999999);
     let security_seed = format!("{:013}", seed);
     let sort_no = item_index;
@@ -90,7 +86,8 @@ async fn check_data_exists(task: &SecurityTask) -> bool {
         q_security_code,
         q_market_type,
         q_issue_date,
-    ).await
+    )
+    .await
     .is_some()
 }
 
@@ -125,7 +122,8 @@ pub async fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Er
                             (end_time - start_time).num_seconds(),
                             old_market_type,
                             market_type,
-                        ))).await;
+                        )))
+                        .await;
                         index += 1;
                         old_market_type = security.market_type.clone();
                     }
@@ -294,7 +292,7 @@ async fn add_res_data(security: &SecurityTask, html: String) {
             open_date_month: security.clone().open_date_month,
             open_date_day: security.clone().open_date_day,
             exec_code: security.clone().security_code,
-            data_content: html
+            data_content: html,
         };
         response_data::dao::create(new_res_data).await.unwrap();
     } else {
@@ -320,4 +318,3 @@ async fn update_data(security: &SecurityTask, is_action: bool) {
 
     dao::modify(security_task).await.unwrap();
 }
-
