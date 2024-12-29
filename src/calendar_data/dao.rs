@@ -76,4 +76,3 @@ pub async fn find_one(q_year: String, q_month: String, q_day: String) -> Option<
         }
     }
 }
-

@@ -122,7 +122,7 @@ pub async fn remove(
     }
 }
 
-pub async fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
+pub async fn find_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 

@@ -45,7 +45,8 @@ async fn get_open_stock_month(year: i32, last_price_date: &String) -> Vec<(i32, 
             price_data = security_price::dao::find_all_by_date(
                 format!("{0:04}", year),
                 format!("{0:02}", month),
-            ).await;
+            )
+            .await;
         } else {
             price_data = Vec::<SecurityPrice>::new();
         }
@@ -117,7 +118,7 @@ fn get_new_calendar_date(
         ce_day: format!("{0:02}", day),
         week_index: get_weekday(year, month, day),
         date_status: status.to_string(),
-        group_task: task.to_string()
+        group_task: task.to_string(),
     }
 }
 

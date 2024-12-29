@@ -71,10 +71,10 @@ pub struct SecurityPriceTpexTable {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MonthlyPrice{
+pub struct MonthlyPrice {
     pub status: String,
     pub title: String,
     pub date: String,
     pub fields: Vec<String>,
-    pub data: Vec<Vec<String>>
+    pub data: Vec<Vec<String>>,
 }
