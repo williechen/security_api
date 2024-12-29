@@ -139,7 +139,7 @@ pub async fn init_calendar_data() -> Result<(), sqlx::Error> {
     let mut calendar_datas = Vec::<CalendarData>::new();
 
     let max_price_date = security_price::dao::find_one_by_maxdate().await;
-    let start_point = "20240517".to_string();
+    let start_point = "20250101".to_string();
 
     for y in min_year..=max_year {
         let open_stock_dates = get_open_stock_month(y, &max_price_date).await;
