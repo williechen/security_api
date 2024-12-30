@@ -292,14 +292,14 @@ fn get_close_price(
     data.iter()
         .filter(|x| x[date_index].trim().starts_with(&tw_ym))
         .filter(|x| {
-            bigdecimal::BigDecimal::from_str(&x[price_index])
+            bigdecimal::BigDecimal::from_str(x[price_index].replace(",", "").as_str())
                 .unwrap_or(bigdecimal::BigDecimal::zero())
                 > bigdecimal::BigDecimal::zero()
         })
         .map(|x| {
             vec![
                 x[date_index as usize].clone(),
-                x[price_index as usize].clone(),
+                x[price_index as usize].replace(",", "").clone(),
             ]
         })
         .collect()
