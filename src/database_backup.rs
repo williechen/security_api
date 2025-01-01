@@ -19,6 +19,7 @@ impl DatabaseBackup {
             .arg("--column-inserts")
             .arg("--no-sync")
             .arg("--exclude-table=_sqlx_migrations")
+            .arg("--exclude-table=listen_flow")
             .arg("--exclude-table=security_temp")
             .output()
             .expect("Failed to execute command");
@@ -45,6 +46,7 @@ impl DatabaseBackup {
             .arg("--format=plain")
             .arg("--no-sync")
             .arg("--exclude-table=_sqlx_migrations")
+            .arg("--exclude-table=listen_flow")
             .arg("--exclude-table=security_temp")
             .output()
             .expect("Failed to execute command");
