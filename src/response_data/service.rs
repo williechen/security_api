@@ -292,7 +292,7 @@ fn get_close_price(
     data.iter()
         .filter(|x| x[date_index].trim().starts_with(&tw_ym))
         .filter(|x| {
-            bigdecimal::BigDecimal::from_str(x[price_index].replace(",", "").as_str())
+            bigdecimal::BigDecimal::from_str(&x[price_index].replace(",", ""))
                 .unwrap_or(bigdecimal::BigDecimal::zero())
                 > bigdecimal::BigDecimal::zero()
         })
