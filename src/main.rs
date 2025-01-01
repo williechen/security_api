@@ -2,6 +2,7 @@
 
 use std::env;
 
+use security_api::backup_insert;
 use tracing::{event, Level};
 
 #[tokio::main]
@@ -20,6 +21,8 @@ async fn main() {
         .with_env_filter(log_filter)
         .with_writer(console_non_blocking)
         .init();
+
+    backup_insert().unwrap();
 
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 {

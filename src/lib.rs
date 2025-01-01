@@ -11,6 +11,13 @@ mod security_price;
 mod security_task;
 mod security_temp;
 mod task_setting;
+mod database_backup;
+
+pub fn backup_insert() -> Result<(), Box<dyn std::error::Error>> {
+    database_backup::DatabaseBackup.backup_insert("security_api", "security_api_insert_backup");
+    database_backup::DatabaseBackup.backup_copy("security_api", "security_api_copy_backup");
+    Ok(())
+}
 
 pub async fn add_init_year() -> Result<(), sqlx::Error> {
     calendar_data::service::init_calendar_data().await?;
