@@ -5,7 +5,6 @@ use std::str::FromStr;
 use std::ops::{Add, Div};
 
 use bigdecimal::{BigDecimal, RoundingMode, Zero};
-use regex::Regex;
 use sqlx::PgConnection;
 use tracing::{event, Level};
 
@@ -61,8 +60,6 @@ pub async fn get_security_to_price(task: &DailyTask) -> Result<(), sqlx::Error> 
 }
 
 async fn loop_data_res(data: ResposePrice) -> Result<(), sqlx::Error> {
-    let re = Regex::new(r"[0-9.,]+").unwrap();
-
     let data_content = data.data_content.clone();
 
     let dao = Repository::new().await;
@@ -70,24 +67,22 @@ async fn loop_data_res(data: ResposePrice) -> Result<(), sqlx::Error> {
 
     match serde_json::from_str::<MonthlyPrice>(&data_content) {
         Ok(data_row) => {
-            if data_row.data.is_empty() {
+            if !data_row.data.is_empty() {
                 for row in data_row.data {
-                    if re.is_match(&row[1]) {
-                        let mut trax_conn = conn.begin().await?;
+                    let mut trax_conn = conn.begin().await?;
 
-                        let price_date = row[0].trim().to_string();
-                        let price_close = BigDecimal::from_str(&row[1]).unwrap();
+                    let price_date = row[0].trim().to_string();
+                    let price_close = BigDecimal::from_str(&row[1]).unwrap();
 
-                        match loop_data_price(&mut trax_conn, price_date, price_close, data.clone())
-                            .await
-                        {
-                            Ok(_) => {
-                                trax_conn.commit().await?;
-                            }
-                            Err(e) => {
-                                trax_conn.rollback().await?;
-                                return Err(e.into());
-                            }
+                    match loop_data_price(&mut trax_conn, price_date, price_close, data.clone())
+                        .await
+                    {
+                        Ok(_) => {
+                            trax_conn.commit().await?;
+                        }
+                        Err(e) => {
+                            trax_conn.rollback().await?;
+                            return Err(e.into());
                         }
                     }
                 }
