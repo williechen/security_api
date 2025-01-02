@@ -212,7 +212,7 @@ fn get_calculator_max_avg(
 ) -> (BigDecimal, BigDecimal) {
     let price_list = resp_prices
         .iter()
-        .filter(|x| x.price_close > *price_avg)
+        .filter(|x| x.price_close >= *price_avg)
         .map(|x| x.price_close.clone())
         .collect::<Vec<BigDecimal>>();
 
@@ -228,7 +228,7 @@ fn get_calculator_min_avg(
 ) -> (BigDecimal, BigDecimal) {
     let price_list = resp_prices
         .iter()
-        .filter(|x| x.price_close < *price_avg)
+        .filter(|x| x.price_close <= *price_avg)
         .map(|x| x.price_close.clone())
         .collect::<Vec<BigDecimal>>();
 
