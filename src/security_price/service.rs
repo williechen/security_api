@@ -30,36 +30,17 @@ pub async fn get_security_to_price(task: &DailyTask) -> Result<(), sqlx::Error> 
         let month_prices =
             dao::find_all(q_year.clone(), q_month.clone(), q_security_code.clone()).await;
         if month_prices.len() <= 0 {
-            loop_data_res(price).await?;
+            loop_data_res(price, Vec::new()).await?;
         } else {
-            let dao = Repository::new().await;
-            let conn = dao.connection;
-            let mut trax_conn = conn.begin().await?;
-
-            match dao::remove(
-                &mut trax_conn,
-                q_year.clone(),
-                q_month.clone(),
-                q_security_code.clone(),
-            )
-            .await
-            {
-                Ok(_) => {
-                    trax_conn.commit().await?;
-                    loop_data_res(price).await?
-                }
-                Err(e) => {
-                    trax_conn.rollback().await?;
-                    return Err(e);
-                }
-            }
+            let price_dates: Vec<(String, BigDecimal)> = month_prices.iter().map(|x| (x.price_date.clone(), x.price_close.clone())).collect();
+            loop_data_res(price, price_dates).await?;
         }
     }
 
     Ok(())
 }
 
-async fn loop_data_res(data: ResposePrice) -> Result<(), sqlx::Error> {
+async fn loop_data_res(data: ResposePrice, price_dates: Vec<(String, BigDecimal)>) -> Result<(), sqlx::Error> {
     let data_content = data.data_content.clone();
 
     let dao = Repository::new().await;
@@ -73,6 +54,11 @@ async fn loop_data_res(data: ResposePrice) -> Result<(), sqlx::Error> {
 
                     let price_date = row[0].trim().to_string();
                     let price_close = BigDecimal::from_str(&row[1]).unwrap();
+
+                    let new_price_date = format!("{:0>10}", price_date);
+                    if price_dates.contains(&(new_price_date, price_close.clone())) {
+                        continue;
+                    }
 
                     match loop_data_price(&mut trax_conn, price_date, price_close, data.clone())
                         .await
@@ -99,16 +85,13 @@ async fn loop_data_price(
     price_close: BigDecimal,
     data: ResposePrice,
 ) -> Result<(), sqlx::Error> {
-    let mut new_price_date = price_date;
-    if "月平均收盤價" != new_price_date {
-        new_price_date = format!("{:0>10}", new_price_date);
-    }
+    
 
     if price_close > BigDecimal::zero() {
         let price = SecurityPrice {
             security_code: data.security_code.clone(),
             security_name: data.security_name.clone(),
-            price_date: new_price_date,
+            price_date: price_date,
             price_close: price_close,
             price_avg: BigDecimal::zero(),
             price_hight: BigDecimal::zero(),
