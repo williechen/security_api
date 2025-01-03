@@ -293,9 +293,17 @@ pub async fn find_all_by_code(
     }
 }
 
-pub async fn find_all_by_date(q_year: String, q_month: String) -> Vec<SecurityPrice> {
+pub async fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<SecurityPrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
+
+    let day = if q_day.is_empty() {
+        format!("%{0:04}/{1:02}%", q_year.parse::<i32>().unwrap() - 1911, q_month.parse::<i32>().unwrap())
+    } else if q_day.is_empty() && q_month.is_empty(){
+        format!("%{0:04}%", q_year.parse::<i32>().unwrap() - 1911)
+    } else {
+        format!("%{0:04}/{1:02}/{2:02}%", q_year.parse::<i32>().unwrap() - 1911, q_month.parse::<i32>().unwrap(), q_day.parse::<i32>().unwrap())
+    };
 
     match sqlx::query(
         r" 
@@ -319,11 +327,7 @@ pub async fn find_all_by_date(q_year: String, q_month: String) -> Vec<SecurityPr
          ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.price_date, sp.security_code
     ",
     )
-    .bind(format!(
-        "%{0:04}/{1:02}%",
-        (q_year.parse::<i32>().unwrap() - 1911),
-        q_month.parse::<i32>().unwrap()
-    ))
+    .bind(day)
     .map(|row: PgRow| SecurityPrice {
         row_id: row.get("row_id"),
         open_date_year: row.get("open_date_year"),

@@ -45,6 +45,7 @@ async fn get_open_stock_month(year: i32, last_price_date: &String) -> Vec<(i32, 
             price_data = security_price::dao::find_all_by_date(
                 format!("{0:04}", year),
                 format!("{0:02}", month),
+                "".to_string(),
             )
             .await;
         } else {

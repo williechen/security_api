@@ -131,8 +131,9 @@ pub async fn get_calculator_to_price(task: &DailyTask) -> Result<(), sqlx::Error
 
     let q_year = task.open_date_year.clone();
     let q_month = task.open_date_month.clone();
+    let q_day = task.open_date_day.clone();
 
-    let res_prices = dao::find_all_by_date(q_year, q_month).await;
+    let res_prices = dao::find_all_by_date(q_year, q_month, q_day).await;
     for price in res_prices {
         event!(target: "security_api", Level::DEBUG, "SecurityPrice: {:?}", &price);
         loop_data_calculator(price).await?;
