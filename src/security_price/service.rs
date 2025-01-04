@@ -56,11 +56,11 @@ async fn loop_data_res(data: ResposePrice, price_dates: Vec<(String, BigDecimal)
                     let price_close = BigDecimal::from_str(&row[1]).unwrap();
 
                     let new_price_date = format!("{:0>10}", price_date);
-                    if price_dates.contains(&(new_price_date, price_close.clone())) {
+                    if price_dates.contains(&(new_price_date.clone(), price_close.clone())) {
                         continue;
                     }
 
-                    match loop_data_price(&mut trax_conn, price_date, price_close, data.clone())
+                    match loop_data_price(&mut trax_conn, new_price_date, price_close, data.clone())
                         .await
                     {
                         Ok(_) => {
