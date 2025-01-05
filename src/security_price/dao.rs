@@ -97,31 +97,6 @@ pub async fn modify(data: SecurityPrice) -> Result<u64, sqlx::Error> {
     }
 }
 
-pub async fn remove(
-    trax_conn: &mut PgConnection,
-    q_year: String,
-    q_month: String,
-    q_security_code: String,
-) -> Result<u64, sqlx::Error> {
-    match sqlx::query(
-        r"
-        DELETE FROM security_price 
-         WHERE open_date_year = $1
-           AND open_date_month = $2
-           AND security_code = $3
-    ",
-    )
-    .bind(q_year)
-    .bind(q_month)
-    .bind(q_security_code)
-    .execute(trax_conn)
-    .await
-    {
-        Ok(cnt) => Ok(cnt.rows_affected()),
-        Err(e) => Err(e),
-    }
-}
-
 pub async fn find_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
