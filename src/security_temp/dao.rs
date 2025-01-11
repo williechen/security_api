@@ -71,12 +71,12 @@ pub async fn remove_all() -> Result<u64, sqlx::Error> {
 }
 
 pub async fn find_one(
-    q_year: String,
-    q_month: String,
-    q_day: String,
-    q_security_code: String,
-    q_market_type: String,
-    q_issue_date: String,
+    q_year: &str,
+    q_month: &str,
+    q_day: &str,
+    q_security_code: &str,
+    q_market_type: &str,
+    q_issue_date: &str,
 ) -> Option<SecurityTemp> {
     let dao = Repository::new().await;
     let conn = dao.connection;

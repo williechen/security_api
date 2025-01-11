@@ -72,10 +72,10 @@ pub async fn modify(data: ResponseData) -> Result<u64, sqlx::Error> {
 }
 
 pub async fn find_one(
-    q_year: String,
-    q_month: String,
-    q_day: String,
-    q_exec_code: String,
+    q_year: &str,
+    q_month: &str,
+    q_day: &str,
+    q_exec_code: &str,
 ) -> Option<ResponseData> {
     let dao = Repository::new().await;
     let conn = dao.connection;

@@ -97,7 +97,28 @@ pub async fn modify(data: SecurityPrice) -> Result<u64, sqlx::Error> {
     }
 }
 
-pub async fn find_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
+pub async fn remove(
+    trax_conn: &mut PgConnection,
+    data: SecurityPrice,
+) -> Result<u64, sqlx::Error> {
+    match sqlx::query(
+        r"
+        DELETE FROM security_price 
+         WHERE price_date = $1
+           AND security_code = $2
+    ",
+    )
+    .bind(data.price_date)
+    .bind(data.security_code)
+    .execute(trax_conn)
+    .await
+    {
+        Ok(cnt) => Ok(cnt.rows_affected()),
+        Err(e) => Err(e),
+    }
+}
+
+pub async fn find_all_by_res(q_year: &str, q_month: &str) -> Vec<ResposePrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
@@ -149,9 +170,9 @@ pub async fn find_all_by_res(q_year: String, q_month: String) -> Vec<ResposePric
 }
 
 pub async fn find_all(
-    q_year: String,
-    q_month: String,
-    q_security_code: String,
+    q_year: &str,
+    q_month: &str,
+    q_security_code: &str,
 ) -> Vec<SecurityPrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
@@ -207,9 +228,9 @@ pub async fn find_all(
 }
 
 pub async fn find_all_by_code(
-    q_open_date: String,
-    q_price_date: String,
-    q_security_code: String,
+    q_open_date: &str,
+    q_price_date: &str,
+    q_security_code: &str,
 ) -> Vec<SecurityPrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
@@ -268,7 +289,7 @@ pub async fn find_all_by_code(
     }
 }
 
-pub async fn find_all_by_date(q_year: String, q_month: String, q_day: String) -> Vec<SecurityPrice> {
+pub async fn find_all_by_date(q_year: &str, q_month: &str, q_day: &str) -> Vec<SecurityPrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 

@@ -34,10 +34,10 @@ fn html_decode(input: &str) -> String {
 pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level:: INFO, "call daily_task.get_security_all_code");
 
-    let q_year = task.clone().open_date_year;
-    let q_month = task.clone().open_date_month;
-    let q_day = task.clone().open_date_day;
-    let q_exec_code = "security".to_string();
+    let q_year = &task.open_date_year;
+    let q_month = &task.open_date_month;
+    let q_day = &task.open_date_day;
+    let q_exec_code = "security";
 
     // 重試設定
     let retry_strategy = ExponentialBackoff::from_millis(2000)
@@ -46,7 +46,7 @@ pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::
 
     let data = dao::find_one(q_year, q_month, q_day, q_exec_code).await;
     if data.is_none() {
-        match Retry::spawn(retry_strategy.clone(), || async {
+        match Retry::spawn(retry_strategy, || async {
             get_web_security_data().await
         })
         .await
@@ -56,9 +56,9 @@ pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::
                     row_id: String::new(),
                     exec_code: "security".to_string(),
                     data_content: res,
-                    open_date_year: task.clone().open_date_year,
-                    open_date_month: task.clone().open_date_month,
-                    open_date_day: task.clone().open_date_day,
+                    open_date_year: task.open_date_year.clone(),
+                    open_date_month: task.open_date_month.clone(),
+                    open_date_day: task.open_date_day.clone(),
                 };
 
                 dao::create(new_response_data).await?;
@@ -90,7 +90,7 @@ async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
     Ok(html_decode(&result_html))
 }
 
-fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error::Error>> {
+fn parse_web_security_data(table: &str) -> Result<String, Box<dyn std::error::Error>> {
     let document = Html::parse_document(table);
 
     let table_select = Selector::parse("table.h4").unwrap();
@@ -131,15 +131,15 @@ pub async fn get_twse_avg_json(
     let json = res.json::<SecurityPriceTwse>().await?;
     event!(target: "security_api", Level::DEBUG,  "{:?}", &json);
 
-    let json_str = get_twse_price(json, tw_ym, 0, 1);
+    let json_str = get_twse_price(&json, &tw_ym, 0, 1);
     event!(target: "security_api", Level::DEBUG,  "{0}", &json_str);
 
     Ok(html_decode(&json_str))
 }
 
 fn get_twse_price(
-    twse_json: SecurityPriceTwse,
-    tw_ym: String,
+    twse_json: &SecurityPriceTwse,
+    tw_ym: &str,
     date_index: usize,
     price_index: usize,
 ) -> String {
@@ -148,11 +148,11 @@ fn get_twse_price(
     } else {
         "N".to_string()
     };
-    let title = twse_json.title.unwrap_or("".to_string());
-    let date = twse_json.date.unwrap_or("".to_string());
-    let fields = twse_json.fields.unwrap_or(Vec::<String>::new());
+    let title = twse_json.title.clone().unwrap_or("".to_string());
+    let date = twse_json.date.clone().unwrap_or("".to_string());
+    let fields = twse_json.fields.clone().unwrap_or(Vec::<String>::new());
     let data = get_close_price(
-        twse_json.data.unwrap_or(Vec::<Vec<String>>::new()),
+        &twse_json.data.clone().unwrap_or(Vec::<Vec<String>>::new()),
         tw_ym,
         date_index,
         price_index,
@@ -203,7 +203,7 @@ pub async fn get_tpex1_json(
     let json = res.json::<SecurityPriceTpex>().await?;
     event!(target: "security_api", Level::DEBUG,  "{:?}", &json);
 
-    let json_str = get_tpex_price(json, tw_ym, 0, 6);
+    let json_str = get_tpex_price(&json, &tw_ym, 0, 6);
     event!(target: "security_api", Level::DEBUG,  "{0}", &json_str);
 
     Ok(html_decode(&json_str))
@@ -241,15 +241,15 @@ pub async fn get_tpex2_json(
     let json = res.json::<SecurityPriceTpex>().await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &json);
 
-    let json_str = get_tpex_price(json, tw_ym, 0, 5);
+    let json_str = get_tpex_price(&json, &tw_ym, 0, 5);
     event!(target: "security_api", Level::DEBUG,  "{0}", &json_str);
 
     Ok(html_decode(&json_str))
 }
 
 fn get_tpex_price(
-    tpex_json: SecurityPriceTpex,
-    tw_ym: String,
+    tpex_json: &SecurityPriceTpex,
+    tw_ym: &str,
     date_index: usize,
     price_index: usize,
 ) -> String {
@@ -264,7 +264,7 @@ fn get_tpex_price(
         let title = table.subtitle.clone();
         let date = table.date.clone();
         let fields = table.fields.clone();
-        let data = get_close_price(table.data.clone(), tw_ym, date_index, price_index);
+        let data = get_close_price(&table.data, tw_ym, date_index, price_index);
 
         if "Y" == status && !data.is_empty() {
             return serde_json::to_string(&MonthlyPrice {
@@ -284,8 +284,8 @@ fn get_tpex_price(
 }
 
 fn get_close_price(
-    data: Vec<Vec<String>>,
-    tw_ym: String,
+    data: &Vec<Vec<String>>,
+    tw_ym: &str,
     date_index: usize,
     price_index: usize,
 ) -> Vec<Vec<String>> {

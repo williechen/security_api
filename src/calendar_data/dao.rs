@@ -35,7 +35,7 @@ pub async fn create(data: CalendarData) -> Result<u64, sqlx::Error> {
     }
 }
 
-pub async fn find_one(q_year: String, q_month: String, q_day: String) -> Option<CalendarData> {
+pub async fn find_one(q_year: &str, q_month: &str, q_day: &str) -> Option<CalendarData> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 

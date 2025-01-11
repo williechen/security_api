@@ -16,37 +16,37 @@ use super::model::{ResposePrice, SecurityPrice};
 pub async fn get_security_to_price(task: &DailyTask) -> Result<(), sqlx::Error> {
     event!(target: "security_api", Level::DEBUG, "call daily_task.get_security_to_price");
 
-    let q_year = task.open_date_year.clone();
-    let q_month = task.open_date_month.clone();
+    let q_year = &task.open_date_year;
+    let q_month = &task.open_date_month;
 
     let res_prices = dao::find_all_by_res(q_year, q_month).await;
     for price in res_prices {
         event!(target: "security_api", Level::DEBUG, "ResposePrice: {:?}", &price);
 
-        let q_year = price.open_date_year.clone();
-        let q_month = price.open_date_month.clone();
-        let q_security_code = price.security_code.clone();
+        let q_year = &price.open_date_year;
+        let q_month = &price.open_date_month;
+        let q_security_code = &price.security_code;
 
         let month_prices =
-            dao::find_all(q_year.clone(), q_month.clone(), q_security_code.clone()).await;
+            dao::find_all(q_year, q_month, q_security_code).await;
         if month_prices.len() <= 0 {
-            loop_data_res(price, Vec::new()).await?;
+            loop_data_res(&price, &Vec::new()).await?;
         } else {
             let price_dates: Vec<(String, BigDecimal)> = month_prices.iter().map(|x| (x.price_date.clone(), x.price_close.clone())).collect();
-            loop_data_res(price, price_dates).await?;
+            loop_data_res(&price, &price_dates).await?;
         }
     }
 
     Ok(())
 }
 
-async fn loop_data_res(data: ResposePrice, price_dates: Vec<(String, BigDecimal)>) -> Result<(), sqlx::Error> {
-    let data_content = data.data_content.clone();
+async fn loop_data_res(data: &ResposePrice, price_dates: &Vec<(String, BigDecimal)>) -> Result<(), sqlx::Error> {
+    let data_content = &data.data_content;
 
     let dao = Repository::new().await;
     let conn = dao.connection;
 
-    match serde_json::from_str::<MonthlyPrice>(&data_content) {
+    match serde_json::from_str::<MonthlyPrice>(data_content) {
         Ok(data_row) => {
             if !data_row.data.is_empty() {
                 for row in data_row.data {
@@ -60,7 +60,7 @@ async fn loop_data_res(data: ResposePrice, price_dates: Vec<(String, BigDecimal)
                         continue;
                     }
 
-                    match loop_data_price(&mut trax_conn, new_price_date, price_close, data.clone())
+                    match loop_data_price(&mut trax_conn, &new_price_date, &price_close, data)
                         .await
                     {
                         Ok(_) => {
@@ -81,29 +81,30 @@ async fn loop_data_res(data: ResposePrice, price_dates: Vec<(String, BigDecimal)
 
 async fn loop_data_price(
     trax_conn: &mut PgConnection,
-    price_date: String,
-    price_close: BigDecimal,
-    data: ResposePrice,
+    price_date: &str,
+    price_close: &BigDecimal,
+    data: &ResposePrice,
 ) -> Result<(), sqlx::Error> {
-    
 
-    if price_close > BigDecimal::zero() {
-        let price = SecurityPrice {
-            security_code: data.security_code.clone(),
-            security_name: data.security_name.clone(),
-            price_date: price_date,
-            price_close: price_close,
-            price_avg: BigDecimal::zero(),
-            price_hight: BigDecimal::zero(),
-            price_hight_avg: BigDecimal::zero(),
-            price_lowest: BigDecimal::zero(),
-            price_lowest_avg: BigDecimal::zero(),
-            open_date_year: data.open_date_year.clone(),
-            open_date_month: data.open_date_month.clone(),
-            open_date_day: data.open_date_day.clone(),
-            row_id: "".to_string(),
-        };
-        dao::create(trax_conn, price).await?;
+    let price = SecurityPrice {
+        open_date_year: data.open_date_year.clone(),
+        open_date_month: data.open_date_month.clone(),
+        open_date_day: data.open_date_day.clone(),
+        price_date: price_date.to_owned(),
+        security_code: data.security_code.clone(),
+        security_name: data.security_name.clone(),
+        price_close: price_close.clone(),
+        price_avg: BigDecimal::zero(),
+        price_hight: BigDecimal::zero(),
+        price_hight_avg: BigDecimal::zero(),
+        price_lowest: BigDecimal::zero(),
+        price_lowest_avg: BigDecimal::zero(),
+        row_id: "".to_string(),
+    };
+
+    dao::remove(trax_conn, price.clone()).await?;
+    if *price_close > BigDecimal::zero() {
+        dao::create(trax_conn, price.clone()).await?;
     }
 
     Ok(())
@@ -112,31 +113,31 @@ async fn loop_data_price(
 pub async fn get_calculator_to_price(task: &DailyTask) -> Result<(), sqlx::Error> {
     event!(target: "security_api", Level::INFO, "call daily_task.get_calculator_to_price");
 
-    let q_year = task.open_date_year.clone();
-    let q_month = task.open_date_month.clone();
-    let q_day = task.open_date_day.clone();
+    let q_year = &task.open_date_year;
+    let q_month = &task.open_date_month;
+    let q_day = &task.open_date_day;
 
     let res_prices = dao::find_all_by_date(q_year, q_month, q_day).await;
     for price in res_prices {
         event!(target: "security_api", Level::DEBUG, "SecurityPrice: {:?}", &price);
-        loop_data_calculator(price).await?;
+        loop_data_calculator(&price).await?;
     }
 
     Ok(())
 }
 
-async fn loop_data_calculator(data: SecurityPrice) -> Result<(), sqlx::Error> {
-    let q_year = data.open_date_year.clone();
-    let q_month = data.open_date_month.clone();
-    let q_day = data.open_date_day.clone();
-    let q_open_date = format!("{0}{1}{2}", q_year, q_month, q_day);
-    let q_security_code = data.security_code.clone();
-    let q_price_date = data.price_date.clone();
+async fn loop_data_calculator(data: &SecurityPrice) -> Result<(), sqlx::Error> {
+    let q_year = &data.open_date_year;
+    let q_month = &data.open_date_month;
+    let q_day = &data.open_date_day;
+    let q_open_date = &format!("{0}{1}{2}", q_year, q_month, q_day);
+    let q_security_code = &data.security_code;
+    let q_price_date = &data.price_date;
 
     let resp_prices = dao::find_all_by_code(
-        q_open_date.clone(),
-        q_price_date.clone(),
-        q_security_code.clone(),
+        q_open_date,
+        q_price_date,
+        q_security_code,
     )
     .await;
 
@@ -147,12 +148,12 @@ async fn loop_data_calculator(data: SecurityPrice) -> Result<(), sqlx::Error> {
     let (price_min, price_avg_min) = get_calculator_min_avg(&price_avg, &resp_prices);
 
     let new_price = get_security_price(
-        &data,
-        price_avg,
-        price_max,
-        price_avg_max,
-        price_min,
-        price_avg_min,
+        data,
+        &price_avg,
+        &price_max,
+        &price_avg_max,
+        &price_min,
+        &price_avg_min,
     );
 
     dao::modify(new_price).await?;
@@ -162,18 +163,18 @@ async fn loop_data_calculator(data: SecurityPrice) -> Result<(), sqlx::Error> {
 
 fn get_security_price(
     price: &SecurityPrice,
-    price_avg: BigDecimal,
-    price_max: BigDecimal,
-    price_avg_max: BigDecimal,
-    price_min: BigDecimal,
-    price_avg_min: BigDecimal,
+    price_avg: &BigDecimal,
+    price_max: &BigDecimal,
+    price_avg_max: &BigDecimal,
+    price_min: &BigDecimal,
+    price_avg_min: &BigDecimal,
 ) -> SecurityPrice {
     let mut new_price = price.clone();
-    new_price.price_avg = price_avg;
-    new_price.price_hight = price_max;
-    new_price.price_hight_avg = price_avg_max;
-    new_price.price_lowest = price_min;
-    new_price.price_lowest_avg = price_avg_min;
+    new_price.price_avg = price_avg.clone();
+    new_price.price_hight = price_max.clone();
+    new_price.price_hight_avg = price_avg_max.clone();
+    new_price.price_lowest = price_min.clone();
+    new_price.price_lowest_avg = price_avg_min.clone();
 
     new_price
 }
@@ -187,7 +188,7 @@ fn get_calculator_avg(resp_prices: &Vec<BigDecimal>) -> BigDecimal {
         sum_price = sum_price.add(price);
     }
 
-    get_round(sum_price, sum_count)
+    get_round(&sum_price, &sum_count)
 }
 
 fn get_calculator_max_avg(
@@ -222,14 +223,14 @@ fn get_calculator_min_avg(
     (min_price, avg_price)
 }
 
-fn get_round(price: BigDecimal, count: BigDecimal) -> BigDecimal {
-    if count == BigDecimal::zero() {
-        to_big_decimal_round(price.div(1))
+fn get_round(price: &BigDecimal, count: &BigDecimal) -> BigDecimal {
+    if *count == BigDecimal::zero() {
+        to_big_decimal_round(&price.div(1))
     } else {
-        to_big_decimal_round(price.div(count))
+        to_big_decimal_round(&price.div(count))
     }
 }
 
-fn to_big_decimal_round(val: bigdecimal::BigDecimal) -> bigdecimal::BigDecimal {
+fn to_big_decimal_round(val: &bigdecimal::BigDecimal) -> bigdecimal::BigDecimal {
     val.with_scale_round(4, RoundingMode::Up)
 }

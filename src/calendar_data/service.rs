@@ -33,7 +33,7 @@ fn get_weekday(year: i32, month: u32, day: u32) -> i32 {
 ///
 /// (年，月，日，開市第幾天)
 ///
-async fn get_open_stock_month(year: i32, last_price_date: &String) -> Vec<(i32, u32, u32, i32)> {
+async fn get_open_stock_month(year: i32, last_price_date: &str) -> Vec<(i32, u32, u32, i32)> {
     let mut open_stock_dates = Vec::<(i32, u32, u32, i32)>::new();
 
     for month in 1..=12 {
@@ -43,9 +43,9 @@ async fn get_open_stock_month(year: i32, last_price_date: &String) -> Vec<(i32, 
         if last_price_date.starts_with(&str_ym) {
             // 收盤價清單
             price_data = security_price::dao::find_all_by_date(
-                format!("{0:04}", year),
-                format!("{0:02}", month),
-                "".to_string(),
+                &format!("{0:04}", year),
+                &format!("{0:02}", month),
+                "",
             )
             .await;
         } else {
@@ -56,7 +56,7 @@ async fn get_open_stock_month(year: i32, last_price_date: &String) -> Vec<(i32, 
             year,
             month,
             last_price_date,
-            price_data,
+            &price_data,
         ));
     }
     open_stock_dates
@@ -65,15 +65,15 @@ async fn get_open_stock_month(year: i32, last_price_date: &String) -> Vec<(i32, 
 fn get_open_stock_date(
     year: i32,
     month: u32,
-    last_price_date: &String,
-    price_data: Vec<SecurityPrice>,
+    last_price_date: &str,
+    price_data: &Vec<SecurityPrice>,
 ) -> Vec<(i32, u32, u32, i32)> {
     let mut open_stock_dates = Vec::<(i32, u32, u32, i32)>::new();
 
     let mut open_stock_index = 0;
     let last_day = last_day_in_month(year, month).day();
     for day in 1..=last_day {
-        if last_price_date >= &format!("{0:04}{1:02}{2:02}", year, month, day) {
+        if last_price_date.to_string() >= format!("{0:04}{1:02}{2:02}", year, month, day) {
             let security_codes: Vec<String> = price_data
                 .iter()
                 .filter(|x| {
@@ -125,9 +125,9 @@ fn get_new_calendar_date(
 
 async fn check_data_exists(data: &CalendarData) -> bool {
     dao::find_one(
-        data.ce_year.clone(),
-        data.ce_month.clone(),
-        data.ce_day.clone(),
+        &data.ce_year,
+        &data.ce_month,
+        &data.ce_day,
     )
     .await
     .is_some()

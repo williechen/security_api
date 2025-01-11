@@ -19,7 +19,7 @@ pub async fn read_flow_data(
         pstatus: String::new(),
     };
 
-    dao::find_all(listen_flow).await
+    dao::find_all(&listen_flow).await
 }
 
 pub async fn delete_flow_data(flow_code: &str) {
@@ -39,7 +39,7 @@ pub async fn insert_flow_data2(pid: i32, flow_code: &str, flow_param1: &str, flo
         pstatus: String::new(),
     };
 
-    let flows = dao::find_all(listen_flow).await;
+    let flows = dao::find_all(&listen_flow).await;
     if flows.len() <= 0 {
         let new_listen_flow = ListenFlow {
             row_id: String::new(),
@@ -70,7 +70,7 @@ pub async fn modify_flow_data2(pid: i32, flow_code: &str, flow_param1: &str, flo
         pstatus: String::new(),
     };
 
-    let flows = dao::find_all(listen_flow).await;
+    let flows = dao::find_all(&listen_flow).await;
     for flow in flows {
         let mut new_flow = flow;
         new_flow.pstatus = "EXIT".to_string();

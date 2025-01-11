@@ -15,18 +15,18 @@ pub async fn insert_task_data() -> Result<(), sqlx::Error> {
     for data in task_list {
         event!(target: "security_api", Level::DEBUG, "DailyTask: {}", &data);
 
-        let q_year = data.open_date_year.clone();
-        let q_month = data.open_date_month.clone();
-        let q_day = data.open_date_day.clone();
-        let q_job_code = data.job_code.clone();
+        let q_year = &data.open_date_year;
+        let q_month = &data.open_date_month;
+        let q_day = &data.open_date_day;
+        let q_job_code = &data.job_code;
 
         let task = dao::find_one(q_year, q_month, q_day, q_job_code).await;
         if task.is_none() {
             let new_date = DailyTask {
-                open_date_year: data.open_date_year.clone(),
-                open_date_month: data.open_date_month.clone(),
-                open_date_day: data.open_date_day.clone(),
-                job_code: data.job_code.clone(),
+                open_date_year: data.open_date_year,
+                open_date_month: data.open_date_month,
+                open_date_day: data.open_date_day,
+                job_code: data.job_code,
                 exec_status: "WAIT".to_string(),
                 row_id: "".to_string(),
             };
@@ -37,18 +37,18 @@ pub async fn insert_task_data() -> Result<(), sqlx::Error> {
 }
 
 pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
-    let mut exec_task = dao::find_one_by_exec_desc("security".to_string()).await;
+    let mut exec_task = dao::find_one_by_exec_desc("security").await;
     while exec_task.is_some() {
         let e_open_date = start_open_data("security", &exec_task.unwrap()).await;
 
         let (year, month) = e_open_date.await;
 
-        let task_list = dao::find_all_by_exec_desc(year.clone(), month.clone()).await;
+        let task_list = dao::find_all_by_exec_desc(&year, &month).await;
         for task in task_list {
             event!(target: "security_api", Level::INFO, "DailyTaskInfo: {0}", &task);
             update_task_status(&task, "OPEN").await;
 
-            let job_code = task.job_code.clone();
+            let job_code = &task.job_code;
             let ref_job_code = job_code.as_str();
 
             // 執行任務
@@ -63,24 +63,24 @@ pub async fn exec_daily_task() -> Result<(), sqlx::Error> {
         }
 
         end_open_date("security", &year, &month).await;
-        exec_task = dao::find_one_by_exec_desc("security".to_string()).await;
+        exec_task = dao::find_one_by_exec_desc("security").await;
     }
     Ok(())
 }
 
 pub async fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
-    let mut exec_task = dao::find_one_by_exec_asc("price".to_string()).await;
+    let mut exec_task = dao::find_one_by_exec_asc("price").await;
     while exec_task.is_some() {
-        let e_open_date = start_open_data("price", &exec_task.clone().unwrap()).await;
+        let e_open_date = start_open_data("price", &exec_task.unwrap()).await;
 
         let (year, month) = e_open_date.await;
 
-        let task_list = dao::find_all_by_exec_asc(year.clone(), month.clone()).await;
+        let task_list = dao::find_all_by_exec_asc(&year, &month).await;
         for task in task_list {
             event!(target: "security_api", Level::INFO, "DailyTaskInfo {0}", &task);
             update_task_status(&task, "OPEN").await;
 
-            let job_code = task.job_code.clone();
+            let job_code = &task.job_code;
             let ref_job_code = job_code.as_str();
 
             // 執行任務
@@ -92,7 +92,7 @@ pub async fn exec_price_task() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         end_open_date("price", &year, &month).await;
-        exec_task = dao::find_one_by_exec_asc("price".to_string()).await;
+        exec_task = dao::find_one_by_exec_asc("price").await;
     }
     Ok(())
 }
@@ -211,8 +211,8 @@ async fn start_open_data(
     task: &DailyTask,
 ) -> Pin<Box<dyn Future<Output = (String, String)>>> {
     let pid = process::id() as i32;
-    let year = task.open_date_year.clone();
-    let month = task.open_date_month.clone();
+    let year = &task.open_date_year;
+    let month = &task.open_date_month;
 
     let results = listen_flow::service::read_flow_data(flow_code, &year, &month).await;
     let current_tasks = results
@@ -220,11 +220,13 @@ async fn start_open_data(
         .filter(|x| x.pid == pid && x.pstatus != "EXIT".to_string())
         .collect::<Vec<ListenFlow>>();
     if current_tasks.len() > 0 {
-        let exec_task = dao::find_one_by_exec_asc(flow_code.to_string()).await;
+        let exec_task = dao::find_one_by_exec_asc(flow_code).await;
         return Box::pin(start_open_data(flow_code, &exec_task.unwrap())).await;
     } else {
         listen_flow::service::insert_flow_data2(pid, flow_code, &year, &month).await;
-        return Box::pin(async move { (year, month) });
+        let y = year.clone();
+        let m = month.clone();
+        return Box::pin(async move { (y, m) });
     }
 }
 
