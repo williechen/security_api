@@ -34,7 +34,7 @@ sqlx = { version = "0.8", features = [
     "postgres",
 ] }
 
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.43", features = ["full"] }
 tokio-retry = "0.3"
 
 tracing = { version = "0.1", features = ["log"] }
