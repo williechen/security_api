@@ -1,9 +1,12 @@
 #![warn(clippy::all, clippy::pedantic)]
 
+use std::fs;
+
 use chrono::{Datelike, Local};
 
 mod calendar_data;
 mod daily_task;
+mod database_backup;
 pub mod listen_flow;
 pub mod repository;
 mod response_data;
@@ -11,11 +14,34 @@ mod security_price;
 mod security_task;
 mod security_temp;
 mod task_setting;
-mod database_backup;
 
 pub fn backup_insert() -> Result<(), Box<dyn std::error::Error>> {
-    database_backup::DatabaseBackup.backup_insert("security_api", "security_api_insert_backup");
-    database_backup::DatabaseBackup.backup_copy("security_api", "security_api_copy_backup");
+    let now_str = Local::now().format("%Y%m%d");
+
+    let insert_backup = format!("security_api_insert_backup_{0}", &now_str);
+    let copy_backup = format!("security_api_copy_backup_{0}", &now_str);
+
+    let files = fs::read_dir("./")?;
+    for file in files {
+        let file = file?;
+
+        if file
+            .file_name()
+            .to_str()
+            .map_or(false, |s| s.starts_with(&insert_backup))
+        {
+            database_backup::DatabaseBackup
+                .backup_insert("security_api", "security_api_insert_backup");
+        }
+
+        if file
+            .file_name()
+            .to_str()
+            .map_or(false, |s| s.starts_with(&copy_backup))
+        {
+            database_backup::DatabaseBackup.backup_copy("security_api", "security_api_copy_backup");
+        }
+    }
     Ok(())
 }
 
