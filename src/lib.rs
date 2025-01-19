@@ -25,7 +25,7 @@ pub fn backup_insert() -> Result<(), Box<dyn std::error::Error>> {
     for file in files {
         let file = file?;
 
-        if file
+        if !file
             .file_name()
             .to_str()
             .map_or(false, |s| s.starts_with(&insert_backup))
@@ -34,7 +34,7 @@ pub fn backup_insert() -> Result<(), Box<dyn std::error::Error>> {
                 .backup_insert("security_api", "security_api_insert_backup");
         }
 
-        if file
+        if !file
             .file_name()
             .to_str()
             .map_or(false, |s| s.starts_with(&copy_backup))
