@@ -166,9 +166,9 @@ fn get_twse_price(
             fields,
             data,
         })
-        .unwrap_or("".to_string());
+        .unwrap_or("2".to_string());
     } else {
-        return "".to_string();
+        return "1".to_string();
     }
 }
 
@@ -274,9 +274,9 @@ fn get_tpex_price(
                 fields,
                 data,
             })
-            .unwrap_or("".to_string());
+            .unwrap_or("2".to_string());
         } else {
-            return "".to_string();
+            return "1".to_string();
         }
     } else {
         return "".to_string();

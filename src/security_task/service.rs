@@ -230,11 +230,13 @@ async fn loop_data_security_task(security: &SecurityTask) -> Result<(), sqlx::Er
             .await
             {
                 Ok(res) => {
-                    if !res.is_empty() {
+                    if !res.is_empty() && !["1", "2"].contains(&res.as_str()) {
                         add_res_data(&security, &res).await;
                         update_data(&security, true).await;
-                    } else {
+                    } else if "1" == res.as_str() {
                         update_data(&security, false).await;
+                    } else if "2" == res.as_str() {
+                        return Err(sqlx::Error::RowNotFound);
                     }
                     return Ok(());
                 }
@@ -248,11 +250,13 @@ async fn loop_data_security_task(security: &SecurityTask) -> Result<(), sqlx::Er
             .await
             {
                 Ok(res) => {
-                    if !res.is_empty() {
+                    if !res.is_empty() && !["1", "2"].contains(&res.as_str()) {
                         add_res_data(&security, &res).await;
                         update_data(&security, true).await;
-                    } else {
+                    } else if "1" == res.as_str() {
                         update_data(&security, false).await;
+                    } else if "2" == res.as_str() {
+                        return Err(sqlx::Error::RowNotFound);
                     }
                     return Ok(());
                 }
@@ -266,11 +270,13 @@ async fn loop_data_security_task(security: &SecurityTask) -> Result<(), sqlx::Er
             .await
             {
                 Ok(res) => {
-                    if !res.is_empty() {
+                    if !res.is_empty() && !["1", "2"].contains(&res.as_str()) {
                         add_res_data(&security, &res).await;
                         update_data(&security, true).await;
-                    } else {
+                    } else if "1" == res.as_str() {
                         update_data(&security, false).await;
+                    } else if "2" == res.as_str() {
+                        return Err(sqlx::Error::RowNotFound);
                     }
                     return Ok(());
                 }
