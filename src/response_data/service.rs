@@ -154,17 +154,20 @@ fn get_twse_price(
     } else {
         "N".to_string()
     };
+
+    let raw_data = twse_json.data.clone().unwrap_or(Vec::<Vec<String>>::new());
+
     let title = twse_json.title.clone().unwrap_or("".to_string());
     let date = twse_json.date.clone().unwrap_or("".to_string());
     let fields = twse_json.fields.clone().unwrap_or(Vec::<String>::new());
     let data = get_close_price(
-        &twse_json.data.clone().unwrap_or(Vec::<Vec<String>>::new()),
+        &raw_data,
         tw_ym,
         date_index,
         price_index,
     );
 
-    if "Y" == status && !data.is_empty() {
+    if "Y" == status && !(raw_data.is_empty() && data.is_empty()) {
         return serde_json::to_string(&MonthlyPrice {
             status,
             title,
@@ -175,7 +178,7 @@ fn get_twse_price(
         .unwrap_or("2".to_string());
     } else if "N" == status {
         return "1".to_string();
-    } else if data.is_empty() {
+    } else if !raw_data.is_empty() && data.is_empty() {
         return "2".to_string();
     } else {
         return "1".to_string();
