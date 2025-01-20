@@ -20,6 +20,7 @@ use crate::{
 
 use super::model::MonthlyPrice;
 
+/// HTML decode
 fn html_decode(input: &str) -> String {
     input
         .replace("&amp;", "&")
@@ -31,6 +32,7 @@ fn html_decode(input: &str) -> String {
         .replace("＊", "")
 }
 
+/// 取得證券代碼
 pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level:: INFO, "call daily_task.get_security_all_code");
 
@@ -71,6 +73,7 @@ pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::
     Ok(())
 }
 
+/// 取得證券價格
 async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 
@@ -90,6 +93,7 @@ async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
     Ok(html_decode(&result_html))
 }
 
+/// 解析證券代碼
 fn parse_web_security_data(table: &str) -> Result<String, Box<dyn std::error::Error>> {
     let document = Html::parse_document(table);
 
@@ -104,6 +108,7 @@ fn parse_web_security_data(table: &str) -> Result<String, Box<dyn std::error::Er
     Ok(result.to_string())
 }
 
+/// 取得證券價格
 pub async fn get_twse_avg_json(
     task: &SecurityTask,
 ) -> Result<String, Box<dyn std::error::Error + 'static + Send + Sync>> {
@@ -137,6 +142,7 @@ pub async fn get_twse_avg_json(
     Ok(html_decode(&json_str))
 }
 
+/// 取得證券價格
 fn get_twse_price(
     twse_json: &SecurityPriceTwse,
     tw_ym: &str,
@@ -167,11 +173,16 @@ fn get_twse_price(
             data,
         })
         .unwrap_or("2".to_string());
+    } else if "N" == status {
+        return "1".to_string();
+    } else if data.is_empty() {
+        return "2".to_string();
     } else {
         return "1".to_string();
     }
 }
 
+/// 取得證券價格
 pub async fn get_tpex1_json(
     task: &SecurityTask,
 ) -> Result<String, Box<dyn std::error::Error + 'static + Send + Sync>> {
@@ -209,6 +220,7 @@ pub async fn get_tpex1_json(
     Ok(html_decode(&json_str))
 }
 
+/// 取得證券價格
 pub async fn get_tpex2_json(
     task: &SecurityTask,
 ) -> Result<String, Box<dyn std::error::Error + 'static + Send + Sync>> {
@@ -247,6 +259,9 @@ pub async fn get_tpex2_json(
     Ok(html_decode(&json_str))
 }
 
+
+/// 取得證券價格
+/// result 1: 略過 2: 重試
 fn get_tpex_price(
     tpex_json: &SecurityPriceTpex,
     tw_ym: &str,
@@ -275,14 +290,19 @@ fn get_tpex_price(
                 data,
             })
             .unwrap_or("2".to_string());
+        } else if "N" == status {
+            return "1".to_string();
+        } else if data.is_empty() {
+            return "2".to_string();
         } else {
             return "1".to_string();
         }
     } else {
-        return "".to_string();
+        return "1".to_string();
     }
 }
 
+/// 取得證券價格
 fn get_close_price(
     data: &Vec<Vec<String>>,
     tw_ym: &str,
@@ -305,6 +325,7 @@ fn get_close_price(
         .collect()
 }
 
+/// 任務執行紀錄
 fn run_task_log(task: &SecurityTask) {
     let security_code = &task.security_code;
     let market_type = &task.market_type;
