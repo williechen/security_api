@@ -179,6 +179,7 @@ fn get_twse_price(
     } else if "N" == status {
         return "1".to_string();
     } else if !raw_data.is_empty() && data.is_empty() {
+        event!(target: "security_api", Level::INFO, "raw_data: {:?}", &raw_data);
         return "2".to_string();
     } else {
         return "1".to_string();
@@ -279,12 +280,15 @@ fn get_tpex_price(
         } else {
             "N".to_string()
         };
+
+        let raw_data = table.data.clone();
+
         let title = table.subtitle.clone();
         let date = table.date.clone();
         let fields = table.fields.clone();
         let data = get_close_price(&table.data, tw_ym, date_index, price_index);
 
-        if "Y" == status && !data.is_empty() {
+        if "Y" == status && !(raw_data.is_empty() && data.is_empty()) {
             return serde_json::to_string(&MonthlyPrice {
                 status,
                 title,
@@ -295,7 +299,8 @@ fn get_tpex_price(
             .unwrap_or("2".to_string());
         } else if "N" == status {
             return "1".to_string();
-        } else if data.is_empty() {
+        } else if !raw_data.is_empty() && data.is_empty() {
+            event!(target: "security_api", Level::INFO, "raw_data: {:?}", &raw_data);
             return "2".to_string();
         } else {
             return "1".to_string();
