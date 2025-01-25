@@ -20,6 +20,7 @@ use crate::{
 
 use super::model::MonthlyPrice;
 
+/// HTML decode
 fn html_decode(input: &str) -> String {
     input
         .replace("&amp;", "&")
@@ -31,13 +32,14 @@ fn html_decode(input: &str) -> String {
         .replace("＊", "")
 }
 
+/// 取得證券代碼
 pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::error::Error>> {
     event!(target: "security_api", Level:: INFO, "call daily_task.get_security_all_code");
 
-    let q_year = task.clone().open_date_year;
-    let q_month = task.clone().open_date_month;
-    let q_day = task.clone().open_date_day;
-    let q_exec_code = "security".to_string();
+    let q_year = &task.open_date_year;
+    let q_month = &task.open_date_month;
+    let q_day = &task.open_date_day;
+    let q_exec_code = "security";
 
     // 重試設定
     let retry_strategy = ExponentialBackoff::from_millis(2000)
@@ -46,7 +48,7 @@ pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::
 
     let data = dao::find_one(q_year, q_month, q_day, q_exec_code).await;
     if data.is_none() {
-        match Retry::spawn(retry_strategy.clone(), || async {
+        match Retry::spawn(retry_strategy, || async {
             get_web_security_data().await
         })
         .await
@@ -56,9 +58,9 @@ pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::
                     row_id: String::new(),
                     exec_code: "security".to_string(),
                     data_content: res,
-                    open_date_year: task.clone().open_date_year,
-                    open_date_month: task.clone().open_date_month,
-                    open_date_day: task.clone().open_date_day,
+                    open_date_year: task.open_date_year.clone(),
+                    open_date_month: task.open_date_month.clone(),
+                    open_date_day: task.open_date_day.clone(),
                 };
 
                 dao::create(new_response_data).await?;
@@ -71,6 +73,7 @@ pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::
     Ok(())
 }
 
+/// 取得證券價格
 async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
 
@@ -90,7 +93,8 @@ async fn get_web_security_data() -> Result<String, Box<dyn std::error::Error>> {
     Ok(html_decode(&result_html))
 }
 
-fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error::Error>> {
+/// 解析證券代碼
+fn parse_web_security_data(table: &str) -> Result<String, Box<dyn std::error::Error>> {
     let document = Html::parse_document(table);
 
     let table_select = Selector::parse("table.h4").unwrap();
@@ -104,7 +108,10 @@ fn parse_web_security_data(table: &String) -> Result<String, Box<dyn std::error:
     Ok(result.to_string())
 }
 
-pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+/// 取得證券價格
+pub async fn get_twse_avg_json(
+    task: &SecurityTask,
+) -> Result<String, Box<dyn std::error::Error + 'static + Send + Sync>> {
     run_task_log(task);
 
     let y = &task.open_date_year;
@@ -129,34 +136,38 @@ pub async fn get_twse_avg_json(task: &SecurityTask) -> Result<String, Box<dyn st
     let json = res.json::<SecurityPriceTwse>().await?;
     event!(target: "security_api", Level::DEBUG,  "{:?}", &json);
 
-    let json_str = get_twse_price(json, tw_ym, 0, 1);
+    let json_str = get_twse_price(&json, &tw_ym, 0, 1);
     event!(target: "security_api", Level::DEBUG,  "{0}", &json_str);
 
     Ok(html_decode(&json_str))
 }
 
+/// 取得證券價格
 fn get_twse_price(
-    twse_json: SecurityPriceTwse,
-    tw_ym: String,
-    date_index: u32,
-    price_index: u32,
+    twse_json: &SecurityPriceTwse,
+    tw_ym: &str,
+    date_index: usize,
+    price_index: usize,
 ) -> String {
     let status = if "OK" == twse_json.stat {
         "Y".to_string()
     } else {
         "N".to_string()
     };
-    let title = twse_json.title.unwrap_or("".to_string());
-    let date = twse_json.date.unwrap_or("".to_string());
-    let fields = twse_json.fields.unwrap_or(Vec::<String>::new());
+
+    let raw_data = twse_json.data.clone().unwrap_or(Vec::<Vec<String>>::new());
+
+    let title = twse_json.title.clone().unwrap_or("".to_string());
+    let date = twse_json.date.clone().unwrap_or("".to_string());
+    let fields = twse_json.fields.clone().unwrap_or(Vec::<String>::new());
     let data = get_close_price(
-        twse_json.data.unwrap_or(Vec::<Vec<String>>::new()),
+        &raw_data,
         tw_ym,
         date_index,
         price_index,
     );
 
-    if "Y" == status && !data.is_empty() {
+    if "Y" == status && !(raw_data.is_empty() && data.is_empty()) {
         return serde_json::to_string(&MonthlyPrice {
             status,
             title,
@@ -164,13 +175,21 @@ fn get_twse_price(
             fields,
             data,
         })
-        .unwrap_or("".to_string());
+        .unwrap_or("2".to_string());
+    } else if "N" == status {
+        return "1".to_string();
+    } else if !raw_data.is_empty() && data.is_empty() {
+        event!(target: "security_api", Level::INFO, "raw_data: {:?}", &raw_data);
+        return "2".to_string();
     } else {
-        return "".to_string();
+        return "1".to_string();
     }
 }
 
-pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+/// 取得證券價格
+pub async fn get_tpex1_json(
+    task: &SecurityTask,
+) -> Result<String, Box<dyn std::error::Error + 'static + Send + Sync>> {
     run_task_log(task);
 
     let y = &task.open_date_year;
@@ -199,13 +218,16 @@ pub async fn get_tpex1_json(task: &SecurityTask) -> Result<String, Box<dyn std::
     let json = res.json::<SecurityPriceTpex>().await?;
     event!(target: "security_api", Level::DEBUG,  "{:?}", &json);
 
-    let json_str = get_tpex_price(json, tw_ym, 0, 6);
+    let json_str = get_tpex_price(&json, &tw_ym, 0, 6);
     event!(target: "security_api", Level::DEBUG,  "{0}", &json_str);
 
     Ok(html_decode(&json_str))
 }
 
-pub async fn get_tpex2_json(task: &SecurityTask) -> Result<String, Box<dyn std::error::Error>> {
+/// 取得證券價格
+pub async fn get_tpex2_json(
+    task: &SecurityTask,
+) -> Result<String, Box<dyn std::error::Error + 'static + Send + Sync>> {
     run_task_log(task);
 
     let y = &task.open_date_year;
@@ -235,17 +257,20 @@ pub async fn get_tpex2_json(task: &SecurityTask) -> Result<String, Box<dyn std::
     let json = res.json::<SecurityPriceTpex>().await?;
     event!(target: "security_api", Level::DEBUG, "{:?}", &json);
 
-    let json_str = get_tpex_price(json, tw_ym, 0, 5);
+    let json_str = get_tpex_price(&json, &tw_ym, 0, 5);
     event!(target: "security_api", Level::DEBUG,  "{0}", &json_str);
 
     Ok(html_decode(&json_str))
 }
 
+
+/// 取得證券價格
+/// result 1: 略過 2: 重試
 fn get_tpex_price(
-    tpex_json: SecurityPriceTpex,
-    tw_ym: String,
-    date_index: u32,
-    price_index: u32,
+    tpex_json: &SecurityPriceTpex,
+    tw_ym: &str,
+    date_index: usize,
+    price_index: usize,
 ) -> String {
     if tpex_json.tables.first().is_some() {
         let table = tpex_json.tables.first().unwrap();
@@ -255,12 +280,15 @@ fn get_tpex_price(
         } else {
             "N".to_string()
         };
+
+        let raw_data = table.data.clone();
+
         let title = table.subtitle.clone();
         let date = table.date.clone();
         let fields = table.fields.clone();
-        let data = get_close_price(table.data.clone(), tw_ym, date_index, price_index);
+        let data = get_close_price(&table.data, tw_ym, date_index, price_index);
 
-        if "Y" == status && !data.is_empty() {
+        if "Y" == status && !(raw_data.is_empty() && data.is_empty()) {
             return serde_json::to_string(&MonthlyPrice {
                 status,
                 title,
@@ -268,37 +296,44 @@ fn get_tpex_price(
                 fields,
                 data,
             })
-            .unwrap_or("".to_string());
+            .unwrap_or("2".to_string());
+        } else if "N" == status {
+            return "1".to_string();
+        } else if !raw_data.is_empty() && data.is_empty() {
+            event!(target: "security_api", Level::INFO, "raw_data: {:?}", &raw_data);
+            return "2".to_string();
         } else {
-            return "".to_string();
+            return "1".to_string();
         }
     } else {
-        return "".to_string();
+        return "1".to_string();
     }
 }
 
+/// 取得證券價格
 fn get_close_price(
-    data: Vec<Vec<String>>,
-    tw_ym: String,
-    date_index: u32,
-    price_index: u32,
+    data: &Vec<Vec<String>>,
+    tw_ym: &str,
+    date_index: usize,
+    price_index: usize,
 ) -> Vec<Vec<String>> {
     data.iter()
-        .filter(|x| x[date_index as usize].trim().starts_with(&tw_ym))
+        .filter(|x| x[date_index].trim().starts_with(&tw_ym))
         .filter(|x| {
-            bigdecimal::BigDecimal::from_str(&x[price_index as usize])
+            bigdecimal::BigDecimal::from_str(&x[price_index].replace(",", ""))
                 .unwrap_or(bigdecimal::BigDecimal::zero())
                 > bigdecimal::BigDecimal::zero()
         })
         .map(|x| {
             vec![
                 x[date_index as usize].clone(),
-                x[price_index as usize].clone(),
+                x[price_index as usize].replace(",", "").clone(),
             ]
         })
         .collect()
 }
 
+/// 任務執行紀錄
 fn run_task_log(task: &SecurityTask) {
     let security_code = &task.security_code;
     let market_type = &task.market_type;

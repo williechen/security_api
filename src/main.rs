@@ -21,6 +21,8 @@ async fn main() {
         .with_writer(console_non_blocking)
         .init();
 
+    security_api::backup_insert().unwrap();
+
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 {
         let action_code = args[1].as_str();

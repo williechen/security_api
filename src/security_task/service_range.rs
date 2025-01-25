@@ -21,20 +21,20 @@ pub async fn update_task_data(task: &DailyTask) -> Result<(), sqlx::Error> {
             sort_num = sort_num + 1;
 
             let twse_data = &twse_list[i];
-            loop_data_task_data(twse_data.clone(), sort_num).await?;
+            loop_data_task_data(twse_data, sort_num).await?;
         }
         if i < tpex_list.len() {
             sort_num = sort_num + 1;
 
             let tpex_data = &tpex_list[i];
-            loop_data_task_data(tpex_data.clone(), sort_num).await?;
+            loop_data_task_data(tpex_data, sort_num).await?;
         }
     }
 
     Ok(())
 }
 
-async fn loop_data_task_data(security: SecurityTask, item_index: i32) -> Result<(), sqlx::Error> {
+async fn loop_data_task_data(security: &SecurityTask, item_index: i32) -> Result<(), sqlx::Error> {
     if security.sort_no != item_index {
         let mut new_data = security.clone();
         new_data.sort_no = item_index;

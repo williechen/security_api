@@ -99,21 +99,17 @@ pub async fn modify(data: SecurityPrice) -> Result<u64, sqlx::Error> {
 
 pub async fn remove(
     trax_conn: &mut PgConnection,
-    q_year: String,
-    q_month: String,
-    q_security_code: String,
+    data: SecurityPrice,
 ) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r"
         DELETE FROM security_price 
-         WHERE open_date_year = $1
-           AND open_date_month = $2
-           AND security_code = $3
+         WHERE price_date = $1
+           AND security_code = $2
     ",
     )
-    .bind(q_year)
-    .bind(q_month)
-    .bind(q_security_code)
+    .bind(data.price_date)
+    .bind(data.security_code)
     .execute(trax_conn)
     .await
     {
@@ -122,7 +118,7 @@ pub async fn remove(
     }
 }
 
-pub async fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePrice> {
+pub async fn find_all_by_res(q_year: &str, q_month: &str) -> Vec<ResposePrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
@@ -174,9 +170,9 @@ pub async fn read_all_by_res(q_year: String, q_month: String) -> Vec<ResposePric
 }
 
 pub async fn find_all(
-    q_year: String,
-    q_month: String,
-    q_security_code: String,
+    q_year: &str,
+    q_month: &str,
+    q_security_code: &str,
 ) -> Vec<SecurityPrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
@@ -232,9 +228,9 @@ pub async fn find_all(
 }
 
 pub async fn find_all_by_code(
-    q_open_date: String,
-    q_price_date: String,
-    q_security_code: String,
+    q_open_date: &str,
+    q_price_date: &str,
+    q_security_code: &str,
 ) -> Vec<SecurityPrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
@@ -293,9 +289,17 @@ pub async fn find_all_by_code(
     }
 }
 
-pub async fn find_all_by_date(q_year: String, q_month: String) -> Vec<SecurityPrice> {
+pub async fn find_all_by_date(q_year: &str, q_month: &str, q_day: &str) -> Vec<SecurityPrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
+
+    let day = if q_day.is_empty() {
+        format!("%{0:04}/{1:02}%", q_year.parse::<i32>().unwrap() - 1911, q_month.parse::<i32>().unwrap())
+    } else if q_day.is_empty() && q_month.is_empty(){
+        format!("%{0:04}%", q_year.parse::<i32>().unwrap() - 1911)
+    } else {
+        format!("%{0:04}/{1:02}/{2:02}%", q_year.parse::<i32>().unwrap() - 1911, q_month.parse::<i32>().unwrap(), q_day.parse::<i32>().unwrap())
+    };
 
     match sqlx::query(
         r" 
@@ -319,11 +323,7 @@ pub async fn find_all_by_date(q_year: String, q_month: String) -> Vec<SecurityPr
          ORDER BY sp.open_date_year, sp.open_date_month, sp.open_date_day, sp.price_date, sp.security_code
     ",
     )
-    .bind(format!(
-        "%{0:04}/{1:02}%",
-        (q_year.parse::<i32>().unwrap() - 1911),
-        q_month.parse::<i32>().unwrap()
-    ))
+    .bind(day)
     .map(|row: PgRow| SecurityPrice {
         row_id: row.get("row_id"),
         open_date_year: row.get("open_date_year"),

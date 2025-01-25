@@ -102,7 +102,7 @@ pub async fn remove_all(q_flow_code: &str) -> Result<u64, sqlx::Error> {
     }
 }
 
-pub async fn find_all(data: ListenFlow) -> Vec<ListenFlow> {
+pub async fn find_all(data: &ListenFlow) -> Vec<ListenFlow> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 

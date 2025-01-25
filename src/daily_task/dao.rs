@@ -124,10 +124,10 @@ pub async fn find_all() -> Vec<DailyTask> {
 }
 
 pub async fn find_one(
-    q_year: String,
-    q_month: String,
-    q_day: String,
-    q_job_code: String,
+    q_year: &str,
+    q_month: &str,
+    q_day: &str,
+    q_job_code: &str,
 ) -> Option<DailyTask> {
     let dao = Repository::new().await;
     let conn = dao.connection;
@@ -170,7 +170,7 @@ pub async fn find_one(
     }
 }
 
-pub async fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
+pub async fn find_one_by_exec_asc(flow_code: &str) -> Option<DailyTask> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
@@ -217,7 +217,7 @@ pub async fn find_one_by_exec_asc(flow_code: String) -> Option<DailyTask> {
     }
 }
 
-pub async fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
+pub async fn find_one_by_exec_desc(flow_code: &str) -> Option<DailyTask> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
@@ -264,7 +264,7 @@ pub async fn find_one_by_exec_desc(flow_code: String) -> Option<DailyTask> {
     }
 }
 
-pub async fn find_all_by_exec_asc(q_year: String, q_month: String) -> Vec<DailyTask> {
+pub async fn find_all_by_exec_asc(q_year: &str, q_month: &str) -> Vec<DailyTask> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
@@ -312,7 +312,7 @@ pub async fn find_all_by_exec_asc(q_year: String, q_month: String) -> Vec<DailyT
     }
 }
 
-pub async fn find_all_by_exec_desc(q_year: String, q_month: String) -> Vec<DailyTask> {
+pub async fn find_all_by_exec_desc(q_year: &str, q_month: &str) -> Vec<DailyTask> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
