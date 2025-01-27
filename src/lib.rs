@@ -28,22 +28,26 @@ pub fn backup_insert() -> Result<(), Box<dyn std::error::Error>> {
     for file in files {
         let file = file?;
 
-        is_insert_backup = !file
+        if !is_insert_backup && file
             .file_name()
             .to_str()
-            .map_or(false, |s| s.starts_with(&insert_backup));
+            .map_or(false, |s| s.starts_with(&insert_backup)){
+                is_insert_backup = true;
+        }
 
-        is_copy_backup = !file
+        if !is_copy_backup && file
             .file_name()
             .to_str()
-            .map_or(false, |s| s.starts_with(&copy_backup));
+            .map_or(false, |s| s.starts_with(&copy_backup)){
+                is_copy_backup = true;
+        }
     }
 
-    if is_insert_backup {
+    if !is_insert_backup {
         database_backup::DatabaseBackup.backup_insert("security_api", "security_api_insert_backup");
     }
 
-    if is_copy_backup {
+    if !is_copy_backup {
         database_backup::DatabaseBackup.backup_copy("security_api", "security_api_copy_backup");
     }
 
