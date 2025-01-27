@@ -48,11 +48,7 @@ pub async fn get_security_all_code(task: &DailyTask) -> Result<(), Box<dyn std::
 
     let data = dao::find_one(q_year, q_month, q_day, q_exec_code).await;
     if data.is_none() {
-        match Retry::spawn(retry_strategy, || async {
-            get_web_security_data().await
-        })
-        .await
-        {
+        match Retry::spawn(retry_strategy, || async { get_web_security_data().await }).await {
             Ok(res) => {
                 let new_response_data = ResponseData {
                     row_id: String::new(),
@@ -160,14 +156,12 @@ fn get_twse_price(
     let title = twse_json.title.clone().unwrap_or("".to_string());
     let date = twse_json.date.clone().unwrap_or("".to_string());
     let fields = twse_json.fields.clone().unwrap_or(Vec::<String>::new());
-    let data = get_close_price(
-        &raw_data,
-        tw_ym,
-        date_index,
-        price_index,
-    );
+    let data = get_close_price(&raw_data, tw_ym, date_index, price_index);
 
-    if "Y" == status && !(raw_data.is_empty() && data.is_empty()) {
+    event!(target: "security_api", Level::INFO, "raw_data: {:?}", &raw_data);
+    event!(target: "security_api", Level::INFO, "data: {:?}", &data);
+
+    if "Y" == status && !raw_data.is_empty() && !data.is_empty() {
         return serde_json::to_string(&MonthlyPrice {
             status,
             title,
@@ -263,7 +257,6 @@ pub async fn get_tpex2_json(
     Ok(html_decode(&json_str))
 }
 
-
 /// 取得證券價格
 /// result 1: 略過 2: 重試
 fn get_tpex_price(
@@ -288,7 +281,10 @@ fn get_tpex_price(
         let fields = table.fields.clone();
         let data = get_close_price(&table.data, tw_ym, date_index, price_index);
 
-        if "Y" == status && !(raw_data.is_empty() && data.is_empty()) {
+        event!(target: "security_api", Level::INFO, "raw_data: {:?}", &raw_data);
+        event!(target: "security_api", Level::INFO, "data: {:?}", &data);
+
+        if "Y" == status && !raw_data.is_empty() && !data.is_empty() {
             return serde_json::to_string(&MonthlyPrice {
                 status,
                 title,
