@@ -3,7 +3,7 @@
 use std::{cmp::max, time::Duration};
 
 use chrono::{Local, NaiveDate};
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use tokio::time::{self, sleep};
 use tokio_retry::{strategy::ExponentialBackoff, Retry};
 use tracing::{event, Level};
@@ -53,7 +53,7 @@ pub async fn insert_task_data(task: &DailyTask) -> Result<(), sqlx::Error> {
 
 /// 取得新任務資料
 fn get_new_security_task(data: &SecurityTemp, task: &DailyTask, item_index: i32) -> SecurityTask {
-    let seed: i64 = thread_rng().gen_range(1..=9999999999999);
+    let seed: i64 = rng().random_range(1..=9999999999999);
     let security_seed = format!("{:013}", seed);
     let sort_no = item_index;
 
