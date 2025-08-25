@@ -279,11 +279,7 @@ pub async fn find_all_by_tpex(task: &DailyTask) -> Vec<SecurityTask> {
     }
 }
 
-pub async fn find_all_by_times(
-    q_year: &str,
-    q_month: &str,
-    q_day: &str,
-) -> Vec<SecurityTask> {
+pub async fn find_all_by_times(q_year: &str, q_month: &str, q_day: &str) -> Vec<SecurityTask> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 

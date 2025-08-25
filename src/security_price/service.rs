@@ -27,12 +27,14 @@ pub async fn get_security_to_price(task: &DailyTask) -> Result<(), sqlx::Error> 
         let q_month = &price.open_date_month;
         let q_security_code = &price.security_code;
 
-        let month_prices =
-            dao::find_all(q_year, q_month, q_security_code).await;
+        let month_prices = dao::find_all(q_year, q_month, q_security_code).await;
         if month_prices.len() <= 0 {
             loop_data_res(&price, &Vec::new()).await?;
         } else {
-            let price_dates: Vec<(String, BigDecimal)> = month_prices.iter().map(|x| (x.price_date.clone(), x.price_close.clone())).collect();
+            let price_dates: Vec<(String, BigDecimal)> = month_prices
+                .iter()
+                .map(|x| (x.price_date.clone(), x.price_close.clone()))
+                .collect();
             loop_data_res(&price, &price_dates).await?;
         }
     }
@@ -40,7 +42,10 @@ pub async fn get_security_to_price(task: &DailyTask) -> Result<(), sqlx::Error> 
     Ok(())
 }
 
-async fn loop_data_res(data: &ResposePrice, price_dates: &Vec<(String, BigDecimal)>) -> Result<(), sqlx::Error> {
+async fn loop_data_res(
+    data: &ResposePrice,
+    price_dates: &Vec<(String, BigDecimal)>,
+) -> Result<(), sqlx::Error> {
     let data_content = &data.data_content;
 
     let dao = Repository::new().await;
@@ -60,8 +65,7 @@ async fn loop_data_res(data: &ResposePrice, price_dates: &Vec<(String, BigDecima
                         continue;
                     }
 
-                    match loop_data_price(&mut trax_conn, &new_price_date, &price_close, data)
-                        .await
+                    match loop_data_price(&mut trax_conn, &new_price_date, &price_close, data).await
                     {
                         Ok(_) => {
                             trax_conn.commit().await?;
@@ -85,7 +89,6 @@ async fn loop_data_price(
     price_close: &BigDecimal,
     data: &ResposePrice,
 ) -> Result<(), sqlx::Error> {
-
     let price = SecurityPrice {
         open_date_year: data.open_date_year.clone(),
         open_date_month: data.open_date_month.clone(),
@@ -134,12 +137,7 @@ async fn loop_data_calculator(data: &SecurityPrice) -> Result<(), sqlx::Error> {
     let q_security_code = &data.security_code;
     let q_price_date = &data.price_date;
 
-    let resp_prices = dao::find_all_by_code(
-        q_open_date,
-        q_price_date,
-        q_security_code,
-    )
-    .await;
+    let resp_prices = dao::find_all_by_code(q_open_date, q_price_date, q_security_code).await;
 
     let price_avg =
         get_calculator_avg(&resp_prices.iter().map(|x| x.price_close.clone()).collect());

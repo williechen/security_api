@@ -97,10 +97,7 @@ pub async fn modify(data: SecurityPrice) -> Result<u64, sqlx::Error> {
     }
 }
 
-pub async fn remove(
-    trax_conn: &mut PgConnection,
-    data: SecurityPrice,
-) -> Result<u64, sqlx::Error> {
+pub async fn remove(trax_conn: &mut PgConnection, data: SecurityPrice) -> Result<u64, sqlx::Error> {
     match sqlx::query(
         r"
         DELETE FROM security_price 
@@ -169,11 +166,7 @@ pub async fn find_all_by_res(q_year: &str, q_month: &str) -> Vec<ResposePrice> {
     }
 }
 
-pub async fn find_all(
-    q_year: &str,
-    q_month: &str,
-    q_security_code: &str,
-) -> Vec<SecurityPrice> {
+pub async fn find_all(q_year: &str, q_month: &str, q_security_code: &str) -> Vec<SecurityPrice> {
     let dao = Repository::new().await;
     let conn = dao.connection;
 
@@ -294,11 +287,20 @@ pub async fn find_all_by_date(q_year: &str, q_month: &str, q_day: &str) -> Vec<S
     let conn = dao.connection;
 
     let day = if q_day.is_empty() {
-        format!("%{0:04}/{1:02}%", q_year.parse::<i32>().unwrap() - 1911, q_month.parse::<i32>().unwrap())
-    } else if q_day.is_empty() && q_month.is_empty(){
+        format!(
+            "%{0:04}/{1:02}%",
+            q_year.parse::<i32>().unwrap() - 1911,
+            q_month.parse::<i32>().unwrap()
+        )
+    } else if q_day.is_empty() && q_month.is_empty() {
         format!("%{0:04}%", q_year.parse::<i32>().unwrap() - 1911)
     } else {
-        format!("%{0:04}/{1:02}/{2:02}%", q_year.parse::<i32>().unwrap() - 1911, q_month.parse::<i32>().unwrap(), q_day.parse::<i32>().unwrap())
+        format!(
+            "%{0:04}/{1:02}/{2:02}%",
+            q_year.parse::<i32>().unwrap() - 1911,
+            q_month.parse::<i32>().unwrap(),
+            q_day.parse::<i32>().unwrap()
+        )
     };
 
     match sqlx::query(

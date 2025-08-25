@@ -124,13 +124,9 @@ fn get_new_calendar_date(
 }
 
 async fn check_data_exists(data: &CalendarData) -> bool {
-    dao::find_one(
-        &data.ce_year,
-        &data.ce_month,
-        &data.ce_day,
-    )
-    .await
-    .is_some()
+    dao::find_one(&data.ce_year, &data.ce_month, &data.ce_day)
+        .await
+        .is_some()
 }
 
 pub async fn init_calendar_data() -> Result<(), sqlx::Error> {
