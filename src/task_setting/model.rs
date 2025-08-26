@@ -13,25 +13,23 @@ pub struct TaskSetting {
 
 impl std::fmt::Display for TaskSetting {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone().unwrap_or(String::from(""));
-        let group_code = self.group_code.clone().unwrap_or(String::from(""));
-        let job_code = self.job_code.clone().unwrap_or(String::from(""));
-        let wait_type = self.wait_type.clone().unwrap_or(String::from(""));
-        let wait_number = self.wait_number.unwrap_or(0);
-        let is_enabled = self.is_enabled.unwrap_or(0);
-        let sort_no = self.sort_no.unwrap_or(0);
-
         write!(
             f,
-            r#"{}, 
-            group_code: {}, 
-            job_code: {}, 
-            wait_type: {}, 
-            wait_number: {}, 
-            is_enabled: {},
-            sort_no: {}
+            r#"{0:#?}, 
+            group_code: {1:#?}, 
+            job_code: {2:#?}, 
+            wait_type: {3:#?}, 
+            wait_number: {4:#?}, 
+            is_enabled: {5:#?},
+            sort_no: {6:#?}
             "#,
-            row_id, group_code, job_code, wait_type, wait_number, is_enabled, sort_no,
+            self.row_id,
+            self.group_code,
+            self.job_code,
+            self.wait_type,
+            self.wait_number,
+            self.is_enabled,
+            self.sort_no,
         )
     }
 }

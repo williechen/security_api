@@ -18,18 +18,6 @@ pub struct SecurityTask {
 
 impl std::fmt::Display for SecurityTask {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone();
-        let open_date_year = self.open_date_year.clone();
-        let open_date_month = self.open_date_month.clone();
-        let open_date_day = self.open_date_day.clone();
-        let security_code = self.security_code.clone();
-        let security_name = self.security_name.clone();
-        let market_type = self.market_type.clone();
-        let issue_date = self.issue_date.clone();
-        let exec_seed = self.exec_seed.clone();
-        let exec_count = self.exec_count;
-        let is_enabled = self.is_enabled;
-        let sort_no = self.sort_no;
         write!(
             f,
             r#"{0}, 
@@ -43,18 +31,18 @@ impl std::fmt::Display for SecurityTask {
             is_enabled: {10}, 
             sort_no: {11}
             "#,
-            row_id,
-            open_date_year,
-            open_date_month,
-            open_date_day,
-            security_code,
-            security_name,
-            market_type,
-            issue_date,
-            exec_seed,
-            exec_count,
-            is_enabled,
-            sort_no
+            self.row_id,
+            self.open_date_year,
+            self.open_date_month,
+            self.open_date_day,
+            self.security_code,
+            self.security_name,
+            self.market_type,
+            self.issue_date,
+            self.exec_seed,
+            self.exec_count,
+            self.is_enabled,
+            self.sort_no
         )
     }
 }

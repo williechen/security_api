@@ -19,20 +19,6 @@ pub struct SecurityTemp {
 
 impl std::fmt::Display for SecurityTemp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone();
-        let open_date_year = self.open_date_year.clone();
-        let open_date_month = self.open_date_month.clone();
-        let open_date_day = self.open_date_day.clone();
-        let international_code = self.international_code.clone();
-        let security_code = self.security_code.clone();
-        let security_name = self.security_name.clone();
-        let market_type = self.market_type.clone();
-        let security_type = self.security_type.clone();
-        let industry_type = self.industry_type.clone();
-        let issue_date = self.issue_date.clone();
-        let cfi_code = self.cfi_code.clone();
-        let remark = self.remark.clone();
-
         write!(
             f,
             r#"{0}, 
@@ -47,19 +33,19 @@ impl std::fmt::Display for SecurityTemp {
             cfi_code: {11}, 
             remark: {12}, 
             "#,
-            row_id,
-            open_date_year,
-            open_date_month,
-            open_date_day,
-            international_code,
-            security_code,
-            security_name,
-            market_type,
-            security_type,
-            industry_type,
-            issue_date,
-            cfi_code,
-            remark,
+            self.row_id,
+            self.open_date_year,
+            self.open_date_month,
+            self.open_date_day,
+            self.international_code,
+            self.security_code,
+            self.security_name,
+            self.market_type,
+            self.security_type,
+            self.industry_type,
+            self.issue_date,
+            self.cfi_code,
+            self.remark,
         )
     }
 }

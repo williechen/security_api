@@ -14,13 +14,6 @@ pub struct ResponseData {
 
 impl std::fmt::Display for ResponseData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone();
-        let open_date_year = self.open_date_year.clone();
-        let open_date_month = self.open_date_month.clone();
-        let open_date_day = self.open_date_day.clone();
-        let exec_code = self.exec_code.clone();
-        let data_content = self.data_content.clone();
-
         write!(
             f,
             r#"{0}, 
@@ -28,7 +21,12 @@ impl std::fmt::Display for ResponseData {
             exec_code: {4}, 
             data_content: {5}
             "#,
-            row_id, open_date_year, open_date_month, open_date_day, exec_code, data_content
+            self.row_id,
+            self.open_date_year,
+            self.open_date_month,
+            self.open_date_day,
+            self.exec_code,
+            self.data_content
         )
     }
 }

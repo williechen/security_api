@@ -21,20 +21,6 @@ pub struct SecurityPrice {
 
 impl std::fmt::Display for SecurityPrice {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone();
-        let open_date_year = self.open_date_year.clone();
-        let open_date_month = self.open_date_month.clone();
-        let open_date_day = self.open_date_day.clone();
-        let security_code = self.security_code.clone();
-        let security_name = self.security_name.clone();
-        let price_date = self.price_date.clone();
-        let price_close = self.price_close.clone();
-        let price_avg = self.price_avg.clone();
-        let price_hight = self.price_hight.clone();
-        let price_hight_avg = self.price_hight_avg.clone();
-        let price_lowest = self.price_lowest.clone();
-        let price_lowest_avg = self.price_lowest_avg.clone();
-
         write!(
             f,
             r#"{0}, 
@@ -49,19 +35,19 @@ impl std::fmt::Display for SecurityPrice {
             price_lowest: {11},
             price_lowest_avg: {12},
             "#,
-            row_id,
-            open_date_year,
-            open_date_month,
-            open_date_day,
-            security_code,
-            security_name,
-            price_date,
-            price_close,
-            price_avg,
-            price_hight,
-            price_hight_avg,
-            price_lowest,
-            price_lowest_avg
+            self.row_id,
+            self.open_date_year,
+            self.open_date_month,
+            self.open_date_day,
+            self.security_code,
+            self.security_name,
+            self.price_date,
+            self.price_close,
+            self.price_avg,
+            self.price_hight,
+            self.price_hight_avg,
+            self.price_lowest,
+            self.price_lowest_avg
         )
     }
 }

@@ -13,14 +13,6 @@ pub struct CalendarData {
 
 impl std::fmt::Display for CalendarData {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let row_id = self.row_id.clone();
-        let ce_year = self.ce_year.clone();
-        let tw_year = ce_year.parse::<i32>().unwrap() - 1911;
-        let ce_month = self.ce_month.clone();
-        let ce_day = self.ce_day.clone();
-        let date_status = self.date_status.clone();
-        let group_task = self.group_task.clone();
-
         write!(
             f,
             r#"{0}, 
@@ -29,7 +21,13 @@ impl std::fmt::Display for CalendarData {
             date_status: {5},
             group_task: {6}
             "#,
-            row_id, ce_year, tw_year, ce_month, ce_day, date_status, group_task
+            self.row_id,
+            self.ce_year,
+            self.ce_year.parse::<i32>().unwrap() - 1911,
+            self.ce_month,
+            self.ce_day,
+            self.date_status,
+            self.group_task
         )
     }
 }

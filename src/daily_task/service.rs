@@ -106,7 +106,6 @@ async fn init_security_data(task: &DailyTask) {
         Err(e) => {
             update_task_status(task, "EXEC").await;
             event!(target: "security_api", Level::ERROR, "daily_task.delete_temp {}", &e);
-            panic!("daily_task.delete_temp Error {}", &e)
         }
     }
 }
@@ -120,7 +119,6 @@ async fn reply_security_data(task: &DailyTask) {
         Err(e) => {
             update_task_status(task, "EXEC").await;
             event!(target: "security_api", Level::ERROR, "daily_task.get_web_security {}", &e);
-            panic!("daily_task.get_web_security Error {}", &e)
         }
     }
 }
@@ -134,7 +132,6 @@ async fn response_to_temp(task: &DailyTask) {
         Err(e) => {
             update_task_status(task, "EXEC").await;
             event!(target: "security_api", Level::ERROR, "daily_task.res_to_temp {}", &e);
-            panic!("daily_task.res_to_temp Error {}", &e)
         }
     }
 }
@@ -148,7 +145,6 @@ async fn temp_to_daily_security(task: &DailyTask) {
         Err(e) => {
             update_task_status(task, "EXEC").await;
             event!(target: "security_api", Level::ERROR, "daily_task.temp_to_task {}", &e);
-            panic!("daily_task.temp_to_task Error {}", &e)
         }
     }
 
@@ -166,7 +162,6 @@ async fn executive_daily_security(task: &DailyTask) {
         Err(e) => {
             update_task_status(task, "EXEC").await;
             event!(target: "security_api", Level::ERROR, "daily_task.task_run {}", &e);
-            panic!("daily_task.task_run Error {}", &e)
         }
     }
 }
@@ -180,7 +175,6 @@ async fn parse_security_price(task: &DailyTask) {
         Err(e) => {
             update_task_status(task, "EXEC").await;
             event!(target: "security_api", Level::ERROR, "daily_task.res_price {}", &e);
-            panic!("daily_task.res_price Error {}", &e)
         }
     }
 }
@@ -194,7 +188,6 @@ async fn statistics_average_price(task: &DailyTask) {
         Err(e) => {
             update_task_status(task, "EXEC").await;
             event!(target: "security_api", Level::ERROR,  "daily_task.price_value {}", &e);
-            panic!("daily_task.price_value Error {}", &e)
         }
     }
 }
