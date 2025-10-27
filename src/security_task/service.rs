@@ -3,7 +3,7 @@
 use std::{cmp::max, time::Duration};
 
 use chrono::{Local, NaiveDate};
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use tokio::time::{self, sleep};
 use tokio_retry::{strategy::ExponentialBackoff, Retry};
 use tracing::{event, Level};
@@ -53,7 +53,7 @@ pub async fn insert_task_data(task: &DailyTask) -> Result<(), sqlx::Error> {
 
 /// 取得新任務資料
 fn get_new_security_task(data: &SecurityTemp, task: &DailyTask, item_index: i32) -> SecurityTask {
-    let seed: i64 = thread_rng().gen_range(1..=9999999999999);
+    let seed: i64 = rng().random_range(1..=9999999999999);
     let security_seed = format!("{:013}", seed);
     let sort_no = item_index;
 
@@ -148,23 +148,36 @@ pub async fn get_all_task(task: &DailyTask) -> Result<(), Box<dyn std::error::Er
 
 /// 檢查執行日期
 fn check_exec_date(task: &SecurityTask) -> bool {
-    let y = task.open_date_year.parse().unwrap();
-    let m = task.open_date_month.parse().unwrap();
-    let d = task.open_date_day.parse().unwrap();
+    let y = match task.open_date_year.parse() {
+        Ok(v) => v,
+        Err(_) => 0,
+    };
+    let m = match task.open_date_month.parse() {
+        Ok(v) => v,
+        Err(_) => 0,
+    };
+    let d = match task.open_date_day.parse() {
+        Ok(v) => v,
+        Err(_) => 0,
+    };
 
-    let task_date = NaiveDate::from_ymd_opt(y, m, d).unwrap();
+    let task_date = NaiveDate::from_ymd_opt(y, m, d);
 
     let now_date = Local::now().date_naive();
-    let now_time = now_date.and_hms_opt(15, 30, 0).unwrap();
+    let now_time = now_date.and_hms_opt(15, 30, 0);
     let now_date_time = Local::now().naive_local();
 
-    if task_date == now_date && now_date_time > now_time {
-        return true;
-    } else if task_date != now_date {
-        return true;
+    if let (Some(task_date), Some(now_time)) = (task_date, now_time) {
+        if task_date == now_date && now_date_time > now_time {
+            return true;
+        } else if task_date != now_date {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
     }
-
-    false
 }
 
 /// 取得睡眠時間

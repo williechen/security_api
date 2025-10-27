@@ -9,25 +9,29 @@ use super::{dao, model::CalendarData};
 ///
 /// 取得每個月的最後一天
 ///
-fn last_day_in_month(year: i32, month: u32) -> NaiveDate {
+fn last_day_in_month(year: i32, month: u32) -> u32 {
     let (y, m) = if month == 12 {
         (year + 1, 1)
     } else {
         (year, month + 1)
     };
-    NaiveDate::from_ymd_opt(y, m, 1)
-        .unwrap()
-        .pred_opt()
-        .unwrap()
+    if let Some(date) = NaiveDate::from_ymd_opt(y, m, 1).unwrap().pred_opt() {
+        date.day0()
+    } else {
+        0
+    }
 }
 
 ///
 /// 取得每天的星期
 ///
 fn get_weekday(year: i32, month: u32, day: u32) -> i32 {
-    let date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
-    let weekday = date.weekday().number_from_monday();
-    weekday.try_into().unwrap()
+    if let Some(date) = NaiveDate::from_ymd_opt(year, month, day) {
+        let weekday = date.weekday().number_from_monday();
+        weekday.try_into().unwrap_or(-1)
+    } else {
+        -1
+    }
 }
 
 ///
@@ -71,7 +75,7 @@ fn get_open_stock_date(
     let mut open_stock_dates = Vec::<(i32, u32, u32, i32)>::new();
 
     let mut open_stock_index = 0;
-    let last_day = last_day_in_month(year, month).day();
+    let last_day = last_day_in_month(year, month);
     for day in 1..=last_day {
         if last_price_date.to_string() >= format!("{0:04}{1:02}{2:02}", year, month, day) {
             let security_codes: Vec<String> = price_data
