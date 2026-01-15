@@ -121,27 +121,31 @@ pub async fn find_all_by_res(q_year: &str, q_month: &str) -> Vec<ResposePrice> {
 
     match sqlx::query(
         r" 
-        SELECT rd.data_content
-             , st.open_date_year
-             , st.open_date_month
-             , st.open_date_day
-             , st.security_code
-             , st.security_name
-             , st.market_type
-          FROM response_data rd
-          JOIN security_task st
-            ON rd.exec_code = st.security_code
-           AND rd.open_date_year = st.open_date_year
-           AND rd.open_date_month = st.open_date_month
-         WHERE st.open_date_year = $1
-           AND st.open_date_month = $2
-           AND st.open_date_day = (SELECT MAX(st2.open_date_day) 
-                                      FROM security_task st2 
-                                     WHERE st2.security_code = st.security_code 
-                                       AND st2.open_date_year = st.open_date_year
-                                       AND st2.open_date_month = st.open_date_month
-                                   )
-         ORDER BY st.open_date_year, st.open_date_month,  st.security_code
+        WITH RankedTasks AS (
+    SELECT rd.data_content,
+           st.open_date_year,
+           st.open_date_month,
+           st.open_date_day,
+           st.security_code,
+           st.security_name,
+           st.market_type,
+           ROW_NUMBER() OVER (
+               PARTITION BY st.security_code 
+               ORDER BY st.open_date_day DESC
+           ) as latest_rank
+    FROM response_data rd
+    JOIN security_task st
+      ON rd.exec_code = st.security_code
+     AND rd.open_date_year = st.open_date_year
+     AND rd.open_date_month = st.open_date_month
+    WHERE st.open_date_year = $1
+      AND st.open_date_month = $2
+)
+SELECT data_content, open_date_year, open_date_month, open_date_day, 
+       security_code, security_name, market_type
+FROM RankedTasks
+WHERE latest_rank = 1
+ORDER BY open_date_year, open_date_month, security_code
     ",
     )
     .bind(q_year)
